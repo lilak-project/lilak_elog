@@ -3,7 +3,7 @@
  * so both render the exact same UI from one source of truth.
  */
 import { useState } from 'react'
-import { Icon } from 'lilak-ui'
+import { Icon, Button } from 'lilak-ui'
 import { useLang } from '../context/LangContext'
 import { runNumberText } from '../utils/formatUtils'
 
@@ -60,26 +60,20 @@ export function NumberBadge({ children }) {
   )
 }
 
-/** Card action button (Edit / Comment / Delete …). */
-export function ActionBtn({ onClick, disabled, children, hoverFg, hoverBg, extraClass = '' }) {
+// hoverFg → kit Button variant (the kit Button now IS this soft-pill look).
+const VARIANT_BY_FG = {
+  'var(--success-text)': 'success',
+  'var(--warning-text)': 'warning',
+  'var(--danger-text)': 'danger',
+  'var(--text-link)': 'info',
+}
+
+/** Card action button (Edit / Comment / Delete …) — now the kit Button. */
+export function ActionBtn({ onClick, disabled, children, hoverFg, extraClass = '' }) {
   return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      className={`flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg transition-colors disabled:opacity-50 ${extraClass}`}
-      style={{ backgroundColor: 'var(--surface-2)', color: 'var(--text-secondary)' }}
-      onMouseEnter={e => {
-        if (e.currentTarget.disabled) return
-        if (hoverBg) e.currentTarget.style.backgroundColor = hoverBg
-        if (hoverFg) e.currentTarget.style.color = hoverFg
-      }}
-      onMouseLeave={e => {
-        e.currentTarget.style.backgroundColor = 'var(--surface-2)'
-        e.currentTarget.style.color = 'var(--text-secondary)'
-      }}
-    >
+    <Button variant={VARIANT_BY_FG[hoverFg] || 'secondary'} size="sm" onClick={onClick} disabled={disabled} className={extraClass}>
       {children}
-    </button>
+    </Button>
   )
 }
 

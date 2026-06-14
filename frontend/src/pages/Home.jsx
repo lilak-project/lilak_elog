@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
-import { LogToolbar, LogList, Pagination, useTaggables, tagColors, Icon, ChipGroup, Callout, openBarInput, closeBarInput } from 'lilak-ui'
+import { LogToolbar, LogList, Pagination, useTaggables, tagColors, Icon, ChipGroup, Callout, Button, openBarInput, closeBarInput } from 'lilak-ui'
 import api from '../api'
 import LogCard from '../components/LogCard'
 import LogCardExpanded from '../components/LogCardExpanded'
@@ -9,8 +9,6 @@ import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LangContext'
 import { useTab } from '../context/TabContext'
 import { useTheme } from '../context/ThemeContext'
-import { combo } from '../theme/textCombos'
-import { hoverify } from '../theme/uiStyles'
 import { severityStyle } from '../components/EntryShared'
 
 const VIEW_MODES = ['brief', 'normal', 'rich']
@@ -756,17 +754,8 @@ export default function Home() {
           )}
         </>}
         actions={user && <>
-          <button onClick={() => openSettings('formats')}
-            className="h-8 text-xs px-3 rounded-lg font-medium transition-colors whitespace-nowrap"
-            style={{ backgroundColor: 'var(--surface-2)', color: 'var(--text-secondary)', border: '1px solid var(--border-default)' }}
-            onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--surface-3)'}
-            onMouseLeave={e => e.currentTarget.style.backgroundColor = 'var(--surface-2)'}
-          >Manage Formats</button>
-          <button onClick={() => openNewLog()}
-            className="h-8 text-xs px-3 rounded-lg font-medium transition-colors whitespace-nowrap"
-            style={combo('solidSuccess')}
-            {...hoverify(combo('solidSuccess'), { backgroundColor: 'var(--success-bg)', color: 'var(--success-text)' })}
-          >{t('home_new')}</button>
+          <Button variant="secondary" size="md" onClick={() => openSettings('formats')}>Manage Formats</Button>
+          <Button variant="success" size="md" onClick={() => openNewLog()}>{t('home_new')}</Button>
         </>}
       />
 
