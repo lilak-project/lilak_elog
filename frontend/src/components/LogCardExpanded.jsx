@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { LogDetail, Icon } from 'lilak-ui'
-import api from '../api'
+import api, { apiBaseFor, getExperiment } from '../api'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LangContext'
 import { useTab } from '../context/TabContext'
@@ -471,6 +471,7 @@ export default function LogCardExpanded({
       tagColorMap={tagColorsExp}
       focused={focused}
       onClose={onClose}
+      attachmentHref={(att) => `${apiBaseFor(getExperiment())}/attachments/${att.id}`}
       labels={{
         noBody: t('detail_no_body'),
         attachments: (n) => t('detail_attachments', n),

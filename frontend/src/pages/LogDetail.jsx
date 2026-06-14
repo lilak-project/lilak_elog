@@ -3,7 +3,10 @@ import { Icon } from 'lilak-ui'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import api from '../api'
+import api, { apiBaseFor, getExperiment } from '../api'
+
+// Experiment-aware attachment URL (raw <img>/<a> bypass axios' baseURL).
+const attUrl = (id) => `${apiBaseFor(getExperiment())}/attachments/${id}`
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LangContext'
 import { useTab } from '../context/TabContext'
@@ -163,8 +166,8 @@ export default function LogDetail() {
             </h3>
             <div className="flex flex-wrap gap-3 mb-3">
               {entry.attachments.filter(a => isImage(a.content_type)).map(a => (
-                <a key={a.id} href={`/api/attachments/${a.id}`} target="_blank" rel="noopener noreferrer">
-                  <img src={`/api/attachments/${a.id}`} alt={a.original_filename}
+                <a key={a.id} href={attUrl(a.id)} target="_blank" rel="noopener noreferrer">
+                  <img src={attUrl(a.id)} alt={a.original_filename}
                     className="h-28 w-auto rounded-lg border object-cover hover:opacity-90 transition-opacity"
                     style={{ borderColor: 'var(--border-default)' }} />
                 </a>
@@ -174,7 +177,7 @@ export default function LogDetail() {
               {entry.attachments.map(a => (
                 <li key={a.id} className="flex items-center gap-2 text-sm">
                   <span className="text-[10px] font-mono uppercase" style={{ color: 'var(--text-muted)' }}>{isImage(a.content_type) ? 'img' : 'file'}</span>
-                  <a href={`/api/attachments/${a.id}`} className="hover:underline"
+                  <a href={attUrl(a.id)} className="hover:underline"
                      style={{ color: 'var(--text-link)' }}
                      download={a.original_filename}>
                     {a.original_filename}
