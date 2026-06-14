@@ -31,6 +31,11 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       port: PORT,
+      // Bind to 0.0.0.0 so the dev server is reachable from other devices on the
+      // LAN (e.g. a phone) at http://<this-machine-LAN-IP>:PORT. The /api and
+      // /launcher proxies still run on this machine, so the phone only needs the
+      // frontend to be reachable.
+      host: true,
       fs: { allow: [resolve(__dirname), resolve(__dirname, '../../lilak_ui')] },
       proxy: {
         // `/launcher/*` -> the launcher root (project list + per-experiment proxy)
