@@ -1,21 +1,38 @@
-# dependencies / build output
+# ── Frontend (Node / Vite) ────────────────────────────────────────────────
 node_modules/
 frontend/node_modules/
 frontend/dist/
 frontend/.vite/
 dist/
 
-# logs
-*.log
-npm-debug.log*
+# ── Backend (Python) ──────────────────────────────────────────────────────
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
 
-# local config / secrets (commit .env.example only)
+# ── Runtime state — NEVER commit (per-experiment SQLite DBs, uploads, logs) ─
+data/
+uploads/
+logs/
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# ── Local config / secrets (commit only the *.example) ────────────────────
 .env
 .env.local
 *.env
 !.env.example
+!discord_relay.env.example
 
-# os / editor
+# ── Misc ──────────────────────────────────────────────────────────────────
+*.log
+npm-debug.log*
+_preview_*.html
 .DS_Store
 .idea/
 .vscode/
