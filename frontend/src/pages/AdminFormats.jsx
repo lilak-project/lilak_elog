@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Icon } from 'lilak-ui'
+import { Icon, Button } from 'lilak-ui'
 import api from '../api'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LangContext'
@@ -551,14 +551,9 @@ export default function AdminFormats() {
   return (
     <div className="max-w-3xl mx-auto pb-20">
       <div className="flex items-center justify-end mb-3">
-        <button
-          onClick={() => setModal('new')}
-          className="px-3 h-8 rounded-lg text-xs transition-colors"
-          style={btnPrimary}
-          {...hoverify(btnPrimary, btnPrimaryHover)}
-        >
+        <Button variant="primary" size="sm" onClick={() => setModal('new')}>
           {t('admin_fmt_new')}
-        </button>
+        </Button>
       </div>
 
       {loading ? (

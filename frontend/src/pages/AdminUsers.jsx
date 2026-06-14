@@ -120,7 +120,7 @@ export default function AdminUsers() {
         columns={[
           { key: 'username', header: t('admin_col_username'), render: (u) => (
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-              <Avatar icon={u.profile_shape} color={u.profile_color} seed={u.username} size={22} />
+              <Avatar icon={u.profile_shape} color={u.role === 'manager' ? '#111827' : u.profile_color} seed={u.username} size={22} />
               <span style={{ fontFamily: 'var(--font-mono)' }}>{u.username}</span>
               {u.id === user.user_id && <span style={{ fontSize: 'var(--fs-micro, 10px)', color: 'var(--text-link)' }}>{t('admin_me')}</span>}
             </span>

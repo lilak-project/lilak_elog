@@ -1,7 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
 import {
-  Avatar, randomAvatar, Input, Button, Icon, Stack, Row, Grid,
+  Avatar, randomAvatar, AVATAR_ICONS, AVATAR_COLORS, Input, Button, Icon, Stack, Row, Grid,
 } from 'lilak-ui'
+
+// Manager profiles are always black (the colour is locked, randomize keeps it).
+export const MANAGER_COLOR = '#111827'
 import { useAuth } from '../../context/AuthContext'
 import { useTab } from '../../context/TabContext'
 import { useLang } from '../../context/LangContext'
@@ -39,18 +42,56 @@ function ErrorBanner({ children }) {
 
 const card = { border: '1px solid var(--border-default)', backgroundColor: 'var(--surface)', borderRadius: 12, boxShadow: '0 1px 2px rgba(0,0,0,.04)', padding: 20 }
 
-/* ── Avatar preview + randomize button (now rolls a random Phosphor icon) ───── */
-function ProfilePicker({ shape, color, username, onRoll, busy, label }) {
+/* ── Avatar preview + randomize + a browsable icon/colour grid ──────────────── */
+function ProfilePicker({ shape, color, username, isManager = false, onRoll, onPick, busy, label, size = 48 }) {
+  const [open, setOpen] = useState(false)
+  const effColor = isManager ? MANAGER_COLOR : color
   return (
-    <Row gap={12} align="center">
-      <Avatar icon={shape} color={color} seed={username} size={48} />
-      <div style={{ flex: 1, minWidth: 0 }}>
-        {label && <div style={{ fontSize: 'var(--fs-small, 12px)', color: 'var(--text-secondary)', marginBottom: 4 }}>{label}</div>}
-        <Button variant="secondary" type="button" onClick={onRoll} disabled={busy} icon={false}>
-          <Row gap={5} align="center" as="span"><Icon name="refresh" size={13} />{busy ? '…' : '랜덤'}</Row>
-        </Button>
-      </div>
-    </Row>
+    <Stack gap={8}>
+      <Row gap={12} align="center">
+        <Avatar icon={shape} color={effColor} seed={username} size={size} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {label && <div style={{ fontSize: 'var(--fs-small, 12px)', color: 'var(--text-secondary)', marginBottom: 4 }}>{label}</div>}
+          <Row gap={6} align="center" as="span">
+            <Button variant="secondary" type="button" onClick={onRoll} disabled={busy}>
+              <Row gap={5} align="center" as="span"><Icon name="refresh" size={13} />{busy ? '…' : '랜덤'}</Row>
+            </Button>
+            {onPick && (
+              <Button variant="ghost" type="button" onClick={() => setOpen(o => !o)}>
+                {open ? '닫기' : '아이콘 선택'}
+              </Button>
+            )}
+          </Row>
+        </div>
+      </Row>
+
+      {onPick && open && (
+        <div style={{ border: '1px solid var(--border-default)', borderRadius: 10, padding: 10, backgroundColor: 'var(--surface-2)' }}>
+          {/* all available icons */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(34px, 1fr))', gap: 6, maxHeight: 168, overflowY: 'auto' }}>
+            {AVATAR_ICONS.map(ic => (
+              <button key={ic} type="button" title={ic} onClick={() => onPick(ic, effColor)}
+                style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: 2, borderRadius: 8, cursor: 'pointer',
+                  background: 'none', border: ic === shape ? '2px solid var(--border-focus)' : '1px solid var(--border-default)' }}>
+                <Avatar icon={ic} color={effColor} size={26} />
+              </button>
+            ))}
+          </div>
+          {/* all available colours — managers are locked to black */}
+          {isManager ? (
+            <div style={{ marginTop: 8, fontSize: 'var(--fs-tiny, 11px)', color: 'var(--text-muted)' }}>매니저 프로필 색상은 검은색으로 고정됩니다.</div>
+          ) : (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+              {AVATAR_COLORS.map(c => (
+                <button key={c} type="button" title={c} onClick={() => onPick(shape, c)}
+                  style={{ width: 22, height: 22, borderRadius: '50%', backgroundColor: c, cursor: 'pointer',
+                    border: c === color ? '2px solid var(--text-primary)' : '1px solid var(--border-default)' }} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </Stack>
   )
 }
 
@@ -188,7 +229,8 @@ function RegisterForm({ onSuccess }) {
           <h3 style={{ margin: 0, fontWeight: 600, color: 'var(--text-secondary)' }}>{t('register_tab')}</h3>
 
           <div style={{ paddingBottom: 12, borderBottom: '1px solid var(--border-subtle)' }}>
-            <ProfilePicker shape={form.profile_shape} color={form.profile_color} username={form.username} onRoll={rollProfile} label={t('reg_profile')} />
+            <ProfilePicker shape={form.profile_shape} color={form.profile_color} username={form.username}
+              onRoll={rollProfile} onPick={(s, c) => setForm(p => ({ ...p, profile_shape: s, profile_color: c }))} label={t('reg_profile')} />
           </div>
 
           <Field label={<>{t('reg_username')} {req}{hint(t('reg_username_hint'))}</>}>
@@ -259,9 +301,16 @@ function AccountInfo() {
 
   function handleLogout() { logout(); activateTab('logs') }
 
+  const isManager = user.role === 'manager'
   function rollProfile() {
     const next = randomAvatar()
+    // Managers keep the locked black colour; only the icon rerolls.
+    if (isManager) next.profile_color = MANAGER_COLOR
     setForm(p => ({ ...p, ...next }))
+    setSavedMsg(null)
+  }
+  function pickProfile(shape, color) {
+    setForm(p => ({ ...p, profile_shape: shape, profile_color: isManager ? MANAGER_COLOR : color }))
     setSavedMsg(null)
   }
 
@@ -279,7 +328,7 @@ function AccountInfo() {
     setSaving(true); setError(null); setSavedMsg(null)
     try {
       await api.patch('/auth/me', {
-        profile_shape: form.profile_shape, profile_color: form.profile_color,
+        profile_shape: form.profile_shape, profile_color: isManager ? MANAGER_COLOR : form.profile_color,
         email: form.email, phone: form.phone, experiment_role: form.experiment_role,
         participation_from: form.participation_from, participation_to: form.participation_to,
       })
@@ -311,22 +360,19 @@ function AccountInfo() {
   return (
     <Stack gap={16} style={{ maxWidth: 384 }}>
       <Stack gap={16} style={card}>
-        {/* Header — live avatar preview + username + role + roll */}
-        <Row gap={12} align="center">
-          <Avatar icon={form.profile_shape} color={form.profile_color} seed={user.username} size={56} />
-          <div>
-            <p style={{ margin: 0, fontWeight: 600, fontSize: 'var(--fs-large, 16px)', color: 'var(--text-primary)' }}>{user.username}</p>
-            <span style={{ fontSize: 'var(--fs-small, 12px)', padding: '1px 8px', borderRadius: 999, fontWeight: 500,
-              ...(user.role === 'manager'
-                ? { backgroundColor: 'var(--warning-bg)', color: 'var(--warning-text)' }
-                : { backgroundColor: 'var(--surface-2)', color: 'var(--text-secondary)' }) }}>
-              {user.role}
-            </span>
-          </div>
-          <Button variant="secondary" type="button" onClick={rollProfile} style={{ marginLeft: 'auto' }}>
-            <Row gap={5} align="center" as="span"><Icon name="refresh" size={13} />{t('settings_roll_profile')}</Row>
-          </Button>
+        {/* Header — username + role */}
+        <Row gap={10} align="center">
+          <p style={{ margin: 0, fontWeight: 600, fontSize: 'var(--fs-large, 16px)', color: 'var(--text-primary)' }}>{user.username}</p>
+          <span style={{ fontSize: 'var(--fs-small, 12px)', padding: '1px 8px', borderRadius: 999, fontWeight: 500,
+            ...(isManager
+              ? { backgroundColor: 'var(--warning-bg)', color: 'var(--warning-text)' }
+              : { backgroundColor: 'var(--surface-2)', color: 'var(--text-secondary)' }) }}>
+            {user.role}
+          </span>
         </Row>
+        {/* Profile avatar — live preview + randomize + browse-all grid */}
+        <ProfilePicker shape={form.profile_shape} color={form.profile_color} username={user.username}
+          isManager={isManager} onRoll={rollProfile} onPick={pickProfile} size={56} />
 
         {/* Editable fields */}
         <Stack gap={12} style={{ paddingTop: 12, borderTop: '1px solid var(--border-subtle)' }}>
