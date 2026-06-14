@@ -127,10 +127,10 @@ export default function AdminUsers() {
           ) },
           { key: 'email', header: t('admin_col_email'), muted: true, render: (u) => u.email || '—' },
           { key: 'phone', header: '전화번호', mono: true, muted: true, render: (u) => u.phone || '—' },
-          { key: 'role', header: t('admin_col_role'), render: (u) => badge(u.role, roleTone(u.role)) },
+          { key: 'role', header: t('admin_col_role'), fit: true, render: (u) => badge(u.role, roleTone(u.role)) },
           { key: 'part', header: '참여 기간', render: (u) => (u.participation_from || u.participation_to) ? `${u.participation_from || '…'} ~ ${u.participation_to || '…'}` : '—' },
-          { key: 'status', header: t('admin_col_status'), render: (u) => badge(u.is_active ? t('admin_active') : t('admin_inactive'), statusTone(u.is_active)) },
-          { key: 'logs', header: '로그', mono: true, render: (u) => u.log_count ?? 0 },
+          { key: 'status', header: t('admin_col_status'), fit: true, render: (u) => badge(u.is_active ? t('admin_active') : t('admin_inactive'), statusTone(u.is_active)) },
+          { key: 'logs', header: '로그', mono: true, fit: true, align: 'right', render: (u) => u.log_count ?? 0 },
         ]}
         formFields={[
           { key: 'username', label: t('admin_col_username'), requiredOnCreate: true, disabledOnEdit: true, placeholder: '3~32 chars' },
