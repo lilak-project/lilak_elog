@@ -69,6 +69,7 @@ export default {
   badge_run: 'Run',
 
   // Pagination
+  mini_goto_ph: '번호',
   page_prev: '← 이전',
   page_next: '다음 →',
   page_info: (page, total_pages, total) => `${page} / ${total_pages} 페이지 · 총 ${total}건`,

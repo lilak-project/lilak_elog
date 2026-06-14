@@ -69,6 +69,7 @@ export default {
   badge_run: 'Run',
 
   // Pagination
+  mini_goto_ph: 'no.',
   page_prev: '← Prev',
   page_next: 'Next →',
   page_info: (page, total_pages, total) => `Page ${page} of ${total_pages} · ${total} entries`,

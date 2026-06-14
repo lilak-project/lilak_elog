@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
-import { LogToolbar, LogList, Pagination, useTaggables, tagColors, Icon, ChipGroup, Callout, openBarInput, closeBarInput, openBarLead } from 'lilak-ui'
+import { LogToolbar, LogList, Pagination, useTaggables, tagColors, Icon, ChipGroup, Callout, openBarInput, closeBarInput } from 'lilak-ui'
 import api from '../api'
 import LogCard from '../components/LogCard'
 import LogCardExpanded from '../components/LogCardExpanded'
@@ -92,6 +92,12 @@ export default function Home() {
   const [cmdMode, setCmdMode] = useState(true)
   const [focusedIdx, setFocusedIdx] = useState(0)
   const [expandedId, setExpandedId] = useState(null)
+  // `g` gesture: a quick double-tap (gg) jumps to the top without opening the
+  // full bar; a single `g` opens a tiny bubble input (`miniGoto`) for `_<n>`.
+  const gTapRef = useRef(0)
+  const gTimerRef = useRef(null)
+  const miniRef = useRef(null)
+  const [miniGoto, setMiniGoto] = useState(null)   // null = closed, '' or value = open
 
   // ── New-log draft flow ─────────────────────────────────────────────────────
   // New log = create an empty entry, then edit it inline. Cancel deletes it.
@@ -221,23 +227,26 @@ export default function Home() {
       if (e.metaKey || e.ctrlKey) return
 
       switch (e.key) {
-        // List is displayed reversed (newest at bottom = index 0), so
-        // down(j) → lower index (newer), up(k) → higher index (older)
-        case 'j': case 'ArrowDown': e.preventDefault(); moveFocus(-1); break
-        case 'k': case 'ArrowUp':   e.preventDefault(); moveFocus(1);  break
-        case 'J':                   e.preventDefault(); moveFocus(-10); break
-        case 'K':                   e.preventDefault(); moveFocus(10);  break
+        // Newest is at the TOP now (index 0 = newest = top). So:
+        // down(j) → higher index (older), up(k) → lower index (newer).
+        case 'j': case 'ArrowDown': e.preventDefault(); moveFocus(1);  break
+        case 'k': case 'ArrowUp':   e.preventDefault(); moveFocus(-1); break
+        case 'J':                   e.preventDefault(); moveFocus(10);  break
+        case 'K':                   e.preventDefault(); moveFocus(-10); break
         case 'G':
         case 'End':
-          // G/End → newest entry = index 0 (bottom of reversed list) + scroll to page bottom
+          // G/End → oldest = last index (bottom). Two-step: first jump to it,
+          // a second G (already focused there) scrolls to the very bottom.
           e.preventDefault()
-          setFocusedIdx(() => { scrollToFocused(0); return 0 })
-          setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 80)
+          { const last = entries.length - 1; if (last < 0) break
+            if (focusedIdx === last) window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })
+            else { setFocusedIdx(last); scrollToFocused(last) } }
           break
         case 'Home':
-          // Home → oldest entry = last index (top of reversed list)
+          // Home → newest = index 0 (top). Two-step: second Home scrolls to the very top.
           e.preventDefault()
-          { const last = entries.length - 1; setFocusedIdx(last); scrollToFocused(last) }
+          if (focusedIdx === 0) window.scrollTo({ top: 0, behavior: 'smooth' })
+          else { setFocusedIdx(0); scrollToFocused(0) }
           break
         case '{':
           e.preventDefault()
@@ -255,11 +264,28 @@ export default function Home() {
           e.preventDefault()
           { const idx = PAGE_SIZES.indexOf(pageSize); if (idx < PAGE_SIZES.length - 1) changePageSize(PAGE_SIZES[idx + 1]) }
           break
-        case 'g':
-          // pop the ONE collapsible bar open in `_` (log index) goto mode
+        case 'g': {
+          // gg (quick double-tap) → jump to the top, no full bar. A lone g opens
+          // a tiny bubble input for `_<n>` goto.
           e.preventDefault()
-          openBarLead('_')
+          const now = Date.now()
+          if (now - gTapRef.current < 350) {
+            gTapRef.current = 0
+            if (gTimerRef.current) { clearTimeout(gTimerRef.current); gTimerRef.current = null }
+            setMiniGoto(null)
+            // two-step: first jump to the top entry; a second gg goes to the very top.
+            if (focusedIdx === 0) window.scrollTo({ top: 0, behavior: 'smooth' })
+            else { setFocusedIdx(0); setTimeout(() => scrollToFocused(0), 0) }
+          } else {
+            gTapRef.current = now
+            if (gTimerRef.current) clearTimeout(gTimerRef.current)
+            gTimerRef.current = setTimeout(() => {
+              gTapRef.current = 0; gTimerRef.current = null
+              setMiniGoto(''); setTimeout(() => miniRef.current?.focus(), 0)
+            }, 320)
+          }
           break
+        }
         case 'o':
         case ' ': {
           e.preventDefault()
@@ -303,7 +329,7 @@ export default function Home() {
   useEffect(() => () => closeBarInput(), [])
 
   // Keep the focused entry on screen. On tab-entry / new data this scrolls to
-  // the focused (newest, index 0 = bottom of the reversed list); on arrow nav it
+  // the focused (newest, index 0 = top of the feed); on arrow nav it
   // follows the cursor; when an entry is open it scrolls that entry into view —
   // top-aligned if it's taller than the viewport so its start is visible.
   useEffect(() => {
@@ -416,11 +442,13 @@ export default function Home() {
       const li = e.detail?.logIndex; if (li == null || Number.isNaN(li)) return
       setServerSearchQuery(''); setCmdFilter({ logIndex: li })
     }
-    // `gg` from the `_` goto bar → jump to the top (oldest = last index, reversed).
+    // `gg` from the `_` goto bar → jump to the top (newest = index 0). Two-step:
+    // if already on the top entry, scroll to the very top.
     function onGotoTop() {
-      const last = entries.length - 1; if (last < 0) return
-      setFocusedIdx(last)
-      setTimeout(() => { window.scrollTo({ top: 0, behavior: 'smooth' }); scrollToFocused(last) }, 0)
+      if (entries.length === 0) return
+      if (focusedIdx === 0) { window.scrollTo({ top: 0, behavior: 'smooth' }); return }
+      setFocusedIdx(0)
+      setTimeout(() => scrollToFocused(0), 0)
     }
     function onFindRun(e) {
       const run = e.detail?.run; if (run == null || Number.isNaN(run)) return
@@ -850,7 +878,7 @@ export default function Home() {
       <LogList
         entries={filteredEntries}
         groupBy={groupBy}
-        reverse
+        reverse={false}
         gap={viewMode === 'brief' ? 2 : 12}
         renderItem={(e, idx) => {
           // Inline edit — the open log card turns into an editable form in place.
@@ -891,6 +919,35 @@ export default function Home() {
         <Pagination page={page} pageSize={pageSize} total={total}
           onPageChange={p => setPage(p)} loading={loading}
           labels={{ prev: t('page_prev'), next: t('page_next'), info: (p, tp, tot) => t('page_info', p, tp, tot) }} />
+      )}
+
+      {/* Tiny `_<n>` goto bubble — opened by a lone `g` (gg jumps to top instead). */}
+      {miniGoto !== null && (
+        <div style={{ position: 'fixed', left: '50%', bottom: 54, transform: 'translateX(-50%)', zIndex: 50,
+          display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 999,
+          backgroundColor: 'var(--nav-bg)', color: 'var(--nav-text)', boxShadow: '0 4px 16px rgba(0,0,0,0.28)' }}>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-small, 12px)', color: 'var(--nav-text-muted)' }}>_</span>
+          <input
+            ref={miniRef} value={miniGoto} inputMode="numeric" autoFocus
+            onChange={(e) => setMiniGoto(e.target.value.replace(/[^0-9]/g, ''))}
+            onBlur={() => setMiniGoto(null)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault(); const n = parseInt(miniGoto, 10)
+                if (!Number.isNaN(n)) window.dispatchEvent(new CustomEvent('lilak:cmd:find-log', { detail: { logIndex: n } }))
+                setMiniGoto(null)
+              } else if (e.key === 'Escape') {
+                e.preventDefault(); e.stopPropagation(); setMiniGoto(null)
+              } else if (e.key === 'g' && miniGoto === '') {
+                // a slow gg: a g typed in the still-empty bubble jumps to the top
+                e.preventDefault(); setMiniGoto(null)
+                if (focusedIdx === 0) window.scrollTo({ top: 0, behavior: 'smooth' })
+                else { setFocusedIdx(0); setTimeout(() => scrollToFocused(0), 0) }
+              }
+            }}
+            placeholder={t('mini_goto_ph') || '번호'}
+            style={{ width: 54, background: 'transparent', border: 'none', outline: 'none', color: 'var(--nav-text)', fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-small, 12px)' }} />
+        </div>
       )}
 
     </div>
