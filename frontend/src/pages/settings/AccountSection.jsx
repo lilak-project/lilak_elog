@@ -276,6 +276,23 @@ function AccountInfo() {
     } finally { setSaving(false) }
   }
 
+  // ── Change my password (self-service; verifies the current one) ──
+  const [pw, setPw] = useState({ current: '', next: '' })
+  const [pwBusy, setPwBusy] = useState(false)
+  const [pwErr, setPwErr] = useState(null)
+  const [pwMsg, setPwMsg] = useState(null)
+  async function changePassword() {
+    if (pwBusy || !pw.current || !pw.next) return
+    setPwBusy(true); setPwErr(null); setPwMsg(null)
+    try {
+      await api.patch('/auth/me/password', { current_password: pw.current, new_password: pw.next })
+      setPw({ current: '', next: '' }); setPwMsg(t('projects_pw_ok'))
+      setTimeout(() => setPwMsg(null), 2500)
+    } catch (e) {
+      setPwErr(e.response?.data?.detail || t('projects_pw_fail'))
+    } finally { setPwBusy(false) }
+  }
+
   return (
     <Stack gap={16} style={{ maxWidth: 384 }}>
       <Stack gap={16} style={card}>
@@ -325,6 +342,23 @@ function AccountInfo() {
         </Button>
         <Button variant="dangerSoft" type="button" onClick={handleLogout} style={{ width: '100%', padding: '8px 0' }}>
           {t('nav_logout')}
+        </Button>
+      </Stack>
+
+      {/* Change password */}
+      <Stack gap={12} style={card}>
+        <p style={{ margin: 0, fontWeight: 600, fontSize: 'var(--fs-body, 13px)', color: 'var(--text-primary)' }}>{t('projects_change_pw')}</p>
+        <Field label={t('projects_pw_current')}>
+          <PwField value={pw.current} onChange={e => setPw(p => ({ ...p, current: e.target.value }))} />
+        </Field>
+        <Field label={t('projects_pw_new')}>
+          <PwField value={pw.next} onChange={e => setPw(p => ({ ...p, next: e.target.value }))} />
+        </Field>
+        {pwErr && <ErrorBanner>{pwErr}</ErrorBanner>}
+        {pwMsg && <div style={{ fontSize: 'var(--fs-small, 12px)', textAlign: 'center', color: 'var(--info-text)' }}>{pwMsg}</div>}
+        <Button type="button" onClick={changePassword} disabled={pwBusy || !pw.current || !pw.next}
+          style={{ width: '100%', padding: '9px 0', opacity: (pwBusy || !pw.current || !pw.next) ? 0.5 : 1 }}>
+          {t('projects_pw_submit')}
         </Button>
       </Stack>
     </Stack>

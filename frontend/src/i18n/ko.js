@@ -554,6 +554,13 @@ export default {
   projects_drop_hint:      '내보낸 .zip을 드래그하거나 [가져오기] — 위 칸에 적은 이름으로(비우면 파일 이름으로) 생성됩니다',
   projects_import_fail:    '가져오기에 실패했습니다.',
   projects_import_exists:  '같은 이름의 프로젝트가 이미 있습니다. 위 입력칸에 다른 이름을 적고 다시 가져오세요.',
+  projects_import_staged:  (file, name) => `가져올 파일: ${file} → "${name}" 이름으로 만들려면 [가져오기]를 누르세요`,
+  projects_change_pw:      '비밀번호 변경',
+  projects_pw_current:     '현재 비밀번호',
+  projects_pw_new:         '새 비밀번호',
+  projects_pw_submit:      '변경',
+  projects_pw_ok:          '비밀번호가 변경되었습니다.',
+  projects_pw_fail:        '비밀번호 변경에 실패했습니다.',
 
   // ── Schedule ──────────────────────────────────────────────────────────────
   tab_schedule:            '스케줄',

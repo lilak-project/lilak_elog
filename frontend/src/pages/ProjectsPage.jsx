@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Icon, Button, Container, Modal, randomProjectIcon, PROJECT_ICONS, AVATAR_COLORS } from 'lilak-ui'
-import { launcher, getExperiment, setExperiment } from '../api'
+import api, { launcher, getExperiment, setExperiment } from '../api'
 import { useLang } from '../context/LangContext'
 import { useAuth } from '../context/AuthContext'
 
@@ -51,6 +51,26 @@ export default function ProjectsPage() {
   const fileRef = useRef(null)
   const [importing, setImporting] = useState(false)
   const [dragOver, setDragOver] = useState(false)
+  const [stagedFile, setStagedFile] = useState(null)   // file waiting for a confirming Import click
+
+  // change-password modal
+  const [pwOpen, setPwOpen] = useState(false)
+  const [pwForm, setPwForm] = useState({ current: '', next: '' })
+  const [pwErr, setPwErr] = useState('')
+  const [pwMsg, setPwMsg] = useState('')
+  const [pwBusy, setPwBusy] = useState(false)
+
+  async function doChangePassword(e) {
+    e?.preventDefault?.()
+    setPwBusy(true); setPwErr(''); setPwMsg('')
+    try {
+      await api.patch('/auth/me/password', { current_password: pwForm.current, new_password: pwForm.next })
+      setPwMsg(t('projects_pw_ok')); setPwForm({ current: '', next: '' })
+      setTimeout(() => setPwOpen(false), 900)
+    } catch (err) {
+      setPwErr(err?.response?.data?.detail || t('projects_pw_fail'))
+    } finally { setPwBusy(false) }
+  }
 
   async function refresh() {
     try {
@@ -125,25 +145,45 @@ export default function ProjectsPage() {
     document.body.appendChild(a); a.click(); a.remove()
   }
 
-  // Import an exported .zip (drag-dropped or picked) → creates a new project.
-  // The new name is the one typed in the field above; if empty, the .zip's name.
-  // A name clash is rejected (never overwrites) — the user picks another name.
-  async function doImportFile(f) {
+  // First free name: base, else base_2, base_3, … (avoids clashing existing ones).
+  function freeName(base) {
+    const names = new Set((projects || []).map((p) => p.name))
+    const clean = base.replace(/[^A-Za-z0-9_-]/g, '') || 'imported'
+    if (!names.has(clean)) return clean
+    let n = 2
+    while (names.has(`${clean}_${n}`)) n++
+    return `${clean}_${n}`
+  }
+
+  // Drag-dropping / picking a .zip does NOT import immediately — it STAGES the
+  // file and pre-fills the name with the first free suggestion, then highlights
+  // the Import button so the user confirms (with that name or one they retype).
+  function stageFile(f) {
     if (!isManager || !f) return
+    setError(''); setStagedFile(f)
+    setNewName(freeName(f.name.replace(/\.zip$/i, '')))
+    newRef.current?.focus()
+  }
+
+  // Confirm: upload the staged file under the (possibly edited) name field.
+  async function doImportFile() {
+    if (!isManager || !stagedFile) return
     setImporting(true); setError('')
     try {
       const fd = new FormData()
-      fd.append('file', f, f.name)
+      fd.append('file', stagedFile, stagedFile.name)
       const target = newName.trim()
       if (target) fd.append('name', target)
       await launcher.post('/projects/import', fd, { headers: { 'Content-Type': 'multipart/form-data' } })
-      setNewName('')
+      setNewName(''); setStagedFile(null)
       await refresh()
     } catch (err) {
       if (err?.response?.status === 409) setError(t('projects_import_exists'))
       else setError(err?.response?.data?.detail || t('projects_import_fail'))
     } finally { setImporting(false); if (fileRef.current) fileRef.current.value = '' }
   }
+
+  function cancelStaged() { setStagedFile(null); setNewName('') }
 
   const card = {
     display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px',
@@ -172,6 +212,7 @@ export default function ProjectsPage() {
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 'var(--fs-small, 12px)', color: 'var(--text-secondary)' }}>
                   <Icon name="user" size={14} /> {user.username}
                 </span>
+                <Button variant="ghost" onClick={() => { setPwErr(''); setPwMsg(''); setPwForm({ current: '', next: '' }); setPwOpen(true) }}>{t('projects_change_pw')}</Button>
                 <Button variant="ghost" onClick={logout}>{t('projects_logout')}</Button>
               </>
             ) : (
@@ -200,33 +241,51 @@ export default function ProjectsPage() {
         <div
           onDragOver={(e) => { if (!isManager) return; e.preventDefault(); setDragOver(true) }}
           onDragLeave={() => setDragOver(false)}
-          onDrop={(e) => { e.preventDefault(); setDragOver(false); doImportFile(e.dataTransfer.files?.[0]) }}
+          onDrop={(e) => { e.preventDefault(); setDragOver(false); stageFile(e.dataTransfer.files?.[0]) }}
           style={{ margin: '12px 0 20px', padding: 8, borderRadius: 10, transition: 'background-color .1s, box-shadow .1s',
             border: '2px dashed', borderColor: dragOver ? 'var(--btn-primary-bg)' : 'transparent',
             backgroundColor: dragOver ? 'var(--info-bg)' : 'transparent' }}>
-          <form onSubmit={create} style={{ display: 'flex', gap: 8 }}>
+          <form onSubmit={(e) => { e.preventDefault(); stagedFile ? doImportFile() : create(e) }} style={{ display: 'flex', gap: 8 }}>
             <input
               ref={newRef} value={newName} onChange={(e) => setNewName(e.target.value)}
               placeholder={t('projects_new_placeholder')} disabled={!isManager}
               style={{ flex: 1, height: 34, padding: '0 12px', borderRadius: 8, fontFamily: 'var(--font-mono)',
                 fontSize: 'var(--fs-body, 13px)', backgroundColor: 'var(--input-bg)', color: 'var(--text-primary)',
                 border: '1px solid var(--input-border)', outline: 'none', opacity: isManager ? 1 : 0.5 }} />
-            <Button type="submit" disabled={!isManager || creating || !newName.trim()}
-              style={{ minWidth: 116, justifyContent: 'center' }}>
+            <Button type="button" disabled={!isManager || creating || !newName.trim() || !!stagedFile}
+              onClick={create} style={{ minWidth: 116, justifyContent: 'center' }}>
               {t('projects_create')}
             </Button>
-            <Button type="button" variant="secondary" disabled={!isManager || importing}
-              onClick={() => fileRef.current?.click()} style={{ minWidth: 92, justifyContent: 'center' }}>
+            {/* Idle → opens the file picker. Staged → highlighted; confirms the import.
+                key forces a fresh element on toggle so the kit Button's hover-set
+                inline bg can't linger from the previous variant. */}
+            <Button key={stagedFile ? 'imp-staged' : 'imp-idle'} type="button" variant={stagedFile ? 'primary' : 'secondary'}
+              disabled={!isManager || importing || (!!stagedFile && !newName.trim())}
+              onClick={() => stagedFile ? doImportFile() : fileRef.current?.click()}
+              style={{ minWidth: 92, justifyContent: 'center',
+                ...(stagedFile ? { backgroundColor: 'var(--btn-primary-bg)', color: '#fff',
+                  boxShadow: '0 0 0 3px color-mix(in srgb, var(--btn-primary-bg) 28%, transparent)' } : {}) }}>
               {t('projects_import')}
             </Button>
           </form>
           {isManager && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 8, paddingLeft: 2, fontSize: 'var(--fs-micro, 10px)', color: 'var(--text-muted)' }}>
-              <Icon name="upload" size={12} /> {t('projects_drop_hint')}
-            </div>
+            stagedFile ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8, paddingLeft: 2, fontSize: 'var(--fs-micro, 10px)', color: 'var(--text-secondary)' }}>
+                <Icon name="upload" size={12} />
+                <span>{t('projects_import_staged', stagedFile.name, newName.trim() || '—')}</span>
+                <button type="button" onClick={cancelStaged} title={t('close') || 'cancel'}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'inline-flex', padding: 0 }}>
+                  <Icon name="close" size={12} />
+                </button>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 8, paddingLeft: 2, fontSize: 'var(--fs-micro, 10px)', color: 'var(--text-muted)' }}>
+                <Icon name="upload" size={12} /> {t('projects_drop_hint')}
+              </div>
+            )
           )}
           <input ref={fileRef} type="file" accept=".zip" hidden
-            onChange={(e) => doImportFile(e.target.files?.[0])} />
+            onChange={(e) => stageFile(e.target.files?.[0])} />
         </div>
 
         {/* List */}
@@ -282,6 +341,23 @@ export default function ProjectsPage() {
             {loginErr && <div style={{ fontSize: 'var(--fs-small, 12px)', color: 'var(--danger-text)' }}>{loginErr}</div>}
             <Button type="submit" disabled={loggingIn || !lform.username.trim()} style={{ justifyContent: 'center', marginTop: 2 }}>
               {t('projects_login_submit')}
+            </Button>
+          </form>
+        </Modal>
+      )}
+
+      {pwOpen && (
+        <Modal title={`${t('projects_change_pw')}${user ? ` · ${user.username}` : ''}`} width={360}
+          onClose={() => setPwOpen(false)} onSubmit={doChangePassword}>
+          <form onSubmit={doChangePassword} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <input autoFocus type="password" placeholder={t('projects_pw_current')} value={pwForm.current}
+              onChange={(e) => setPwForm((f) => ({ ...f, current: e.target.value }))} style={loginInput} />
+            <input type="password" placeholder={t('projects_pw_new')} value={pwForm.next}
+              onChange={(e) => setPwForm((f) => ({ ...f, next: e.target.value }))} style={loginInput} />
+            {pwErr && <div style={{ fontSize: 'var(--fs-small, 12px)', color: 'var(--danger-text)' }}>{pwErr}</div>}
+            {pwMsg && <div style={{ fontSize: 'var(--fs-small, 12px)', color: 'var(--success-text)' }}>{pwMsg}</div>}
+            <Button type="submit" disabled={pwBusy || !pwForm.current || !pwForm.next} style={{ justifyContent: 'center', marginTop: 2 }}>
+              {t('projects_pw_submit')}
             </Button>
           </form>
         </Modal>

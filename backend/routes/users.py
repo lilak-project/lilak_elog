@@ -111,6 +111,25 @@ def update_me(
     return current_user
 
 
+class _PwChange(_BM):
+    current_password: str
+    new_password: str
+
+
+@router.patch("/auth/me/password")
+def change_my_password(
+    payload: _PwChange,
+    current_user: models.User = Depends(require_auth),
+    db: Session = Depends(get_db),
+):
+    """Self-service: change your OWN password (verifies the current one first)."""
+    if not verify_password(payload.current_password, current_user.password_hash):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "현재 비밀번호가 올바르지 않습니다")
+    current_user.password_hash = hash_password(validate_password(payload.new_password))
+    db.commit()
+    return {"ok": True}
+
+
 # ── Self-registration (공개 엔드포인트) ────────────────────────────────────────
 
 @router.post("/auth/register", response_model=schemas.TokenResponse, status_code=status.HTTP_201_CREATED)

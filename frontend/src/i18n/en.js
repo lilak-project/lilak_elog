@@ -554,6 +554,13 @@ export default {
   projects_drop_hint:      'Drag an exported .zip or use Import — created with the name above (or the file name if empty)',
   projects_import_fail:    'Import failed.',
   projects_import_exists:  'A project with that name already exists. Type a different name above and import again.',
+  projects_import_staged:  (file, name) => `Ready: ${file} → press Import to create it as "${name}"`,
+  projects_change_pw:      'Change password',
+  projects_pw_current:     'Current password',
+  projects_pw_new:         'New password',
+  projects_pw_submit:      'Change',
+  projects_pw_ok:          'Password changed.',
+  projects_pw_fail:        'Could not change the password.',
 
   // ── Schedule ──────────────────────────────────────────────────────────────
   tab_schedule:            'Schedule',
