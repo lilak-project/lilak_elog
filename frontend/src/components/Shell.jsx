@@ -62,6 +62,11 @@ export default function Shell() {
   useEffect(() => subscribeBarLead((lead) => { if (lead) { setBarInput(null); setBarLead(lead); setBarOpen(true) } }), [])
   useEffect(() => subscribeBarSlotActive(setBarSlot), [])
 
+  // The drawer drops down from the top bar; any tab change (click or `[`/`]`) or
+  // opening the bottom command bar slides it back up.
+  useEffect(() => { setDrawerOpen(false) }, [activeTab.id])
+  useEffect(() => { if (barOpen) setDrawerOpen(false) }, [barOpen])
+
   // Tag find-mode (#): the rest after `#` is treated as space-separated tags,
   // AND-combined, queried against the live tag index. A lone `#` lists all.
   const findModes = useMemo(() => ({

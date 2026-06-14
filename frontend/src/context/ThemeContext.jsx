@@ -8,7 +8,7 @@ const ThemeContext = createContext(null)
 
 export function ThemeProvider({ children }) {
   const [theme, setTheme] = useState(
-    () => readPref('theme', 'lowcontrast')
+    () => readPref('theme', 'bright')
   )
 
   // Apply to DOM + persist whenever theme changes
@@ -18,11 +18,11 @@ export function ThemeProvider({ children }) {
     savePref('theme', theme)
   }, [theme])
 
-  // Reload when user switches accounts
+  // Reload on account switch. Logged OUT → always bright (the default look).
   useEffect(() => {
-    function onUserChanged() {
-      const val = readPref('theme', 'lowcontrast')
-      setTheme(val)
+    function onUserChanged(e) {
+      const loggedOut = !e?.detail
+      setTheme(loggedOut ? 'bright' : readPref('theme', 'bright'))
     }
     window.addEventListener(USER_CHANGED_EVENT, onUserChanged)
     return () => window.removeEventListener(USER_CHANGED_EVENT, onUserChanged)

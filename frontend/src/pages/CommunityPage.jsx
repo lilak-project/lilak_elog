@@ -200,15 +200,16 @@ export default function CommunityPage() {
   const [loadingOlder, setLoadingOlder] = useState(false)
   const [hasOlder, setHasOlder] = useState(true)
 
-  // The composer is portaled into the ONE bottom bar's slot (always expanded),
-  // so the rich chat input (mentions / paste-upload / reply / log-link) stays
-  // intact but there is no second fixed bottom bar.
+  // The composer is portaled into the ONE bottom bar's slot. Unlike before it is
+  // NOT always open — the bar stays collapsed like any other tab; Enter opens the
+  // composer, Esc collapses it again (see the keydown handler below).
   const [slotEl, setSlotEl] = useState(null)
+  const [composerActive, setComposerActive] = useState(false)
   useEffect(() => {
-    activateBarSlot(true)
     const un = subscribeBarSlotEl(setSlotEl)
     return () => { un(); activateBarSlot(false) }
   }, [])
+  useEffect(() => { activateBarSlot(composerActive) }, [composerActive])
 
   const [users, setUsers] = useState([])
   const [mentionOpen, setMentionOpen] = useState(false)
@@ -331,9 +332,12 @@ export default function CommunityPage() {
   useEffect(() => {
     function onKey(e) {
       const inInput = ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)
-      if (inInput || e.key !== 'Enter') return
-      if (e.metaKey || e.ctrlKey || e.altKey) return
-      e.preventDefault(); textareaRef.current?.focus()
+      if (e.key === 'Enter' && !inInput && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        e.preventDefault(); setComposerActive(true)
+        setTimeout(() => textareaRef.current?.focus(), 60)   // wait for the slot to mount
+      } else if (e.key === 'Escape' && !inInput) {
+        setComposerActive(false)
+      }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -504,7 +508,7 @@ export default function CommunityPage() {
                     if (e.key === 'Escape') { e.preventDefault(); setMentionOpen(false); return }
                   }
                   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() }
-                  if (e.key === 'Escape') { if (replyTo) { e.stopPropagation(); cancelReply(); return } e.stopPropagation(); textareaRef.current?.blur() }
+                  if (e.key === 'Escape') { if (replyTo) { e.stopPropagation(); cancelReply(); return } e.stopPropagation(); textareaRef.current?.blur(); setComposerActive(false) }
                 }}
                 placeholder={replyTo ? `@${replyTo.author_name}에게 답글…` : t('community_placeholder')}
                 rows={1} disabled={uploading}
