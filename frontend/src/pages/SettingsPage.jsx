@@ -10,6 +10,7 @@ import AdminFormats from './AdminFormats'
 import AdminLogManagement from './AdminLogManagement'
 import AdminAudit from './AdminAudit'
 import AdminTabs from './AdminTabs'
+import AdminProfileTypes from './AdminProfileTypes'
 import AccountSection from './settings/AccountSection'
 import AdminWebhooks from './settings/AdminWebhooks'
 import AdminAiBots from './settings/AdminAiBots'
@@ -37,6 +38,7 @@ export default function SettingsPage() {
     { id: 'ai-bots',     label: t('settings_ai_bots'),      icon: 'robot',    group: 'integrations' },
     { id: 'palette',     label: t('settings_palette'),      icon: 'palette',  group: 'appearance' },
     { id: 'tabs',        label: t('set_tabs'),              icon: 'browse',   group: 'appearance' },
+    { id: 'profiles',    label: t('profile_types_title'),   icon: 'user',     group: 'appearance' },
   ] : [
     { id: 'account', label: t('settings_account'),      icon: 'user',  group: 'me' },
     { id: 'users',   label: t('admin_users_title'),     icon: 'users', group: 'people' },
@@ -44,7 +46,7 @@ export default function SettingsPage() {
 
   // Sections that require manager (users is now viewable by all)
   useEffect(() => {
-    const adminOnly = ['tokens', 'audit', 'tags', 'formats', 'logs', 'webhooks', 'ai-bots', 'bridges', 'palette', 'tabs']
+    const adminOnly = ['tokens', 'audit', 'tags', 'formats', 'logs', 'webhooks', 'ai-bots', 'bridges', 'palette', 'tabs', 'profiles']
     if (adminOnly.includes(settingsSection) && user?.role !== 'manager') {
       openSettings('account')
     }
@@ -76,6 +78,7 @@ export default function SettingsPage() {
         {activeSection === 'bridges'    && <AdminCommunityBridges />}
         {activeSection === 'palette'    && <ColorPaletteSection />}
         {activeSection === 'tabs'       && <AdminTabs />}
+        {activeSection === 'profiles'   && <AdminProfileTypes />}
       </div>
     </div>
   )

@@ -245,10 +245,10 @@ export default function Shell() {
   // command mode, so the logo stays bright. The "lilak" wordmark never changes.
   const logoColor = barOpen ? 'var(--nav-text-muted)' : 'var(--nav-text)'
 
-  // Brand wordmark: "lilak" (top-left) over "elog" (bottom-right), two lines.
+  // Brand wordmark: "lilak"/"라일락" (top-left) over "elog" (bottom-right), two lines.
   const brand = (
     <span style={{ display: 'inline-flex', flexDirection: 'column', lineHeight: 1.0, minWidth: 46, letterSpacing: '0.01em' }}>
-      <span style={{ textAlign: 'left', fontWeight: 700, color: 'var(--nav-text)' }}>lilak</span>
+      <span style={{ textAlign: 'left', fontWeight: 700, color: 'var(--nav-text)' }}>{lang === 'ko' ? '라일락' : 'lilak'}</span>
       <span style={{ textAlign: 'right', fontWeight: 500, fontSize: '0.78em', letterSpacing: '0.06em', color: 'var(--nav-text-muted)' }}>elog</span>
     </span>
   )

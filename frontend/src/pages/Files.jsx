@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { Icon, DataCard, DataGrid, Pagination, Input, Button, Row, ChipGroup } from 'lilak-ui'
 import { useTaggables, useBookmarks } from 'lilak-ui'
 import api, { apiBaseFor, getExperiment } from '../api'
+import AttachmentComments from '../components/AttachmentComments'
 import { useLang } from '../context/LangContext'
 import { useTab } from '../context/TabContext'
 
@@ -182,7 +183,22 @@ export default function Files() {
               onToggle={toggle}
               focused={focused}
               onFocus={focus}
-              media={open ? mediaFor(it) : undefined}
+              media={open ? { type: 'node', node: (() => {
+                const m = mediaFor(it)
+                const preview = m.type === 'image'
+                  ? <img src={m.src} alt={it.original_filename} style={{ display: 'block', width: '100%', height: 'auto', objectFit: 'contain', backgroundColor: 'var(--surface-2)' }} />
+                  : m.type === 'text'
+                    ? <pre style={{ margin: 0, fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-small, 12px)', lineHeight: 1.5, whiteSpace: 'pre-wrap', wordBreak: 'break-word', padding: '10px 12px', color: 'var(--text-primary)' }}>{m.text}</pre>
+                    : <div style={{ padding: '10px 12px' }}>{m.node}</div>
+                return (
+                  <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                    <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>{preview}</div>
+                    <div style={{ padding: '8px 10px', borderTop: '1px solid var(--border-subtle)' }} onClick={(e) => e.stopPropagation()}>
+                      <AttachmentComments logId={it.log_id} onOpenLog={openLogInTab} compact />
+                    </div>
+                  </div>
+                )
+              })() } : undefined}
               style={open && isImage(it.content_type) ? { gridRow: 'span 2' } : undefined}
               bodyStyle={isImage(it.content_type) ? { maxHeight: 360 } : { maxHeight: 280 }}
               headerActions={
@@ -192,7 +208,6 @@ export default function Files() {
                 </button>
               }
               onAddTag={() => addTag(it)}
-              onComment={() => openLogInTab(it.log_id)}
               bookmarked={bm.has(`file:${it.id}`)}
               onToggleBookmark={() => bm.toggle(`file:${it.id}`)}
             />

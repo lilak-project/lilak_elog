@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Input, Button, Chip, ChipGroup, Lightbox, Row, Grid } from 'lilak-ui'
 import api, { apiBaseFor, getExperiment } from '../api'
+import AttachmentComments from '../components/AttachmentComments'
 import { useLang } from '../context/LangContext'
 import { useAuth } from '../context/AuthContext'
 import { useTab } from '../context/TabContext'
@@ -242,7 +243,10 @@ export default function Gallery() {
                 )}
                 <TagEditor logId={selectedImg.log_id} initialTags={selectedImg.log_tags} allTags={allTags}
                   onSaved={(newTags) => handleTagsSaved(selectedImg.id, newTags)} />
-                <p style={{ margin: 0, paddingTop: 8, borderTop: '1px solid var(--border-subtle)', fontSize: 'var(--fs-small, 12px)', color: 'var(--text-muted)' }}>{t('gallery_fullscreen_hint')}</p>
+                <div style={{ paddingTop: 8, borderTop: '1px solid var(--border-subtle)' }}>
+                  <AttachmentComments logId={selectedImg.log_id} onOpenLog={openLogInTab} compact />
+                </div>
+                <p style={{ margin: 0, fontSize: 'var(--fs-small, 12px)', color: 'var(--text-muted)' }}>{t('gallery_fullscreen_hint')}</p>
               </div>
             </div>
           )}
