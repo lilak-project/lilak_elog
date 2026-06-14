@@ -8,8 +8,6 @@ import { Row, Stack, Button, useTaggables } from 'lilak-ui'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LangContext'
 import { useTheme } from '../context/ThemeContext'
-import { useDensity } from '../context/DensityContext'
-import { useSize } from '../context/SizeContext'
 import { useTab } from '../context/TabContext'
 import api from '../api'
 
@@ -102,86 +100,58 @@ export default function SystemPanel({ onClose }) {
   const { user, logout } = useAuth()
   const { t, lang, set: setLang } = useLang()
   const { theme, set: setTheme, themes } = useTheme()
-  const { density, set: setDensity } = useDensity()
-  const { size, set: setSize } = useSize()
-  const { openSettings, allFixedTabs, alwaysOnTabs, tabsDisabled, setTabDisabled } = useTab()
+  const { openSettings } = useTab()
 
   const go = (section) => { openSettings(section); onClose?.() }
 
+  // Two-column drawer: left 2/3 = notices, right 1/3 = account + settings.
   return (
-    <Stack gap={20}>
-      {/* Account */}
-      <Section label={t('nav_account') || 'Account'}>
-        {user ? (
-          <Row gap={10} justify="between">
-            <Stack gap={2}>
-              <span style={{ fontSize: 'var(--fs-medium, 14px)', fontWeight: 600, color: 'var(--nav-text)' }}>{user.username}</span>
-              <span style={{ fontSize: 'var(--fs-tiny, 11px)', color: 'var(--nav-text-muted)' }}>{user.role}</span>
-            </Stack>
-            <Row gap={6}>
-              <Chip onClick={() => go('account')}>{t('settings_account') || '계정 설정'}</Chip>
-              <Chip onClick={() => { logout(); onClose?.() }}>{t('nav_logout') || 'Log out'}</Chip>
-            </Row>
-          </Row>
-        ) : (
-          <Button variant="primary" size="sm" onClick={() => go('account')}>{t('nav_login') || 'Log in'}</Button>
-        )}
-      </Section>
-
-      {/* Notifications (alarms live here now — no separate bell) */}
-      {user && (
+    <div style={{ display: 'flex', gap: 0, alignItems: 'stretch', minHeight: '100%' }}>
+      {/* ── Left 2/3 — notices ─────────────────────────────────────────────── */}
+      <div style={{ flex: 2, minWidth: 0, paddingRight: 18 }}>
         <Section label={t('notif_title') || 'Notifications'}>
-          <NotificationsView onClose={onClose} />
+          {user
+            ? <NotificationsView onClose={onClose} />
+            : <div style={{ padding: 24, textAlign: 'center', color: 'var(--nav-text-muted)', fontSize: 'var(--fs-body, 13px)' }}>{t('login_read_only') || 'Log in to see notifications.'}</div>}
         </Section>
-      )}
+      </div>
 
-      {/* Theme */}
-      <Section label={t('set_theme') || 'Theme'}>
-        <Row gap={6} wrap>
-          {themes.map((th) => <Chip key={th} active={theme === th} onClick={() => setTheme(th)}>{t(`theme_${th}`) || th}</Chip>)}
-        </Row>
-      </Section>
+      {/* ── Right 1/3 — account + the two lightweight settings (theme/language) ── */}
+      <div style={{ flex: 1, minWidth: 0, paddingLeft: 18, borderLeft: '1px solid var(--nav-border)' }}>
+        <Stack gap={14}>
+          {/* Account */}
+          <Section label={t('nav_account') || 'Account'}>
+            {user ? (
+              <Stack gap={8}>
+                <Stack gap={2}>
+                  <span style={{ fontSize: 'var(--fs-medium, 14px)', fontWeight: 600, color: 'var(--nav-text)' }}>{user.username}</span>
+                  <span style={{ fontSize: 'var(--fs-tiny, 11px)', color: 'var(--nav-text-muted)' }}>{user.role}</span>
+                </Stack>
+                <Row gap={6} wrap>
+                  <Chip onClick={() => go('account')}>{t('settings_account') || '계정 설정'}</Chip>
+                  <Chip onClick={() => { logout(); onClose?.() }}>{t('nav_logout') || 'Log out'}</Chip>
+                </Row>
+              </Stack>
+            ) : (
+              <Button variant="primary" size="sm" onClick={() => go('account')}>{t('nav_login') || 'Log in'}</Button>
+            )}
+          </Section>
 
-      {/* Density + Size + Language */}
-      <Row gap={28} wrap align="start">
-        <Section label={t('set_density') || 'Density'}>
-          <Row gap={6}>
-            {['cozy', 'compact'].map((d) => <Chip key={d} active={density === d} onClick={() => setDensity(d)}>{d}</Chip>)}
-          </Row>
-        </Section>
-        <Section label={t('set_size') || 'Size'}>
-          <Row gap={6}>
-            {['normal', 'large'].map((s) => <Chip key={s} active={size === s} onClick={() => setSize(s)}>{s}</Chip>)}
-          </Row>
-        </Section>
-        <Section label={t('set_lang') || 'Language'}>
-          <Row gap={6}>
-            {['ko', 'en'].map((l) => <Chip key={l} active={lang === l} onClick={() => setLang(l)}>{l === 'ko' ? '한국어' : 'EN'}</Chip>)}
-          </Row>
-        </Section>
-      </Row>
+          {/* Theme */}
+          <Section label={t('set_theme') || 'Theme'}>
+            <Row gap={6} wrap>
+              {themes.map((th) => <Chip key={th} active={theme === th} onClick={() => setTheme(th)}>{t(`theme_${th}`) || th}</Chip>)}
+            </Row>
+          </Section>
 
-      {/* Tabs on/off (managers only) */}
-      {user?.role === 'manager' && allFixedTabs && (
-        <Section label={t('set_tabs') || 'Tabs'}>
-          <Row gap={6} wrap>
-            {allFixedTabs.filter(tb => !alwaysOnTabs.includes(tb.type)).map(tb => {
-              const enabled = !tabsDisabled.includes(tb.type)
-              return <Chip key={tb.type} active={enabled} onClick={() => setTabDisabled(tb.type, enabled)}>{t('tab_' + tb.type) || tb.label}</Chip>
-            })}
-          </Row>
-        </Section>
-      )}
-
-      {/* Admin (managers only) */}
-      {user?.role === 'manager' && (
-        <Section label="Admin">
-          <Row gap={6} wrap>
-            {[['users', t('nav_users')], ['tokens', t('nav_tokens')], ['tags', t('nav_tags')], ['experiments', t('nav_experiments')], ['formats', t('nav_formats')]]
-              .map(([sec, label]) => <Chip key={sec} onClick={() => go(sec)}>{label || sec}</Chip>)}
-          </Row>
-        </Section>
-      )}
-    </Stack>
+          {/* Language */}
+          <Section label={t('set_lang') || 'Language'}>
+            <Row gap={6}>
+              {['ko', 'en'].map((l) => <Chip key={l} active={lang === l} onClick={() => setLang(l)}>{l === 'ko' ? '한국어' : 'EN'}</Chip>)}
+            </Row>
+          </Section>
+        </Stack>
+      </div>
+    </div>
   )
 }

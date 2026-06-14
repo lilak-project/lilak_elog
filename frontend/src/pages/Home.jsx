@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
-import { LogToolbar, LogList, Pagination, useTaggables, tagColors, Icon, ChipGroup, Callout, openBarInput, closeBarInput, setCommandActive } from 'lilak-ui'
+import { LogToolbar, LogList, Pagination, useTaggables, tagColors, Icon, ChipGroup, Callout, openBarInput, closeBarInput } from 'lilak-ui'
 import api from '../api'
 import LogCard from '../components/LogCard'
 import LogCardExpanded from '../components/LogCardExpanded'
@@ -92,12 +92,10 @@ export default function Home() {
   const [cmdMode, setCmdMode] = useState(true)
   const [focusedIdx, setFocusedIdx] = useState(0)
   const [expandedId, setExpandedId] = useState(null)
-  // `g` gesture: a quick double-tap (gg) jumps to the top without opening the
-  // full bar; a single `g` opens a tiny bubble input (`miniGoto`) for `_<n>`.
+  // `g` gesture: a quick double-tap (gg) jumps to the top; a single `g` opens the
+  // bottom bar's circle into a tiny `_<n>` goto bubble (compact CommandBar mode).
   const gTapRef = useRef(0)
   const gTimerRef = useRef(null)
-  const miniRef = useRef(null)
-  const [miniGoto, setMiniGoto] = useState(null)   // null = closed, '' or value = open
 
   // ── New-log draft flow ─────────────────────────────────────────────────────
   // New log = create an empty entry, then edit it inline. Cancel deletes it.
@@ -177,6 +175,41 @@ export default function Home() {
     })
   }
 
+  // Jump focus to an absolute index (gg / G / Home / End). Mirrors moveFocus's
+  // "follow the open log" behaviour so that, with a log open, the jump also moves
+  // the open entry to the newly-focused one and brings it on screen (#8).
+  function jumpFocus(idx) {
+    if (!entries[idx]) return
+    setFocusedIdx(idx)
+    setExpandedId(cur => (cur == null ? null : (entries[idx]?.id ?? null)))
+    setTimeout(() => scrollToFocused(idx), 0)
+  }
+
+  // A lone `g` opens the bottom bar's collapsed circle into a tiny `_<n>` goto
+  // bubble (compact mode), same colour as the circle. Enter opens that log #; a
+  // `g` typed while it's still empty is a slow `gg` → jump to the top.
+  function openGotoBubble() {
+    // Closing the bubble (Enter / Esc / blur) returns straight to command mode so
+    // a single Esc resumes arrow-key navigation (no second press needed).
+    const resume = () => { closeBarInput(); enterCmdMode() }
+    openBarInput({
+      key: `goto-${Date.now()}`, compact: true, label: '_', placeholder: '', inputMode: 'numeric',
+      onSubmit: (v) => {
+        const n = parseInt(String(v).replace(/[^0-9]/g, ''), 10)
+        if (!Number.isNaN(n)) window.dispatchEvent(new CustomEvent('lilak:cmd:find-log', { detail: { logIndex: n } }))
+        resume()
+      },
+      onCancel: resume,
+      onKeyDown: (e, val) => {
+        if (e.key === 'g' && !val) {
+          e.preventDefault()
+          if (focusedIdx === 0) { resume(); window.scrollTo({ top: 0, behavior: 'smooth' }) }
+          else { resume(); jumpFocus(0) }
+        }
+      },
+    })
+  }
+
   // Comment / report on a log — opens the ONE collapsible bottom bar as a text
   // input (no separate bottom bar). Posts to the log on Enter.
   function commentLog(logId, opts = {}) {
@@ -240,13 +273,13 @@ export default function Home() {
           e.preventDefault()
           { const last = entries.length - 1; if (last < 0) break
             if (focusedIdx === last) window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })
-            else { setFocusedIdx(last); scrollToFocused(last) } }
+            else jumpFocus(last) }
           break
         case 'Home':
           // Home → newest = index 0 (top). Two-step: second Home scrolls to the very top.
           e.preventDefault()
           if (focusedIdx === 0) window.scrollTo({ top: 0, behavior: 'smooth' })
-          else { setFocusedIdx(0); scrollToFocused(0) }
+          else jumpFocus(0)
           break
         case '{':
           e.preventDefault()
@@ -265,23 +298,22 @@ export default function Home() {
           { const idx = PAGE_SIZES.indexOf(pageSize); if (idx < PAGE_SIZES.length - 1) changePageSize(PAGE_SIZES[idx + 1]) }
           break
         case 'g': {
-          // gg (quick double-tap) → jump to the top, no full bar. A lone g opens
-          // a tiny bubble input for `_<n>` goto.
+          // gg (quick double-tap) → jump to the top, no bubble. A lone g opens the
+          // bottom bar's circle into a tiny `_<n>` goto bubble.
           e.preventDefault()
           const now = Date.now()
           if (now - gTapRef.current < 350) {
             gTapRef.current = 0
             if (gTimerRef.current) { clearTimeout(gTimerRef.current); gTimerRef.current = null }
-            setMiniGoto(null)
             // two-step: first jump to the top entry; a second gg goes to the very top.
             if (focusedIdx === 0) window.scrollTo({ top: 0, behavior: 'smooth' })
-            else { setFocusedIdx(0); setTimeout(() => scrollToFocused(0), 0) }
+            else jumpFocus(0)
           } else {
             gTapRef.current = now
             if (gTimerRef.current) clearTimeout(gTimerRef.current)
             gTimerRef.current = setTimeout(() => {
               gTapRef.current = 0; gTimerRef.current = null
-              setMiniGoto(''); setTimeout(() => miniRef.current?.focus(), 0)
+              openGotoBubble()
             }, 320)
           }
           break
@@ -327,11 +359,6 @@ export default function Home() {
   // (leaving the logs tab).
   useEffect(() => { if (expandedId == null && expandedNoticeId == null) closeBarInput() }, [expandedId, expandedNoticeId])
   useEffect(() => () => closeBarInput(), [])
-
-  // Publish command-mode state so the shell can light/dim the brand logo (#8).
-  // Reset on unmount: leaving the logs tab means keyboard commands are inactive.
-  useEffect(() => { setCommandActive(cmdMode) }, [cmdMode])
-  useEffect(() => () => setCommandActive(false), [])
 
   // Keep the focused entry on screen. On tab-entry / new data this scrolls to
   // the focused (newest, index 0 = top of the feed); on arrow nav it
@@ -452,8 +479,7 @@ export default function Home() {
     function onGotoTop() {
       if (entries.length === 0) return
       if (focusedIdx === 0) { window.scrollTo({ top: 0, behavior: 'smooth' }); return }
-      setFocusedIdx(0)
-      setTimeout(() => scrollToFocused(0), 0)
+      jumpFocus(0)
     }
     function onFindRun(e) {
       const run = e.detail?.run; if (run == null || Number.isNaN(run)) return
@@ -924,35 +950,6 @@ export default function Home() {
         <Pagination page={page} pageSize={pageSize} total={total}
           onPageChange={p => setPage(p)} loading={loading}
           labels={{ prev: t('page_prev'), next: t('page_next'), info: (p, tp, tot) => t('page_info', p, tp, tot) }} />
-      )}
-
-      {/* Tiny `_<n>` goto bubble — opened by a lone `g` (gg jumps to top instead). */}
-      {miniGoto !== null && (
-        <div style={{ position: 'fixed', left: '50%', bottom: 54, transform: 'translateX(-50%)', zIndex: 50,
-          display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 999,
-          backgroundColor: 'var(--nav-bg)', color: 'var(--nav-text)', boxShadow: '0 4px 16px rgba(0,0,0,0.28)' }}>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-small, 12px)', color: 'var(--nav-text-muted)' }}>_</span>
-          <input
-            ref={miniRef} value={miniGoto} inputMode="numeric" autoFocus
-            onChange={(e) => setMiniGoto(e.target.value.replace(/[^0-9]/g, ''))}
-            onBlur={() => setMiniGoto(null)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault(); const n = parseInt(miniGoto, 10)
-                if (!Number.isNaN(n)) window.dispatchEvent(new CustomEvent('lilak:cmd:find-log', { detail: { logIndex: n } }))
-                setMiniGoto(null)
-              } else if (e.key === 'Escape') {
-                e.preventDefault(); e.stopPropagation(); setMiniGoto(null)
-              } else if (e.key === 'g' && miniGoto === '') {
-                // a slow gg: a g typed in the still-empty bubble jumps to the top
-                e.preventDefault(); setMiniGoto(null)
-                if (focusedIdx === 0) window.scrollTo({ top: 0, behavior: 'smooth' })
-                else { setFocusedIdx(0); setTimeout(() => scrollToFocused(0), 0) }
-              }
-            }}
-            placeholder={t('mini_goto_ph') || '번호'}
-            style={{ width: 54, background: 'transparent', border: 'none', outline: 'none', color: 'var(--nav-text)', fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-small, 12px)' }} />
-        </div>
       )}
 
     </div>

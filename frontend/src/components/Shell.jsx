@@ -14,7 +14,7 @@ import {
   Container, Row, Stack, Button, Icon,
   useCommands, useShortcut, useCommandRegistry, useTagIndex,
   makeDataFindModes, INDEX_CHARS, subscribeBarInput, subscribeBarLead, openBarInput, closeBarInput,
-  subscribeBarSlotActive, subscribeCommandActive,
+  subscribeBarSlotActive,
 } from 'lilak-ui'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LangContext'
@@ -38,7 +38,6 @@ export default function Shell() {
   const [barLead, setBarLead] = useState('/')
   const [barInput, setBarInput] = useState(null)   // free-text input mode for the one bottom bar
   const [barSlot, setBarSlot] = useState(false)    // slot mode (community portals its composer in)
-  const [cmdActive, setCmdActive] = useState(false) // page keyboard-command mode (drives logo dim)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [shortcutsOpen, setShortcutsOpen] = useState(false)
   const [unread, setUnread] = useState(0)
@@ -65,6 +64,9 @@ export default function Shell() {
   }, [])
 
   const openDrawer = useCallback(() => setDrawerOpen(true), [])
+  // The account button toggles the drawer (open if closed, close if open) — same
+  // as `\`. Outside-click and tab switches still close it.
+  const toggleDrawer = useCallback(() => setDrawerOpen((o) => !o), [])
   const openBar = useCallback((lead = '/') => { setBarLead(lead); setBarOpen(true) }, [])
 
   // The one bottom bar is driven from anywhere via barController: pages open it
@@ -73,7 +75,6 @@ export default function Shell() {
   useEffect(() => subscribeBarInput((req) => { setBarInput(req); setBarOpen(!!req) }), [])
   useEffect(() => subscribeBarLead((lead) => { if (lead) { setBarInput(null); setBarLead(lead); setBarOpen(true) } }), [])
   useEffect(() => subscribeBarSlotActive(setBarSlot), [])
-  useEffect(() => subscribeCommandActive(setCmdActive), [])
 
   // The drawer drops down from the top bar; any tab change (click or `[`/`]`) or
   // opening the bottom command bar slides it back up.
@@ -239,23 +240,26 @@ export default function Shell() {
     return list
   }, [tabs, lang, themes, openNewLog, openSettings, activateTab, openDrawer, setTheme, setLang, startAccountFlow])
 
-  // Command-mode indicator (#8): the brand logo stays bright while keyboard
-  // commands are live (logs feed, esc'd) and dims to the unselected-tab colour
-  // when an input/edit mode is in front or any bar is open.
-  const logoDim = !cmdActive || barOpen
-  const logoColor = logoDim ? 'var(--nav-text-muted)' : 'var(--nav-text)'
+  // Command-mode indicator (#8): only the lilak *logo mark* dims — and only while
+  // a bar/input is open (keyboard commands are suspended). Tab switches keep
+  // command mode, so the logo stays bright. The "lilak" wordmark never changes.
+  const logoColor = barOpen ? 'var(--nav-text-muted)' : 'var(--nav-text)'
 
   // Brand wordmark: "lilak" (top-left) over "elog" (bottom-right), two lines.
   const brand = (
-    <span style={{ display: 'inline-flex', flexDirection: 'column', lineHeight: 1.0, minWidth: 46, letterSpacing: '0.01em', transition: 'color .15s' }}>
-      <span style={{ textAlign: 'left', fontWeight: 700, color: logoColor }}>lilak</span>
+    <span style={{ display: 'inline-flex', flexDirection: 'column', lineHeight: 1.0, minWidth: 46, letterSpacing: '0.01em' }}>
+      <span style={{ textAlign: 'left', fontWeight: 700, color: 'var(--nav-text)' }}>lilak</span>
       <span style={{ textAlign: 'right', fontWeight: 500, fontSize: '0.78em', letterSpacing: '0.06em', color: 'var(--nav-text-muted)' }}>elog</span>
     </span>
   )
   const experiment = getExperiment()
-  // Current experiment shown next to the brand; brand click → project list.
+  // The experiment chip is the ONLY way to the project list (logo/brand click is
+  // not — per design). Clicking it navigates to /projects.
   const brandSuffix = experiment ? (
-    <span style={{ marginLeft: 2, padding: '3px 8px', borderRadius: 999, fontFamily: 'var(--font-mono)', fontWeight: 500,
+    <span role="button" tabIndex={0} title={t('projects_title')}
+      onClick={(e) => { e.stopPropagation(); navigate('/projects') }}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate('/projects') } }}
+      style={{ marginLeft: 2, padding: '3px 8px', borderRadius: 999, fontFamily: 'var(--font-mono)', fontWeight: 500, cursor: 'pointer',
       fontSize: 'var(--fs-micro, 10px)', lineHeight: 1.2, backgroundColor: 'var(--nav-accent)', color: 'var(--nav-text-muted)' }}>{experiment}</span>
   ) : null
   const TAB_ICONS = { experiment: 'plug', logs: 'logs', browse: 'browse', community: 'community', infography: 'infography', schedule: 'schedule', settings: 'settings' }
@@ -274,7 +278,7 @@ export default function Shell() {
   // Unread notifications show as a small dot on this button. `\` also opens it.
   const systemBtn = (
     <button
-      onClick={openDrawer}
+      onClick={toggleDrawer}
       style={{
         position: 'relative', display: 'inline-flex', alignItems: 'center', gap: 6, height: 28, padding: '0 10px',
         borderRadius: 8, background: 'transparent', border: 'none', cursor: 'pointer',
@@ -299,8 +303,6 @@ export default function Shell() {
         brand={brand}
         brandIcon={<Icon name="lilak" size={30} color={logoColor} style={{ height: 30, width: 'auto', display: 'block', transition: 'color .15s' }} />}
         brandSuffix={brandSuffix}
-        onBrandClick={() => navigate('/projects')}
-        brandTitle={t('projects_title')}
         tabs={tabItems}
         active={activeTab.id}
         onTab={activateTab}
@@ -327,8 +329,7 @@ export default function Shell() {
       <Drawer
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
-        height="3/4"
-        title={t('nav_system') || 'System'}
+        height="half"
       >
         <SystemPanel onClose={() => setDrawerOpen(false)} />
       </Drawer>

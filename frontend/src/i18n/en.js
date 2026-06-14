@@ -14,6 +14,7 @@ export default {
   nav_account: 'Account',
   set_theme: 'Theme',
   set_tabs: 'Tabs',
+  set_tabs_hint: 'Show or hide workspace tabs in the top bar.',
   audit_title: 'Activity log',
   audit_all: 'All',
   audit_empty: 'No records yet.',
@@ -444,6 +445,7 @@ export default {
 
   // Theme cycling
   theme_bright: 'Bright',
+  theme_teal: 'Teal',
   theme_dark: 'Dark',
   theme_lowcontrast: 'Low contrast',
 

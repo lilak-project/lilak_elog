@@ -1,8 +1,8 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import { readPref, writePref, savePref, USER_CHANGED_EVENT } from './userPrefs'
 
-const THEMES = ['bright', 'dark', 'lowcontrast']
-const ICONS  = { bright: '☀', dark: '🌙', lowcontrast: '🌥' }
+const THEMES = ['bright', 'teal', 'dark', 'lowcontrast']
+const ICONS  = { bright: '☀', teal: '🌊', dark: '🌙', lowcontrast: '🌥' }
 
 const ThemeContext = createContext(null)
 

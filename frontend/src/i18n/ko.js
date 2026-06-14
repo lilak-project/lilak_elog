@@ -14,6 +14,7 @@ export default {
   nav_account: '계정',
   set_theme: '테마',
   set_tabs: '탭 표시',
+  set_tabs_hint: '워크스페이스 상단 탭의 표시 여부를 관리합니다.',
   audit_title: '이용 기록',
   audit_all: '전체',
   audit_empty: '기록이 없습니다.',
@@ -444,6 +445,7 @@ export default {
 
   // Theme cycling
   theme_bright: '밝게',
+  theme_teal: '틸',
   theme_dark: '어둡게',
   theme_lowcontrast: '저대비',
 

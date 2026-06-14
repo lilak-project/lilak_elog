@@ -57,7 +57,8 @@
 .text-3xl  { font-size: var(--fs-display) !important; }
 
 :root,
-[data-theme="bright"] {
+[data-theme="bright"],
+[data-theme="teal"] {
   /* Surface */
   --app-bg:                 #f8fafc;
   --surface:                #ffffff;
@@ -137,6 +138,26 @@
   --c-tx1:     var(--text-primary);
   --c-tx2:     var(--text-secondary);
   --c-tx3:     var(--text-muted);
+}
+
+/* Teal — the bright base (above) with teal bars + accents, matching the kit
+   Teal preset. Recolours nav/command bars, buttons, links, focus and info. */
+[data-theme="teal"] {
+  --btn-primary-bg:    #0d9488;
+  --btn-primary-hover: #0f766e;
+  --btn-primary-text:  #ffffff;
+  --text-link:         #0d9488;
+  --text-link-hover:   #0f766e;
+  --border-focus:      #0d9488;
+  --input-focus-border:#0d9488;
+  --info-bg:           #ccfbf1;
+  --info-text:         #0f766e;
+  --selection-bg:      rgba(13,148,136,0.28);
+  --nav-bg:            #0d9488;
+  --nav-border:        #0f766e;
+  --nav-accent:        #0f766e;
+  --nav-text:          #ffffff;
+  --nav-text-muted:    #a7f3e4;
 }
 
 [data-theme="dark"] {
@@ -388,7 +409,10 @@ html {
 /* ── Form inputs (skip .bg-transparent — those are bar inputs on a dark bar) ─ */
 [data-theme="bright"] input:not(.bg-transparent):not([class*="bg-blue"]):not([class*="bg-green"]):not([class*="bg-red"]),
 [data-theme="bright"] textarea:not(.bg-transparent),
-[data-theme="bright"] select:not(.bg-transparent) {
+[data-theme="bright"] select:not(.bg-transparent),
+[data-theme="teal"] input:not(.bg-transparent):not([class*="bg-blue"]):not([class*="bg-green"]):not([class*="bg-red"]),
+[data-theme="teal"] textarea:not(.bg-transparent),
+[data-theme="teal"] select:not(.bg-transparent) {
   background-color: #ffffff;
   color: #1e293b;
   border-color: var(--c-border);
