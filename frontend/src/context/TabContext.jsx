@@ -1,6 +1,9 @@
 import { createContext, useContext, useState, useCallback, useEffect } from 'react'
+import api from '../api'
 
 const ACTIVE_TAB_KEY = 'elog_active_tab'
+// These can never be hidden — you need settings to re-enable tabs, and logs is core.
+const ALWAYS_ON = ['logs', 'settings']
 const VALID_TAB_IDS = ['experiment', 'logs', 'browse', 'community', 'infography', 'schedule', 'settings']
 
 const TabContext = createContext(null)
@@ -36,7 +39,25 @@ export function TabProvider({ children }) {
   //   null | { editId } | { fromId } | {} (new log)
   const [logFormReq, setLogFormReq] = useState(null)
 
-  const tabs = [...FIXED_TABS, ...dynamicTabs]
+  // Manager-controlled tab visibility (per-experiment, stored in /settings).
+  const [tabsDisabled, setTabsDisabled] = useState([])
+  useEffect(() => {
+    api.get('/settings')
+      .then(r => setTabsDisabled(Array.isArray(r.data?.tabs_disabled) ? r.data.tabs_disabled : []))
+      .catch(() => {})
+  }, [])
+  const setTabDisabled = useCallback((type, disabled) => {
+    setTabsDisabled(prev => {
+      const next = disabled
+        ? [...new Set([...prev, type])]
+        : prev.filter(x => x !== type)
+      api.put('/settings', { tabs_disabled: next }).catch(() => {})
+      return next
+    })
+  }, [])
+
+  const visibleFixed = FIXED_TABS.filter(t => ALWAYS_ON.includes(t.type) || !tabsDisabled.includes(t.type))
+  const tabs = [...visibleFixed, ...dynamicTabs]
 
   const activateTab = useCallback((id) => setActiveId(id), [])
 
@@ -78,6 +99,7 @@ export function TabProvider({ children }) {
       openSettings, settingsSection,
       openLog, pendingLogId, clearPendingLog,
       logFormReq, clearLogForm,
+      allFixedTabs: FIXED_TABS, alwaysOnTabs: ALWAYS_ON, tabsDisabled, setTabDisabled,
     }}>
       {children}
     </TabContext.Provider>

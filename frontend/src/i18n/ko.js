@@ -13,6 +13,7 @@ export default {
   nav_system: '시스템',
   nav_account: '계정',
   set_theme: '테마',
+  set_tabs: '탭 표시',
   set_density: '밀도',
   set_size: '크기',
   set_lang: '언어',

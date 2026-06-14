@@ -104,7 +104,7 @@ export default function SystemPanel({ onClose }) {
   const { theme, set: setTheme, themes } = useTheme()
   const { density, set: setDensity } = useDensity()
   const { size, set: setSize } = useSize()
-  const { openSettings } = useTab()
+  const { openSettings, allFixedTabs, alwaysOnTabs, tabsDisabled, setTabDisabled } = useTab()
 
   const go = (section) => { openSettings(section); onClose?.() }
 
@@ -160,6 +160,18 @@ export default function SystemPanel({ onClose }) {
           </Row>
         </Section>
       </Row>
+
+      {/* Tabs on/off (managers only) */}
+      {user?.role === 'manager' && allFixedTabs && (
+        <Section label={t('set_tabs') || 'Tabs'}>
+          <Row gap={6} wrap>
+            {allFixedTabs.filter(tb => !alwaysOnTabs.includes(tb.type)).map(tb => {
+              const enabled = !tabsDisabled.includes(tb.type)
+              return <Chip key={tb.type} active={enabled} onClick={() => setTabDisabled(tb.type, enabled)}>{t('tab_' + tb.type) || tb.label}</Chip>
+            })}
+          </Row>
+        </Section>
+      )}
 
       {/* Admin (managers only) */}
       {user?.role === 'manager' && (

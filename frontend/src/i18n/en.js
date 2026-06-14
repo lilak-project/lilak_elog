@@ -13,6 +13,7 @@ export default {
   nav_system: 'System',
   nav_account: 'Account',
   set_theme: 'Theme',
+  set_tabs: 'Tabs',
   set_density: 'Density',
   set_size: 'Size',
   set_lang: 'Language',
