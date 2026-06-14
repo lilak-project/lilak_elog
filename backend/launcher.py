@@ -18,7 +18,8 @@ import sys
 import time
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, UploadFile, File, Form
+from fastapi.responses import Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
@@ -70,6 +71,27 @@ def _pick_free_port() -> int:
     raise HTTPException(500, "프로젝트 슬롯 부족 (8011-8019 모두 사용 중)")
 
 
+# ── Per-project metadata (icon/color) — stored WITH the data so it travels ──────
+# Lives at data/<name>/project.json, so copying the data folder to another
+# machine carries the experiment's icon/colour along with its logs.
+def _meta_file(name: str) -> Path:
+    return DATA_ROOT / name / "project.json"
+
+
+def _read_meta(name: str) -> dict:
+    f = _meta_file(name)
+    if not f.exists():
+        return {}
+    try:
+        return json.loads(f.read_text())
+    except Exception:
+        return {}
+
+
+def _write_meta(name: str, meta: dict):
+    _meta_file(name).write_text(json.dumps(meta, ensure_ascii=False, indent=2))
+
+
 def _list_projects() -> list[dict]:
     if not DATA_ROOT.is_dir():
         return []
@@ -79,11 +101,14 @@ def _list_projects() -> list[dict]:
             continue
         name = d.name
         port = _read_port_file(name)
+        meta = _read_meta(name)
         result.append({
             "name":    name,
             "port":    port,
             "running": port is not None,
             "url":     f"http://localhost:{port}" if port else None,
+            "icon":    meta.get("icon"),
+            "color":   meta.get("color"),
         })
     return result
 
@@ -96,6 +121,8 @@ def api_projects():
 
 class NewProject(BaseModel):
     name: str
+    icon: str | None = None
+    color: str | None = None
 
 
 @app.post("/api/projects", status_code=201)
@@ -108,7 +135,60 @@ def api_create(body: NewProject):
         raise HTTPException(409, f"'{name}' 이미 존재합니다")
     proj_dir.mkdir(parents=True)
     (proj_dir / "uploads").mkdir()
-    return {"name": name}
+    _write_meta(name, {"icon": body.icon, "color": body.color})
+    return {"name": name, "icon": body.icon, "color": body.color}
+
+
+# ── Export / Import — a project's whole data dir as a single .zip ───────────────
+# Export zips data/<name>/ (DB + uploads + project.json), excluding the runtime
+# .port file. Import unzips an exported file into a NEW project, so a project can
+# be moved between servers as one file (drag-and-drop in the UI).
+@app.get("/api/projects/{name}/export")
+def api_export(name: str):
+    import io, zipfile
+    proj_dir = DATA_ROOT / name
+    if not proj_dir.exists():
+        raise HTTPException(404, f"'{name}' 없음")
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
+        for f in sorted(proj_dir.rglob("*")):
+            if f.is_file() and f.name != ".port":   # .port is runtime-only
+                z.write(f, f.relative_to(proj_dir))
+    return Response(
+        content=buf.getvalue(),
+        media_type="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="{name}.zip"'},
+    )
+
+
+@app.post("/api/projects/import", status_code=201)
+async def api_import(file: UploadFile = File(...), name: str | None = Form(None)):
+    import io, zipfile
+    raw = await file.read()
+    proj_name = (name or Path(file.filename or "imported").stem).strip()
+    if not re.match(r'^[A-Za-z0-9_-]{1,64}$', proj_name):
+        raise HTTPException(400, "이름은 영문자·숫자·_·- 만 가능합니다 (1~64자)")
+    proj_dir = DATA_ROOT / proj_name
+    if proj_dir.exists():
+        raise HTTPException(409, f"'{proj_name}' 이미 존재합니다")
+    try:
+        zf = zipfile.ZipFile(io.BytesIO(raw))
+    except zipfile.BadZipFile:
+        raise HTTPException(400, "올바른 .zip 파일이 아닙니다")
+    proj_dir.mkdir(parents=True)
+    root = proj_dir.resolve()
+    for member in zf.namelist():
+        dest = (proj_dir / member).resolve()
+        if not str(dest).startswith(str(root)):   # zip-slip guard
+            continue
+        if member.endswith("/"):
+            dest.mkdir(parents=True, exist_ok=True)
+        else:
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            dest.write_bytes(zf.read(member))
+    (proj_dir / "uploads").mkdir(exist_ok=True)
+    (proj_dir / ".port").unlink(missing_ok=True)   # never import a stale port
+    return {"name": proj_name}
 
 
 @app.post("/api/projects/{name}/start")

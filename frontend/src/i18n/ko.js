@@ -528,9 +528,9 @@ export default {
 
   // ── Projects (launcher / elog home) ───────────────────────────────────────
   projects_title:          'LILAK Elog 프로젝트',
-  projects_subtitle:       '실험(프로젝트)을 선택해 들어가거나 새로 만드세요. 각 실험은 독립된 로그를 가집니다.',
+  projects_subtitle:       '라일락 elog의 프로젝트(실험) 페이지입니다. 실험마다 로그·데이터가 독립적으로 관리됩니다.',
   projects_new_placeholder:'새 실험 이름 (영문·숫자·_·-)',
-  projects_create:         '만들기',
+  projects_create:         '새 프로젝트',
   projects_empty:          '아직 실험이 없습니다. 위에서 새로 만들어 보세요.',
   projects_current:        '현재',
   projects_running:        (port) => `실행 중 · 포트 ${port}`,
@@ -541,6 +541,18 @@ export default {
   projects_delete_confirm: (name) => `'${name}' 실험을 삭제하시겠습니까? 이 실험의 모든 로그가 사라지며 되돌릴 수 없습니다.`,
   projects_unreachable:    '런처(:8010)에 연결할 수 없습니다. 런처가 실행 중인지 확인하세요.',
   projects_create_fail:    '실험을 만들지 못했습니다.',
+  projects_login:          '매니저 로그인',
+  projects_logout:         '로그아웃',
+  projects_login_user:     '아이디',
+  projects_login_pass:     '비밀번호',
+  projects_login_submit:   '로그인',
+  projects_login_fail:     '로그인 실패',
+  projects_manager_only:   '프로젝트 생성·정지·삭제는 매니저 로그인이 필요합니다.',
+  projects_not_manager:    '매니저 계정이 아닙니다.',
+  projects_export:         '내보내기',
+  projects_import:         '가져오기',
+  projects_drop_hint:      '내보낸 .zip 파일을 여기로 드래그하면 프로젝트로 가져옵니다',
+  projects_import_fail:    '가져오기에 실패했습니다.',
 
   // ── Schedule ──────────────────────────────────────────────────────────────
   tab_schedule:            '스케줄',

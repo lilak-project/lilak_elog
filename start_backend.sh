@@ -13,7 +13,7 @@ fi
 
 HOST="${BACKEND_HOST:-0.0.0.0}"
 PORT="${BACKEND_PORT:-${ELOG_PORT:-8010}}"
-EXPERIMENT="${ELOG_EXPERIMENT:-default}"
+EXPERIMENT="${ELOG_EXPERIMENT:-experiment}"
 
 [ -f ".venv/bin/uvicorn" ] || { echo "uvicorn not found — run ./elog.sh once to bootstrap the venv."; exit 1; }
 

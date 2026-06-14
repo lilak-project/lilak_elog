@@ -528,9 +528,9 @@ export default {
 
   // ── Projects (launcher / elog home) ───────────────────────────────────────
   projects_title:          'LILAK Elog Projects',
-  projects_subtitle:       'Pick an experiment (project) to enter, or create one. Each experiment keeps its own logs.',
+  projects_subtitle:       'The project (experiment) page of LILAK elog. Each experiment manages its own logs and data independently.',
   projects_new_placeholder:'New experiment name (letters, digits, _, -)',
-  projects_create:         'Create',
+  projects_create:         'New Project',
   projects_empty:          'No experiments yet. Create one above.',
   projects_current:        'current',
   projects_running:        (port) => `running · port ${port}`,
@@ -541,6 +541,18 @@ export default {
   projects_delete_confirm: (name) => `Delete experiment '${name}'? All of its logs will be lost and this cannot be undone.`,
   projects_unreachable:    'Cannot reach the launcher (:8010). Make sure it is running.',
   projects_create_fail:    'Could not create the experiment.',
+  projects_login:          'Manager login',
+  projects_logout:         'Log out',
+  projects_login_user:     'Username',
+  projects_login_pass:     'Password',
+  projects_login_submit:   'Log in',
+  projects_login_fail:     'Login failed',
+  projects_manager_only:   'Manager login is required to create, stop, or delete projects.',
+  projects_not_manager:    'Not a manager account.',
+  projects_export:         'Export',
+  projects_import:         'Import',
+  projects_drop_hint:      'Drag an exported .zip here to import it as a project',
+  projects_import_fail:    'Import failed.',
 
   // ── Schedule ──────────────────────────────────────────────────────────────
   tab_schedule:            'Schedule',
