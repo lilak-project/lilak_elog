@@ -30,11 +30,11 @@ export default function LogDetail() {
     api.get(`/logs/${id}`)
       .then(r => {
         setEntry(r.data)
-        document.title = `#${r.data.id} ${r.data.title || ''} — LILAK Elog`.trim()
+        document.title = `#${r.data.id} ${r.data.title || ''} — lilak elog`.trim()
       })
       .catch(() => setError(t('detail_not_found')))
       .finally(() => setLoading(false))
-    return () => { document.title = 'LILAK Elog' }
+    return () => { document.title = 'lilak elog' }
   }, [id])
 
   async function handleDelete() {

@@ -330,8 +330,8 @@ export default function LogForm({
   // ── Document title (must be before any conditional returns) ─────────────
   const pageTitle = isEdit ? t('form_edit') : fromEntry ? t('form_continue') : t('form_new')
   useEffect(() => {
-    document.title = `${pageTitle} — LILAK Elog`
-    return () => { document.title = 'LILAK Elog' }
+    document.title = `${pageTitle} — lilak elog`
+    return () => { document.title = 'lilak elog' }
   }, [pageTitle])
 
   // ── Edit mode ────────────────────────────────────────────────────────────
