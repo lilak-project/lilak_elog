@@ -551,8 +551,9 @@ export default {
   projects_not_manager:    'Not a manager account.',
   projects_export:         'Export',
   projects_import:         'Import',
-  projects_drop_hint:      'Drag an exported .zip here to import it as a project',
+  projects_drop_hint:      'Drag an exported .zip or use Import — created with the name above (or the file name if empty)',
   projects_import_fail:    'Import failed.',
+  projects_import_exists:  'A project with that name already exists. Type a different name above and import again.',
 
   // ── Schedule ──────────────────────────────────────────────────────────────
   tab_schedule:            'Schedule',

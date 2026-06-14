@@ -126,16 +126,22 @@ export default function ProjectsPage() {
   }
 
   // Import an exported .zip (drag-dropped or picked) → creates a new project.
+  // The new name is the one typed in the field above; if empty, the .zip's name.
+  // A name clash is rejected (never overwrites) — the user picks another name.
   async function doImportFile(f) {
     if (!isManager || !f) return
     setImporting(true); setError('')
     try {
       const fd = new FormData()
       fd.append('file', f, f.name)
+      const target = newName.trim()
+      if (target) fd.append('name', target)
       await launcher.post('/projects/import', fd, { headers: { 'Content-Type': 'multipart/form-data' } })
+      setNewName('')
       await refresh()
     } catch (err) {
-      setError(err?.response?.data?.detail || t('projects_import_fail'))
+      if (err?.response?.status === 409) setError(t('projects_import_exists'))
+      else setError(err?.response?.data?.detail || t('projects_import_fail'))
     } finally { setImporting(false); if (fileRef.current) fileRef.current.value = '' }
   }
 

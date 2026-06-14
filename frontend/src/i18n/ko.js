@@ -551,8 +551,9 @@ export default {
   projects_not_manager:    '매니저 계정이 아닙니다.',
   projects_export:         '내보내기',
   projects_import:         '가져오기',
-  projects_drop_hint:      '내보낸 .zip 파일을 여기로 드래그하면 프로젝트로 가져옵니다',
+  projects_drop_hint:      '내보낸 .zip을 드래그하거나 [가져오기] — 위 칸에 적은 이름으로(비우면 파일 이름으로) 생성됩니다',
   projects_import_fail:    '가져오기에 실패했습니다.',
+  projects_import_exists:  '같은 이름의 프로젝트가 이미 있습니다. 위 입력칸에 다른 이름을 적고 다시 가져오세요.',
 
   // ── Schedule ──────────────────────────────────────────────────────────────
   tab_schedule:            '스케줄',
