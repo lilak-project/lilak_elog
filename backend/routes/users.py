@@ -32,8 +32,10 @@ def login(payload: schemas.LoginRequest, db: Session = Depends(get_db)):
         models.User.is_active == True,
     ).first()
     if not user or not verify_password(payload.password, user.password_hash):
+        _audit(db, "login_failed", "user", None, payload.username)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="아이디 또는 비밀번호가 올바르지 않습니다.")
     token = create_access_token(user.id, user.username, user.role)
+    _audit(db, "login", "user", user.id, user.username)
     return schemas.TokenResponse(
         access_token=token,
         user_id=user.id,
@@ -42,9 +44,39 @@ def login(payload: schemas.LoginRequest, db: Session = Depends(get_db)):
     )
 
 
+@router.post("/auth/logout")
+def logout(current_user: models.User = Depends(require_auth), db: Session = Depends(get_db)):
+    """Best-effort logout marker for the audit trail (token is dropped client-side)."""
+    _audit(db, "logout", "user", current_user.id, current_user.username)
+    return {"ok": True}
+
+
 @router.get("/auth/me", response_model=schemas.UserOut)
 def me(current_user: models.User = Depends(require_auth)):
     return current_user
+
+
+@router.get("/audit")
+def list_audit(
+    limit: int = 100, offset: int = 0, action: str | None = None,
+    current_user: models.User = Depends(require_manager),
+    db: Session = Depends(get_db),
+):
+    """Manager-only activity log (newest first)."""
+    q = db.query(models.AuditEvent)
+    if action:
+        q = q.filter(models.AuditEvent.action == action)
+    total = q.count()
+    rows = (q.order_by(models.AuditEvent.created_at.desc())
+            .offset(max(0, offset)).limit(min(max(1, limit), 500)).all())
+    return {
+        "total": total,
+        "events": [{
+            "id": e.id, "action": e.action, "entity_type": e.entity_type,
+            "entity_id": e.entity_id, "actor": e.actor, "details": e.details,
+            "created_at": e.created_at.isoformat() if e.created_at else None,
+        } for e in rows],
+    }
 
 
 # ── User preferences ──────────────────────────────────────────────────────────

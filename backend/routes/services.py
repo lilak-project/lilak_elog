@@ -23,6 +23,7 @@ from sqlalchemy.orm import Session
 import models
 import schemas
 from auth import require_auth, require_manager
+from audit_log import record as _audit
 from database import get_db
 from seed_formats import (
     sync_system_formats, detach_system_formats,
@@ -322,6 +323,7 @@ def create_service(
         _auto_create_log_format(svc, payload.log_fields, db)
     db.commit()
     db.refresh(svc)
+    _audit(db, "register", "service", svc.id, current_user.username, svc.name)
 
     # ── 시스템: token 자동발급 + credentials 자동전송 ─────────────────────────
     token_str = None

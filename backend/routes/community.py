@@ -18,6 +18,7 @@ from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from auth import require_auth, require_manager
+from audit_log import record as _audit
 from database import get_db, DATA_ROOT, EXPERIMENT
 from models import AiBot, ChatMessage, Comment, CommunityBridge, LogEntry, Notification, User
 from schemas import (
@@ -544,6 +545,7 @@ def create_bridge(
         created_by=current_user.username,
     )
     db.add(b); db.commit(); db.refresh(b)
+    _audit(db, "register", "community_bridge", b.id, current_user.username, b.name)
     base = f"{request.url.scheme}://{request.url.netloc}"
     return _bridge_to_out(b, base)
 

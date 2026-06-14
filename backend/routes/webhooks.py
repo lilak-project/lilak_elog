@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 import models
 from auth import require_manager
+from audit_log import record as _audit
 from database import get_db
 
 router = APIRouter(tags=["webhooks"])
@@ -53,12 +54,13 @@ def list_webhooks(
 def create_webhook(
     payload: WebhookCreate,
     db: Session = Depends(get_db),
-    _=Depends(require_manager),
+    current_user: models.User = Depends(require_manager),
 ):
     wh = models.Webhook(name=payload.name, url=payload.url, enabled=payload.enabled)
     db.add(wh)
     db.commit()
     db.refresh(wh)
+    _audit(db, "register", "webhook", wh.id, current_user.username, wh.name)
     return wh
 
 

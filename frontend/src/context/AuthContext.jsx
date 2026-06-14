@@ -69,6 +69,7 @@ export function AuthProvider({ children }) {
   }, [])
 
   const logout = useCallback(() => {
+    api.post('/auth/logout').catch(() => {})   // best-effort audit marker (token still set)
     setToken(null)
     setUser(null)
     delete api.defaults.headers.common['Authorization']

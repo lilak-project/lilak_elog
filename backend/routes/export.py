@@ -11,6 +11,7 @@ import json
 
 import models
 from database import get_db
+from audit_log import record as _audit
 from auth import get_current_user_optional
 from sqlalchemy.orm import Session
 
@@ -75,6 +76,9 @@ def export_json(
     entries = _query_entries(db, include_deleted, date_from, date_to, category)
     data = [_entry_dict(e) for e in entries]
     json_bytes = json.dumps(data, indent=2, ensure_ascii=False).encode()
+
+    if current_user:
+        _audit(db, "export", "logs", None, current_user.username, f"json ({len(data)})")
 
     return StreamingResponse(
         iter([json_bytes]),
