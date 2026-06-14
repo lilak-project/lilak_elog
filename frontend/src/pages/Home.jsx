@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
-import { LogToolbar, LogList, Pagination, useTaggables, tagColors, Icon, ChipGroup, Callout, openBarInput, closeBarInput } from 'lilak-ui'
+import { LogToolbar, LogList, Pagination, useTaggables, tagColors, Icon, ChipGroup, Callout, openBarInput, closeBarInput, setCommandActive } from 'lilak-ui'
 import api from '../api'
 import LogCard from '../components/LogCard'
 import LogCardExpanded from '../components/LogCardExpanded'
@@ -327,6 +327,11 @@ export default function Home() {
   // (leaving the logs tab).
   useEffect(() => { if (expandedId == null && expandedNoticeId == null) closeBarInput() }, [expandedId, expandedNoticeId])
   useEffect(() => () => closeBarInput(), [])
+
+  // Publish command-mode state so the shell can light/dim the brand logo (#8).
+  // Reset on unmount: leaving the logs tab means keyboard commands are inactive.
+  useEffect(() => { setCommandActive(cmdMode) }, [cmdMode])
+  useEffect(() => () => setCommandActive(false), [])
 
   // Keep the focused entry on screen. On tab-entry / new data this scrolls to
   // the focused (newest, index 0 = top of the feed); on arrow nav it

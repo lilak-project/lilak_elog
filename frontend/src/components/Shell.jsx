@@ -14,7 +14,7 @@ import {
   Container, Row, Stack, Button, Icon,
   useCommands, useShortcut, useCommandRegistry, useTagIndex,
   makeDataFindModes, INDEX_CHARS, subscribeBarInput, subscribeBarLead, closeBarInput,
-  subscribeBarSlotActive,
+  subscribeBarSlotActive, subscribeCommandActive,
 } from 'lilak-ui'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LangContext'
@@ -38,6 +38,7 @@ export default function Shell() {
   const [barLead, setBarLead] = useState('/')
   const [barInput, setBarInput] = useState(null)   // free-text input mode for the one bottom bar
   const [barSlot, setBarSlot] = useState(false)    // slot mode (community portals its composer in)
+  const [cmdActive, setCmdActive] = useState(false) // page keyboard-command mode (drives logo dim)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [shortcutsOpen, setShortcutsOpen] = useState(false)
   const [unread, setUnread] = useState(0)
@@ -72,6 +73,7 @@ export default function Shell() {
   useEffect(() => subscribeBarInput((req) => { setBarInput(req); setBarOpen(!!req) }), [])
   useEffect(() => subscribeBarLead((lead) => { if (lead) { setBarInput(null); setBarLead(lead); setBarOpen(true) } }), [])
   useEffect(() => subscribeBarSlotActive(setBarSlot), [])
+  useEffect(() => subscribeCommandActive(setCmdActive), [])
 
   // The drawer drops down from the top bar; any tab change (click or `[`/`]`) or
   // opening the bottom command bar slides it back up.
@@ -202,10 +204,16 @@ export default function Shell() {
     return list
   }, [tabs, lang, themes, openNewLog, openSettings, activateTab, openDrawer, setTheme, setLang])
 
+  // Command-mode indicator (#8): the brand logo stays bright while keyboard
+  // commands are live (logs feed, esc'd) and dims to the unselected-tab colour
+  // when an input/edit mode is in front or any bar is open.
+  const logoDim = !cmdActive || barOpen
+  const logoColor = logoDim ? 'var(--nav-text-muted)' : 'var(--nav-text)'
+
   // Brand wordmark: "lilak" (top-left) over "elog" (bottom-right), two lines.
   const brand = (
-    <span style={{ display: 'inline-flex', flexDirection: 'column', lineHeight: 1.0, minWidth: 46, letterSpacing: '0.01em' }}>
-      <span style={{ textAlign: 'left', fontWeight: 700 }}>lilak</span>
+    <span style={{ display: 'inline-flex', flexDirection: 'column', lineHeight: 1.0, minWidth: 46, letterSpacing: '0.01em', transition: 'color .15s' }}>
+      <span style={{ textAlign: 'left', fontWeight: 700, color: logoColor }}>lilak</span>
       <span style={{ textAlign: 'right', fontWeight: 500, fontSize: '0.78em', letterSpacing: '0.06em', color: 'var(--nav-text-muted)' }}>elog</span>
     </span>
   )
@@ -254,7 +262,7 @@ export default function Shell() {
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'var(--surface)' }}>
       <TopBar
         brand={brand}
-        brandIcon={<Icon name="lilak" size={30} style={{ height: 30, width: 'auto', display: 'block' }} />}
+        brandIcon={<Icon name="lilak" size={30} color={logoColor} style={{ height: 30, width: 'auto', display: 'block', transition: 'color .15s' }} />}
         brandSuffix={brandSuffix}
         onBrandClick={() => navigate('/projects')}
         brandTitle={t('projects_title')}
