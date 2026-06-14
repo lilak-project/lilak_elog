@@ -1,9 +1,10 @@
-# lilak_elog_v2
+# lilak_elog
 
-An **electronic logbook** (elog) for experimental-physics labs, rebuilt **purely
-from the [`lilak-ui`](../lilak_ui) kit** + thin glue. It is the proving ground for
-the kit: every screen is *fetch data → pass to kit blocks*, so anything reusable
-gets pushed into `lilak-ui` and the app stays as a small adapter layer.
+An **electronic logbook** (elog) for experimental-physics labs. A **self-contained
+app**: a FastAPI backend + launcher in `backend/`, and a frontend in `frontend/`
+rebuilt **purely from the [`lilak-ui`](../lilak_ui) kit** + thin glue. The frontend
+is the proving ground for the kit — every screen is *fetch data → pass to kit
+blocks*, so anything reusable gets pushed into `lilak-ui`.
 
 It tracks runs, readouts and tasks; groups them into runs/dates; supports tags,
 comments, attachments, infography figures, a team community channel, schedules,
@@ -15,28 +16,32 @@ and per-experiment databases via a launcher.
 
 | Repo | What it is |
 |---|---|
-| **`lilak_ui`** | The shared UI kit. This app consumes it from source via a Vite alias. |
-| **`lilak_elog_v2`** (this) | The kit-built elog — pure kit blocks + glue. |
-| `lilak_elog` (no `_v2`) | The **production** elog. Read-only reference; never modified. The kit was extracted *from* it. |
+| **`lilak_ui`** | The shared UI kit. The frontend consumes it from source via a Vite alias. |
+| **`lilak_elog`** (this) | The kit-built, self-contained elog — frontend (kit + glue) **and** backend + launcher. |
+| `zzz/lilak_elog` | The previous standalone build, archived locally. The kit was extracted from its frontend; not used at runtime. |
 
-The rebuild goal: instead of styling screens by hand, the app composes finished
-kit components, which forces every reusable pattern (shell, theme, log views,
-command bar, admin tables) out of the app and into the kit. The **Schedule**
-feature is intentionally excluded from the pure-kit rebuild.
+The frontend rebuild goal: instead of styling screens by hand, the app composes
+finished kit components, which forces every reusable pattern (shell, theme, log
+views, command bar, admin tables) out of the app and into the kit. The
+**Schedule** feature is intentionally excluded from the pure-kit rebuild.
 
 ---
 
 ## Architecture
 
-Three layers — only the bottom two live in this repo:
+The **frontend** is three layers (the kit is a separate repo):
 
 1. **Kit (`lilak-ui`)** — all visuals + reusable behaviour (theme, shell,
-   components, log/data/CRUD blocks). No elog-specific code.
-2. **Glue (this repo)** — `api.js`, React Router routes, data fetching, and small
+   components, log/data/CRUD blocks). No elog-specific code; lives in `../lilak_ui`.
+2. **Glue (`frontend/`)** — `api.js`, React Router routes, data fetching, and small
    adapters that feed kit components real elog data. Contexts
    (`Auth/Lang/Theme/Density/Size/Tab`) hold app state.
-3. **App config (this repo)** — i18n dictionaries (`i18n/ko.js`, `i18n/en.js`),
+3. **App config (`frontend/`)** — i18n dictionaries (`i18n/ko.js`, `i18n/en.js`),
    the command registry, and which tabs exist.
+
+The **backend** (`backend/`) is a FastAPI app: `main.py` (the per-experiment API)
++ `launcher.py` (the project list + reverse proxy). Run state (SQLite DBs,
+uploads) lives under `data/` and `uploads/` — git-ignored.
 
 Every page is *fetch → pass to kit blocks*; a finished page carries **no Tailwind
 utility classes and no inline CSS-var styling** — that belongs in a kit component.
@@ -92,14 +97,15 @@ launcher/home), `LogDetail`, `LogForm`, and the manager-only `Admin*` pages.
 
 ### Prerequisites
 
-This app is a **frontend only**. It talks to a running elog backend and (for the
-per-experiment feature) the launcher. Both come from the production
-`lilak_elog` repo:
+Everything lives in this repo now. Two backend services run (defaults shown;
+override per machine — see `.env.example`):
 
-| Service | Port | Start (from `lilak_elog/`) |
+| Service | Port | Start (from the repo root) |
 |---|---|---|
 | elog backend (default experiment) | `8011` | `BACKEND_PORT=8011 ./start_backend.sh` |
-| launcher (project list + proxy) | `8010` | `cd backend && ../.venv/bin/uvicorn launcher:app --port 8010` |
+| launcher (project list + proxy) | `8010` | `cd backend && LAUNCHER_PORT=8010 ../.venv/bin/python -m uvicorn launcher:app --port 8010` |
+
+First time only, create the Python venv + deps: `python -m venv .venv && .venv/bin/pip install -r requirements.txt` (or run `./elog.sh` once to bootstrap).
 
 The kit (`lilak_ui`) must sit next to this repo (the Vite alias points at
 `../../lilak_ui/src`).
