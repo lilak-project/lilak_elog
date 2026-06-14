@@ -1,34 +1,43 @@
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import { resolve } from 'path'
 
 // lilak_elog_v2 — a copy of lilak_elog rebuilt with the lilak-ui kit.
-// Talks to a running elog project backend (default :8011) and aliases lilak-ui.
-const BACKEND = process.env.ELOG_BACKEND || 'http://localhost:8011'
-// The launcher (:8010) serves the project list + per-project reverse proxy
-// (`/p/<name>/...`). `/launcher/*` is rewritten to the launcher root so the
-// kit project-list page and experiment-scoped API both reach it.
-const LAUNCHER = process.env.ELOG_LAUNCHER || 'http://localhost:8010'
+// All host/port settings come from the environment (with sane defaults), so the
+// same code runs on any machine by editing `.env.local` — never the code.
+// See `.env.example` for the variables, and ../../CONVENTIONS.md for the why.
+export default defineConfig(({ mode }) => {
+  // loadEnv('', cwd, '') merges every var from .env / .env.local (any prefix)
+  // on top of the real shell environment, so a `.env.local` actually takes
+  // effect here in the config (plain `process.env` would NOT read .env files).
+  const env = { ...process.env, ...loadEnv(mode, process.cwd(), '') }
 
-export default defineConfig({
-  plugins: [react()],
-  resolve: {
-    alias: {
-      // frontend -> lilak_elog_v2 -> ai_projects, then into lilak_ui
-      'lilak-ui': resolve(__dirname, '../../lilak_ui/src'),
+  const PORT     = Number(env.PORT) || 5130                       // dev server port
+  const BACKEND  = env.ELOG_BACKEND  || 'http://localhost:8011'   // default elog backend
+  const LAUNCHER = env.ELOG_LAUNCHER || 'http://localhost:8010'   // project launcher + /p proxy
+
+  return {
+    plugins: [react()],
+    resolve: {
+      alias: {
+        // frontend -> lilak_elog_v2 -> ai_projects, then into lilak_ui
+        'lilak-ui': resolve(__dirname, '../../lilak_ui/src'),
+      },
     },
-  },
-  // Pre-bundle the kit's runtime deps at startup so adding them mid-session
-  // doesn't trigger an on-demand re-optimize + reload loop.
-  optimizeDeps: {
-    include: ['@phosphor-icons/react', 'react-markdown', 'remark-gfm'],
-  },
-  server: {
-    port: 5130,
-    fs: { allow: [resolve(__dirname), resolve(__dirname, '../../lilak_ui')] },
-    proxy: {
-      '/launcher': { target: LAUNCHER, changeOrigin: true, rewrite: (p) => p.replace(/^\/launcher/, '') },
-      '/api': BACKEND,
+    // Pre-bundle the kit's runtime deps at startup so adding them mid-session
+    // doesn't trigger an on-demand re-optimize + reload loop.
+    optimizeDeps: {
+      include: ['@phosphor-icons/react', 'react-markdown', 'remark-gfm'],
     },
-  },
+    server: {
+      port: PORT,
+      fs: { allow: [resolve(__dirname), resolve(__dirname, '../../lilak_ui')] },
+      proxy: {
+        // `/launcher/*` -> the launcher root (project list + per-experiment proxy)
+        '/launcher': { target: LAUNCHER, changeOrigin: true, rewrite: (p) => p.replace(/^\/launcher/, '') },
+        // `/api/*` -> the default backend
+        '/api': BACKEND,
+      },
+    },
+  }
 })
