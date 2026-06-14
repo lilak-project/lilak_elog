@@ -304,6 +304,10 @@
 
 /* Apply bg/text to root */
 html {
+  /* App-wide default font: the themed sans stack (Pretendard / IBM Plex Sans,
+     loaded by loadFonts()). Overrides Tailwind preflight's system-ui default so
+     every card and component inherits it; mono bits opt in via var(--font-mono). */
+  font-family: var(--font-sans);
   background-color: var(--c-bg);
   color: var(--c-tx1);
   transition: background-color 0.15s, color 0.15s;
