@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Icon, Button } from 'lilak-ui'
+import { Icon, Button, CameraCapture } from 'lilak-ui'
 import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -212,6 +212,11 @@ export default function LogForm({
   const fileInputRef = useRef(null)
   const cameraInputRef = useRef(null)
   const tagInputRef = useRef(null)
+  // Desktop can't reach the webcam via <input capture> — open a getUserMedia
+  // modal instead; mobile keeps the native camera input.
+  const [cameraOpen, setCameraOpen] = useState(false)
+  const isMobile = typeof navigator !== 'undefined' && /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)
+  const addCapturedFile = (file) => setFileItems(prev => [...prev, { file, name: file.name }])
 
   // ── Format state ─────────────────────────────────────────────────────────
   const [formats, setFormats] = useState([])
@@ -587,6 +592,10 @@ export default function LogForm({
           onClose={() => setShowPicker(false)}
         />
       )}
+
+      {/* Desktop webcam capture (#8) */}
+      <CameraCapture open={cameraOpen} onClose={() => setCameraOpen(false)}
+        onCapture={addCapturedFile} title={t('form_camera') || '카메라 / 사진'} />
 
       {/* Header — format badge (new log only); Cancel/Save live in the form actions */}
       {!isEdit && !fromId && formats.length > 0 && (
@@ -1013,9 +1022,11 @@ export default function LogForm({
                     ])}
                   />
                 </div>
-                {/* Camera / photo — opens the device camera (or photo library) (#8) */}
+                {/* Camera — mobile uses the native capture input; desktop opens the
+                    getUserMedia modal (the webcam isn't reachable via <input capture>). */}
                 <div className="mt-2 flex items-center gap-2">
-                  <Button variant="secondary" type="button" onClick={() => cameraInputRef.current?.click()}>
+                  <Button variant="secondary" type="button"
+                    onClick={() => { if (isMobile) cameraInputRef.current?.click(); else setCameraOpen(true) }}>
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><Icon name="camera" size={14} />{t('form_camera') || '카메라 / 사진'}</span>
                   </Button>
                   <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden"
