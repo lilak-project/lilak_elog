@@ -8,6 +8,7 @@ import api from '../api'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LangContext'
 import { useTab } from '../context/TabContext'
+import { displayAvatar } from './settings/AccountSection'
 import { combo } from '../theme/textCombos'
 
 /** Parse #123 log links + @user mentions; preserve line breaks (two-space markdown). */
@@ -225,8 +226,9 @@ export default function CommunityPage() {
 
   const userProfiles = useMemo(() => {
     const map = {}
-    for (const u of users) map[u.username] = { shape: u.profile_shape, color: u.profile_color }
-    if (user) map[user.username] = { shape: user.profile_shape, color: user.profile_color }
+    // Apply the fixed display rules (admin → black crown, manager → black).
+    for (const u of users) { const a = displayAvatar(u); map[u.username] = { shape: a.icon, color: a.color } }
+    if (user) { const a = displayAvatar(user); map[user.username] = { shape: a.icon, color: a.color } }
     return map
   }, [users, user])
 

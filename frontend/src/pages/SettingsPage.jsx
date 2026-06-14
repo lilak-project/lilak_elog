@@ -54,6 +54,24 @@ export default function SettingsPage() {
 
   const activeSection = sections.find(s => s.id === settingsSection)?.id || sections[0].id
 
+  // Ctrl + j/k (or Ctrl + ↑/↓) moves between the settings sections in the sidebar.
+  useEffect(() => {
+    function onKey(e) {
+      if (!(e.ctrlKey || e.metaKey) || e.altKey) return
+      const dir = (e.key === 'j' || e.key === 'ArrowDown') ? 1
+        : (e.key === 'k' || e.key === 'ArrowUp') ? -1 : 0
+      if (!dir) return
+      e.preventDefault()
+      const ids = sections.map(s => s.id)
+      const i = Math.max(0, ids.indexOf(activeSection))
+      const next = ids[Math.max(0, Math.min(ids.length - 1, i + dir))]
+      if (next && next !== activeSection) openSettings(next)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeSection, sections.map(s => s.id).join(','), openSettings])
+
   return (
     <div style={{ display: 'flex', minHeight: 500 }}>
       {/* ── Left sidebar — kit SideNav ──────────────────────────────────── */}
