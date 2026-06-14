@@ -594,10 +594,11 @@ export default function LogForm({
           <button
             type="button"
             onClick={() => setShowPicker(true)}
-            className="text-xs border px-2 py-1 rounded transition-colors"
+            className="text-xs border px-2 py-1 rounded transition-colors inline-flex items-center gap-1"
             style={{ backgroundColor: 'var(--info-bg)', color: 'var(--info-text)', borderColor: 'var(--border-focus)' }}
           >
-            {selectedFormat ? selectedFormat.name : t('form_format_standard')} ✎
+            {selectedFormat ? selectedFormat.name : t('form_format_standard')}
+            <Icon name="edit" size={12} />
           </button>
         </div>
       )}
@@ -999,8 +1000,9 @@ export default function LogForm({
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
                 >
-                  <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-                    {dragOver ? '📂 여기에 놓으세요'
+                  <p className="text-sm flex items-center justify-center gap-1.5" style={{ color: 'var(--text-muted)' }}>
+                    <Icon name={dragOver ? 'folder' : 'attach'} size={14} />
+                    {dragOver ? '여기에 놓으세요'
                       : fileItems.length > 0 ? t('form_files_selected', fileItems.length)
                       : t('form_drop')}
                   </p>
@@ -1014,7 +1016,7 @@ export default function LogForm({
                 {/* Camera / photo — opens the device camera (or photo library) (#8) */}
                 <div className="mt-2 flex items-center gap-2">
                   <Button variant="secondary" type="button" onClick={() => cameraInputRef.current?.click()}>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><span aria-hidden="true">📷</span>{t('form_camera') || '카메라 / 사진'}</span>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><Icon name="camera" size={14} />{t('form_camera') || '카메라 / 사진'}</span>
                   </Button>
                   <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden"
                     onChange={e => setFileItems(prev => [
