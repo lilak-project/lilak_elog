@@ -1,9 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Input, Button, Chip, ChipGroup, Lightbox, Row, Grid } from 'lilak-ui'
-import api from '../api'
+import api, { apiBaseFor, getExperiment } from '../api'
 import { useLang } from '../context/LangContext'
 import { useAuth } from '../context/AuthContext'
 import { useTab } from '../context/TabContext'
+
+// Experiment-aware attachment URL (raw <img>/<a> bypass axios' baseURL).
+const attUrl = (id) => `${apiBaseFor(getExperiment())}/attachments/${id}`
 
 // ── Editable tag widget (kit Chip + Input + Button) ──────────────────────────
 function TagEditor({ logId, initialTags, allTags, onSaved }) {
@@ -203,7 +206,7 @@ export default function Gallery() {
                     boxShadow: selectedIdx === idx ? '0 8px 20px rgba(0,0,0,0.2)' : 'none', transition: 'border-color .12s' }}
                   onMouseEnter={e => { if (selectedIdx !== idx) e.currentTarget.style.borderColor = 'var(--border-strong)' }}
                   onMouseLeave={e => { if (selectedIdx !== idx) e.currentTarget.style.borderColor = 'transparent' }}>
-                  <img src={`/api/attachments/${img.id}`} alt={img.original_filename} loading="lazy"
+                  <img src={attUrl(img.id)} alt={img.original_filename} loading="lazy"
                     style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                 </div>
               ))}
@@ -215,7 +218,7 @@ export default function Gallery() {
             <div style={{ width: 256, flexShrink: 0, borderRadius: 12, border: '1px solid var(--border-default)',
               backgroundColor: 'var(--surface)', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
               <div style={{ aspectRatio: '16 / 9', overflow: 'hidden', borderRadius: '12px 12px 0 0', backgroundColor: 'var(--surface-2)' }}>
-                <img src={`/api/attachments/${selectedImg.id}`} alt={selectedImg.original_filename}
+                <img src={attUrl(selectedImg.id)} alt={selectedImg.original_filename}
                   onClick={() => setFullscreen(true)}
                   style={{ width: '100%', height: '100%', objectFit: 'contain', cursor: 'zoom-in', display: 'block' }} />
               </div>
@@ -249,7 +252,7 @@ export default function Gallery() {
       {/* Fullscreen — kit Lightbox */}
       <Lightbox
         open={fullscreen && !!selectedImg}
-        src={selectedImg ? `/api/attachments/${selectedImg.id}` : ''}
+        src={selectedImg ? attUrl(selectedImg.id) : ''}
         alt={selectedImg?.original_filename}
         onClose={() => setFullscreen(false)}
         onPrev={() => navigate(-1)}

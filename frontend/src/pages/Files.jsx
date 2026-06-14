@@ -1,9 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Icon, DataCard, DataGrid, Pagination, Input, Button, Row, ChipGroup } from 'lilak-ui'
 import { useTaggables, useBookmarks } from 'lilak-ui'
-import api from '../api'
+import api, { apiBaseFor, getExperiment } from '../api'
 import { useLang } from '../context/LangContext'
 import { useTab } from '../context/TabContext'
+
+// Experiment-aware attachment URL (raw <img>/<a> bypass axios' baseURL).
+const attUrl = (id) => `${apiBaseFor(getExperiment())}/attachments/${id}`
 
 const PAGE_SIZE = 50
 
@@ -106,7 +109,7 @@ export default function Files() {
   })), [items, openCard])
 
   function mediaFor(it) {
-    if (isImage(it.content_type)) return { type: 'image', src: `/api/attachments/${it.id}` }
+    if (isImage(it.content_type)) return { type: 'image', src: attUrl(it.id) }
     if (isText(it.content_type)) {
       const txt = textCache[it.id]
       return { type: 'text', text: txt === 'ERR' ? '(미리보기를 불러오지 못했습니다)' : txt === undefined ? '로딩 중…' : txt }
@@ -118,7 +121,7 @@ export default function Files() {
           <span>{formatSize(it.size)}</span>
           <span>{new Date(it.created_at).toLocaleDateString()}</span>
         </Row>
-        <a href={`/api/attachments/${it.id}`} download={it.original_filename}
+        <a href={attUrl(it.id)} download={it.original_filename}
           style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--text-link)', textDecoration: 'none' }}>
           <Icon name="download" size={14} /> {t('files_download')}
         </a>
