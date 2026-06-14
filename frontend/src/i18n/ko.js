@@ -248,6 +248,13 @@ export default {
   // AdminUsers
   admin_users_title: '사용자 관리',
   admin_manage: '관리',
+  admin_danger_zone: '관리 작업 — 매니저 비밀번호 확인이 필요합니다.',
+  admin_pw_confirm_title: '매니저 비밀번호 확인',
+  admin_pw_confirm_hint: '계속하려면 본인(매니저) 비밀번호를 입력하세요.',
+  admin_pw_required: '비밀번호를 입력하세요.',
+  admin_pw_wrong: '비밀번호가 올바르지 않습니다.',
+  admin_confirm: '확인',
+  admin_delete_logs_confirm: (u, n) => `'${u}' 의 로그 ${n}건을 삭제합니다.`,
   admin_delete_logs: '로그 삭제',
   admin_delete_user: '계정 삭제',
   admin_delete_user_confirm: (u) => `'${u}' 계정을 삭제하시겠습니까? 되돌릴 수 없습니다.`,

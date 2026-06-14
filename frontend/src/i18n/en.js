@@ -248,6 +248,13 @@ export default {
   // AdminUsers
   admin_users_title: 'User Management',
   admin_manage: 'Manage',
+  admin_danger_zone: 'Management actions — your manager password is required.',
+  admin_pw_confirm_title: 'Confirm manager password',
+  admin_pw_confirm_hint: 'Enter your (manager) password to continue.',
+  admin_pw_required: 'Enter your password.',
+  admin_pw_wrong: 'Incorrect password.',
+  admin_confirm: 'Confirm',
+  admin_delete_logs_confirm: (u, n) => `Delete ${n} log(s) by '${u}'.`,
   admin_delete_logs: 'Delete logs',
   admin_delete_user: 'Delete account',
   admin_delete_user_confirm: (u) => `Delete the '${u}' account? This cannot be undone.`,

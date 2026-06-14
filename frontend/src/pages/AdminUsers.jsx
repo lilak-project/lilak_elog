@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { CrudTable, Modal, Menu, Button, Avatar, Row, Stack, useTaggables } from 'lilak-ui'
+import { CrudTable, Modal, Button, Avatar, Row, Stack, useTaggables } from 'lilak-ui'
 import api from '../api'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LangContext'
@@ -28,10 +28,6 @@ export default function AdminUsers() {
     const next = !requireApproval
     try { await api.put('/settings', { require_approval: next }); setRequireApproval(next) } catch (e) { setError(e.response?.data?.detail || 'failed') }
   }
-  async function toggleActive(row) {
-    await run(async () => { await api.put(`/users/${row.id}`, { is_active: !row.is_active }); await fetchUsers() })
-  }
-
   // transfer modal
   const [transferModal, setTransferModal] = useState(false)
   const [transferFrom, setTransferFrom] = useState('')
@@ -39,11 +35,40 @@ export default function AdminUsers() {
   const [transferMsg, setTransferMsg] = useState(null)
   const [transferError, setTransferError] = useState(null)
   const [transferring, setTransferring] = useState(false)
-  // delete-logs modal
-  const [deleteLogsTarget, setDeleteLogsTarget] = useState(null)
-  const [deleting, setDeleting] = useState(false)
-  const [deleteMsg, setDeleteMsg] = useState(null)
-  const [deleteError, setDeleteError] = useState(null)
+  // Manager-password gate for destructive actions (deactivate / delete logs / delete account)
+  const [pwGate, setPwGate] = useState(null)   // { title, run } | null
+  const [pwVal, setPwVal] = useState('')
+  const [pwErr, setPwErr] = useState(null)
+  const [pwBusy, setPwBusy] = useState(false)
+
+  function gate(title, runFn) { setPwGate({ title, run: runFn }); setPwVal(''); setPwErr(null) }
+  async function confirmGate() {
+    if (!pwGate || pwBusy) return
+    if (!pwVal) { setPwErr(t('admin_pw_required') || '비밀번호를 입력하세요.'); return }
+    setPwBusy(true); setPwErr(null)
+    try {
+      await api.post('/auth/login', { username: user.username, password: pwVal })   // re-verify the manager
+      const runFn = pwGate.run
+      setPwGate(null); setPwVal('')
+      await runFn()
+    } catch (e) {
+      setPwErr(e.response?.status === 401 ? (t('admin_pw_wrong') || '비밀번호가 올바르지 않습니다.') : (e.response?.data?.detail || t('admin_save')))
+    } finally { setPwBusy(false) }
+  }
+
+  // The three gated actions (each opens the password prompt first).
+  function askDeactivate(row) {
+    gate(`${row.username} ${row.is_active ? t('admin_deactivate') : t('admin_activate')}`,
+      async () => { await api.put(`/users/${row.id}`, { is_active: !row.is_active }); await fetchUsers() })
+  }
+  function askDeleteLogs(row) {
+    gate(t('admin_delete_logs_confirm', row.username, row.log_count ?? 0),
+      async () => { await api.delete(`/users/${encodeURIComponent(row.username)}/logs`); await fetchUsers() })
+  }
+  function askDeleteAccount(row, close) {
+    gate(t('admin_delete_user_confirm', row.username),
+      async () => { await api.delete(`/users/${row.id}`); await fetchUsers(); close?.() })
+  }
 
   useEffect(() => { if (user) fetchUsers() }, [user])
 
@@ -78,17 +103,6 @@ export default function AdminUsers() {
     } catch (err) { setTransferError(err.response?.data?.detail || t('admin_transfer_run')) }
     finally { setTransferring(false) }
   }
-  async function handleDeleteLogs(e) {
-    e?.preventDefault()
-    if (!deleteLogsTarget) return
-    setDeleting(true); setDeleteError(null); setDeleteMsg(null)
-    try {
-      const res = await api.delete(`/users/${encodeURIComponent(deleteLogsTarget.username)}/logs`)
-      setDeleteMsg(`${deleteLogsTarget.username}의 로그 ${res.data.deleted}건을 삭제했습니다.`); fetchUsers()
-    } catch (err) { setDeleteError(err.response?.data?.detail || '삭제 실패') }
-    finally { setDeleting(false) }
-  }
-
   if (!user) return <div style={{ textAlign: 'center', padding: '64px 0', fontSize: 'var(--fs-body, 13px)', color: 'var(--text-muted)' }}>로그인 후 등록된 계정 목록을 볼 수 있습니다.</div>
 
   const badge = (text, tone) => (
@@ -150,18 +164,26 @@ export default function AdminUsers() {
         onDelete={isManager ? async (row) => { try { await api.delete(`/users/${row.id}`); await fetchUsers() } catch (e) { alert(e.response?.data?.detail || t('admin_delete')) } } : undefined}
         canEdit={() => false}
         canDelete={() => false}
-        extraActions={isManager ? (row, { openEdit, openDelete }) => {
+        extraActions={isManager ? (row, { openEdit }) => (
+          <Button variant="secondary" size="sm" onClick={openEdit}>{t('admin_manage') || '관리'}</Button>
+        ) : undefined}
+        formExtra={isManager ? (row, { close }) => {
           const isSelf = row.id === user.user_id
-          const items = [
-            { id: 'edit', label: t('admin_edit'), onSelect: openEdit },
-            ...(isSelf ? [] : [{ id: 'active', label: row.is_active ? t('admin_deactivate') : t('admin_activate'), onSelect: () => toggleActive(row) }]),
-            ...((row.log_count ?? 0) > 0 ? [{ id: 'logs', label: t('admin_delete_logs') || '로그 삭제', onSelect: () => { setDeleteLogsTarget(row); setDeleteMsg(null); setDeleteError(null) } }] : []),
-            ...(isSelf ? [] : [{ id: 'del', label: t('admin_delete_user') || '계정 삭제', danger: true, onSelect: openDelete }]),
-          ]
           return (
-            <Menu align="right" width={180}
-              trigger={<Button variant="secondary" size="sm">{t('admin_manage') || '관리'}</Button>}
-              sections={[{ items }]} />
+            <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 12, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
+              <span style={{ width: '100%', fontSize: 'var(--fs-tiny, 11px)', color: 'var(--text-muted)' }}>{t('admin_danger_zone') || '관리 작업 — 매니저 비밀번호 확인이 필요합니다.'}</span>
+              {!isSelf && (
+                <Button variant="warning" size="sm" type="button" onClick={() => askDeactivate(row)}>
+                  {row.is_active ? t('admin_deactivate') : t('admin_activate')}
+                </Button>
+              )}
+              {(row.log_count ?? 0) > 0 && (
+                <Button variant="dangerSoft" size="sm" type="button" onClick={() => askDeleteLogs(row)}>{t('admin_delete_logs')}</Button>
+              )}
+              {!isSelf && (
+                <Button variant="danger" size="sm" type="button" onClick={() => askDeleteAccount(row, close)}>{t('admin_delete_user')}</Button>
+              )}
+            </div>
           )
         } : undefined}
         labels={{
@@ -198,27 +220,21 @@ export default function AdminUsers() {
         </Modal>
       )}
 
-      {/* Delete-logs modal */}
-      {deleteLogsTarget && (
-        <Modal title="로그 전체 삭제" width={400} onClose={() => setDeleteLogsTarget(null)}
-          onSubmit={deleteMsg ? undefined : () => handleDeleteLogs()}
-          footer={deleteMsg
-            ? <Button variant="secondary" onClick={() => setDeleteLogsTarget(null)}>닫기</Button>
-            : <>
-                <Button variant="ghost" onClick={() => setDeleteLogsTarget(null)}>취소</Button>
-                <Button variant="danger" disabled={deleting} onClick={() => handleDeleteLogs()}>{deleting ? '삭제 중…' : '전체 삭제'}</Button>
-              </>}>
-          {deleteMsg ? (
-            <div style={banner('ok')}>{deleteMsg}</div>
-          ) : (
-            <Stack gap={8}>
-              <p style={{ margin: 0, fontSize: 'var(--fs-body, 13px)', color: 'var(--text-secondary)' }}>
-                <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{deleteLogsTarget.username}</span>의 로그 <span style={{ fontWeight: 600, color: 'var(--danger-text)' }}>{deleteLogsTarget.log_count ?? 0}건</span>을 모두 삭제합니다.
-              </p>
-              <p style={{ margin: 0, fontSize: 'var(--fs-small, 12px)', color: 'var(--text-muted)' }}>소프트 삭제(복구 가능) 처리됩니다.</p>
-              {deleteError && <div style={banner('err')}>{deleteError}</div>}
-            </Stack>
-          )}
+      {/* Manager-password gate for destructive actions */}
+      {pwGate && (
+        <Modal title={t('admin_pw_confirm_title') || '매니저 비밀번호 확인'} width={400}
+          onClose={() => setPwGate(null)} onSubmit={confirmGate}
+          footer={<>
+            <Button variant="ghost" onClick={() => setPwGate(null)}>{t('admin_cancel')}</Button>
+            <Button variant="danger" disabled={pwBusy || !pwVal} onClick={confirmGate}>{pwBusy ? '…' : (t('admin_confirm') || '확인')}</Button>
+          </>}>
+          <Stack gap={10}>
+            <p style={{ margin: 0, fontSize: 'var(--fs-body, 13px)', color: 'var(--text-primary)' }}>{pwGate.title}</p>
+            <p style={{ margin: 0, fontSize: 'var(--fs-small, 12px)', color: 'var(--text-muted)' }}>{t('admin_pw_confirm_hint') || '계속하려면 본인(매니저) 비밀번호를 입력하세요.'}</p>
+            <input type="password" autoFocus value={pwVal} onChange={e => setPwVal(e.target.value)} placeholder={t('reg_password')} style={selectStyle}
+              onKeyDown={e => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) { e.preventDefault(); confirmGate() } }} />
+            {pwErr && <div style={banner('err')}>{pwErr}</div>}
+          </Stack>
         </Modal>
       )}
     </div>
