@@ -215,6 +215,8 @@ export default {
   reg_id_invalid: 'Username must be letters/numbers, 3–32 chars.',
   reg_email_required: 'Email is required.',
   reg_fail: 'Registration failed.',
+  reg_pending: 'Your sign-up was received. You can log in once a manager approves it.',
+  reg_pending_hint: 'Login becomes available after an administrator activates your account.',
 
   // AdminUsers
   admin_users_title: 'User Management',
@@ -241,6 +243,10 @@ export default {
   admin_me: '(you)',
   admin_active: 'active',
   admin_inactive: 'inactive',
+  admin_activate: 'Activate',
+  admin_deactivate: 'Deactivate',
+  admin_approval_toggle: 'Require approval',
+  admin_approval_hint: 'When on, new sign-ups are created inactive and a manager must activate them before they can log in.',
   admin_edit: 'Edit',
   admin_delete: 'Delete',
   admin_save: 'Save',

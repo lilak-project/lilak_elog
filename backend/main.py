@@ -13,6 +13,7 @@ from fastapi.staticfiles import StaticFiles
 from database import init_db
 from routes import logs, users, attachments, export, api_tokens, formats, comments, notifications, notices, community, webhooks, ai_bots, schedule, services, tasks, infography
 from routes import modules as modules_router
+from routes import settings as settings_router
 from module_runner import start_module_runner
 
 
@@ -58,6 +59,7 @@ app.include_router(services.router,        prefix="/api")
 app.include_router(modules_router.router,  prefix="/api")
 app.include_router(tasks.router,           prefix="/api")
 app.include_router(infography.router,      prefix="/api")
+app.include_router(settings_router.router, prefix="/api")
 
 # ── Serve built React frontend (SPA catch-all) ────────────────────────────────
 _FRONTEND = os.path.abspath(

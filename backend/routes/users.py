@@ -17,6 +17,8 @@ from auth import (
     require_manager, validate_username, validate_password, verify_password,
 )
 from database import get_db
+from settings_store import get_setting
+from audit_log import record as _audit
 
 router = APIRouter(tags=["users"])
 
@@ -132,9 +134,10 @@ def change_my_password(
 
 # ── Self-registration (공개 엔드포인트) ────────────────────────────────────────
 
-@router.post("/auth/register", response_model=schemas.TokenResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/auth/register", status_code=status.HTTP_201_CREATED)
 def register(payload: schemas.RegisterRequest, db: Session = Depends(get_db)):
-    """누구나 계정을 만들 수 있습니다. 이메일 필수, 아이디 영문숫자, 비밀번호 숫자 전용."""
+    """누구나 계정을 만들 수 있습니다. 단, 매니저가 '승인 필요'를 켠 경우 가입은
+    비활성 상태로 만들어지고 매니저 승인 전까지 로그인할 수 없습니다."""
     # 아이디 중복 확인
     if db.query(models.User).filter(models.User.username == payload.username).first():
         raise HTTPException(status_code=400, detail="이미 사용 중인 아이디입니다.")
@@ -142,12 +145,15 @@ def register(payload: schemas.RegisterRequest, db: Session = Depends(get_db)):
     if db.query(models.User).filter(models.User.email == payload.email).first():
         raise HTTPException(status_code=400, detail="이미 사용 중인 이메일입니다.")
 
+    require_approval = bool(get_setting(db, "require_approval", False))
+
     user = models.User(
         username=payload.username,
         display_name=payload.display_name or payload.username,
         email=payload.email,
         phone=payload.phone,
         role="user",
+        is_active=not require_approval,   # pending → inactive until a manager approves
         experiment_role=payload.experiment_role,
         participation_from=payload.participation_from,
         participation_to=payload.participation_to,
@@ -158,14 +164,19 @@ def register(payload: schemas.RegisterRequest, db: Session = Depends(get_db)):
     db.add(user)
     db.commit()
     db.refresh(user)
+    _audit(db, "register", "user", user.id, user.username)
+
+    if require_approval:
+        return {"pending": True, "username": user.username}
 
     token = create_access_token(user.id, user.username, user.role)
-    return schemas.TokenResponse(
-        access_token=token,
-        user_id=user.id,
-        username=user.username,
-        role=user.role,
-    )
+    return {
+        "pending": False,
+        "access_token": token,
+        "user_id": user.id,
+        "username": user.username,
+        "role": user.role,
+    }
 
 
 # ── Log transfer (두 계정 비밀번호 모두 필요) ──────────────────────────────────
@@ -356,13 +367,17 @@ def update_user(
         user.profile_color = payload.profile_color or None
     if payload.profile_shape is not None:
         user.profile_shape = payload.profile_shape or None
-    if payload.is_active is not None:
+    activation_change = None
+    if payload.is_active is not None and payload.is_active != user.is_active:
         user.is_active = payload.is_active
+        activation_change = "activate" if payload.is_active else "deactivate"
     if payload.password:
         user.password_hash = hash_password(payload.password)
 
     db.commit()
     db.refresh(user)
+    if activation_change:
+        _audit(db, activation_change, "user", user.id, current_user.username)
     return user
 
 

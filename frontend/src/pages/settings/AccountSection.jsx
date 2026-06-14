@@ -125,6 +125,7 @@ function RegisterForm({ onSuccess }) {
   const { t } = useLang()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  const [pending, setPending] = useState(false)
   // Roll a random Phosphor-icon profile up front; the 랜덤 button re-rolls.
   const [form, setForm] = useState(() => {
     const { profile_shape, profile_color } = randomAvatar()
@@ -149,12 +150,14 @@ function RegisterForm({ onSuccess }) {
     if (!form.email) { setError(t('reg_email_required')); return }
     setLoading(true)
     try {
-      await api.post('/auth/register', {
+      const res = await api.post('/auth/register', {
         username: form.username, email: form.email, password: form.password,
         phone: form.phone || null, experiment_role: form.experiment_role || null,
         participation_from: form.participation_from || null, participation_to: form.participation_to || null,
         profile_color: form.profile_color || null, profile_shape: form.profile_shape || null,
       })
+      // Approval mode: the account is created but inactive — no auto-login.
+      if (res.data?.pending) { setPending(true); return }
       await login(form.username, form.password)
       onSuccess?.()
     } catch (err) {
@@ -164,6 +167,18 @@ function RegisterForm({ onSuccess }) {
 
   const req = <span style={{ color: 'var(--danger-text)' }}>*</span>
   const hint = (text) => <span style={{ marginLeft: 4, color: 'var(--text-muted)' }}>({text})</span>
+
+  if (pending) {
+    return (
+      <div style={{ maxWidth: 384 }}>
+        <Stack gap={10} style={card}>
+          <h3 style={{ margin: 0, fontWeight: 600, color: 'var(--text-secondary)' }}>{t('register_tab')}</h3>
+          <p style={{ margin: 0, fontSize: 'var(--fs-body, 13px)', color: 'var(--text-primary)' }}>{t('reg_pending')}</p>
+          <p style={{ margin: 0, fontSize: 'var(--fs-small, 12px)', color: 'var(--text-muted)' }}>{t('reg_pending_hint')}</p>
+        </Stack>
+      </div>
+    )
+  }
 
   return (
     <div style={{ maxWidth: 384 }}>

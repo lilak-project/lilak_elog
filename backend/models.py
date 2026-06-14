@@ -319,6 +319,14 @@ class AuditEvent(Base):
     created_at = Column(DateTime, nullable=False, default=_now, index=True)
 
 
+class Setting(Base):
+    """Per-experiment key/value settings (manager-tunable): require_approval, tabs, …"""
+    __tablename__ = "settings"
+
+    key = Column(String(64), primary_key=True)
+    value = Column(Text)
+
+
 class Notice(Base):
     """Pinned announcements (manager-only write)."""
     __tablename__ = "notices"

@@ -215,6 +215,8 @@ export default {
   reg_id_invalid: '아이디는 영문자와 숫자만 3~32자로 입력하세요.',
   reg_email_required: '이메일을 입력하세요.',
   reg_fail: '회원가입에 실패했습니다.',
+  reg_pending: '가입 신청이 접수되었습니다. 매니저 승인 후 로그인할 수 있습니다.',
+  reg_pending_hint: '관리자가 계정을 활성화하면 로그인이 가능합니다.',
 
   // AdminUsers
   admin_users_title: '사용자 관리',
@@ -241,6 +243,10 @@ export default {
   admin_me: '(나)',
   admin_active: '활성',
   admin_inactive: '비활성',
+  admin_activate: '활성화',
+  admin_deactivate: '비활성화',
+  admin_approval_toggle: '신규 가입 승인',
+  admin_approval_hint: '켜면 새 가입은 비활성 상태로 생성되며, 매니저가 활성화해야 로그인할 수 있습니다.',
   admin_edit: '편집',
   admin_delete: '삭제',
   admin_save: '저장',

@@ -20,6 +20,17 @@ export default function AdminUsers() {
   const [error, setError] = useState(null)
   const isManager = user?.role === 'manager'
 
+  // require-approval setting (new registrations land inactive until approved)
+  const [requireApproval, setRequireApproval] = useState(false)
+  useEffect(() => { api.get('/settings').then(r => setRequireApproval(!!r.data.require_approval)).catch(() => {}) }, [])
+  async function toggleApproval() {
+    const next = !requireApproval
+    try { await api.put('/settings', { require_approval: next }); setRequireApproval(next) } catch (e) { setError(e.response?.data?.detail || 'failed') }
+  }
+  async function toggleActive(row) {
+    await run(async () => { await api.put(`/users/${row.id}`, { is_active: !row.is_active }); await fetchUsers() })
+  }
+
   // transfer modal
   const [transferModal, setTransferModal] = useState(false)
   const [transferFrom, setTransferFrom] = useState('')
@@ -96,9 +107,15 @@ export default function AdminUsers() {
         busy={busy}
         error={error}
         headerActions={isManager ? (
-          <Button variant="warning" onClick={() => { setTransferFrom(''); setTransferTo(''); setTransferMsg(null); setTransferError(null); setTransferModal(true) }}>
-            {t('admin_transfer_btn')}
-          </Button>
+          <Row gap={8} align="center" as="span">
+            <Button variant={requireApproval ? 'primary' : 'secondary'} onClick={toggleApproval}
+              title={t('admin_approval_hint')}>
+              {t('admin_approval_toggle')}: {requireApproval ? 'ON' : 'OFF'}
+            </Button>
+            <Button variant="warning" onClick={() => { setTransferFrom(''); setTransferTo(''); setTransferMsg(null); setTransferError(null); setTransferModal(true) }}>
+              {t('admin_transfer_btn')}
+            </Button>
+          </Row>
         ) : undefined}
         columns={[
           { key: 'username', header: t('admin_col_username'), render: (u) => (
@@ -133,10 +150,20 @@ export default function AdminUsers() {
         }) : undefined}
         onDelete={isManager ? async (row) => { try { await api.delete(`/users/${row.id}`); await fetchUsers() } catch (e) { alert(e.response?.data?.detail || t('admin_delete')) } } : undefined}
         canDelete={(row) => isManager && row.id !== user.user_id}
-        extraActions={isManager ? (row) => ((row.log_count ?? 0) > 0
-          ? <button onClick={() => { setDeleteLogsTarget(row); setDeleteMsg(null); setDeleteError(null) }}
-              style={{ fontSize: 'var(--fs-small, 12px)', padding: '0 6px', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', color: 'var(--warning-text)' }}>로그삭제</button>
-          : null) : undefined}
+        extraActions={isManager ? (row) => (
+          <Row gap={8} align="center" as="span">
+            {row.id !== user.user_id && (
+              <button onClick={() => toggleActive(row)}
+                style={{ fontSize: 'var(--fs-small, 12px)', padding: '0 6px', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', color: row.is_active ? 'var(--danger-text)' : 'var(--success-text)' }}>
+                {row.is_active ? t('admin_deactivate') : t('admin_activate')}
+              </button>
+            )}
+            {(row.log_count ?? 0) > 0 && (
+              <button onClick={() => { setDeleteLogsTarget(row); setDeleteMsg(null); setDeleteError(null) }}
+                style={{ fontSize: 'var(--fs-small, 12px)', padding: '0 6px', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', color: 'var(--warning-text)' }}>로그삭제</button>
+            )}
+          </Row>
+        ) : undefined}
         labels={{
           add: t('admin_new_user'), edit: t('admin_edit'), delete: t('admin_delete'),
           newTitle: t('admin_create_title'), editTitle: t('admin_create_title'),
