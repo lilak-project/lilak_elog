@@ -872,9 +872,9 @@ export default function Home() {
         </div>
       )}
 
-      {/* Log feed — kit LogList handles task-child nesting + the configurable
-          group-by divider (#8); renderEntry stays as elog glue (inline edit,
-          expanded card, focus). */}
+      {/* Log feed — kit LogList renders entries in (monotonic) array order with
+          the configurable group-by divider (#8); renderEntry stays as elog glue
+          (inline edit, expanded card, focus). */}
       <LogList
         entries={filteredEntries}
         groupBy={groupBy}
