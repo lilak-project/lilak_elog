@@ -247,6 +247,10 @@ export default {
 
   // AdminUsers
   admin_users_title: 'User Management',
+  admin_manage: 'Manage',
+  admin_delete_logs: 'Delete logs',
+  admin_delete_user: 'Delete account',
+  admin_delete_user_confirm: (u) => `Delete the '${u}' account? This cannot be undone.`,
   admin_transfer_btn: 'Transfer Logs',
   admin_new_user: 'New User',
   admin_transfer_title: 'Transfer Logs',

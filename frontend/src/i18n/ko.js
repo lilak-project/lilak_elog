@@ -247,6 +247,10 @@ export default {
 
   // AdminUsers
   admin_users_title: '사용자 관리',
+  admin_manage: '관리',
+  admin_delete_logs: '로그 삭제',
+  admin_delete_user: '계정 삭제',
+  admin_delete_user_confirm: (u) => `'${u}' 계정을 삭제하시겠습니까? 되돌릴 수 없습니다.`,
   admin_transfer_btn: '로그 이전',
   admin_new_user: '새 사용자',
   admin_transfer_title: '로그 이전',

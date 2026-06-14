@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { CrudTable, Modal, Button, Avatar, Row, Stack, useTaggables } from 'lilak-ui'
+import { CrudTable, Modal, Menu, Button, Avatar, Row, Stack, useTaggables } from 'lilak-ui'
 import api from '../api'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LangContext'
@@ -127,9 +127,7 @@ export default function AdminUsers() {
             </span>
           ) },
           { key: 'email', header: t('admin_col_email'), muted: true, render: (u) => u.email || '—' },
-          { key: 'phone', header: '전화번호', mono: true, muted: true, render: (u) => u.phone || '—' },
           { key: 'role', header: t('admin_col_role'), fit: true, render: (u) => badge(u.role, roleTone(u.role)) },
-          { key: 'part', header: '참여 기간', render: (u) => (u.participation_from || u.participation_to) ? `${u.participation_from || '…'} ~ ${u.participation_to || '…'}` : '—' },
           { key: 'status', header: t('admin_col_status'), fit: true, render: (u) => badge(u.is_active ? t('admin_active') : t('admin_inactive'), statusTone(u.is_active)) },
           { key: 'logs', header: '로그', mono: true, fit: true, align: 'right', render: (u) => u.log_count ?? 0 },
         ]}
@@ -150,25 +148,26 @@ export default function AdminUsers() {
           await api.put(`/users/${row.id}`, p); await fetchUsers()
         }) : undefined}
         onDelete={isManager ? async (row) => { try { await api.delete(`/users/${row.id}`); await fetchUsers() } catch (e) { alert(e.response?.data?.detail || t('admin_delete')) } } : undefined}
-        canDelete={(row) => isManager && row.id !== user.user_id}
-        extraActions={isManager ? (row) => (
-          <Row gap={8} align="center" as="span">
-            {row.id !== user.user_id && (
-              <button onClick={() => toggleActive(row)}
-                style={{ fontSize: 'var(--fs-small, 12px)', padding: '0 6px', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', color: row.is_active ? 'var(--danger-text)' : 'var(--success-text)' }}>
-                {row.is_active ? t('admin_deactivate') : t('admin_activate')}
-              </button>
-            )}
-            {(row.log_count ?? 0) > 0 && (
-              <button onClick={() => { setDeleteLogsTarget(row); setDeleteMsg(null); setDeleteError(null) }}
-                style={{ fontSize: 'var(--fs-small, 12px)', padding: '0 6px', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', color: 'var(--warning-text)' }}>로그삭제</button>
-            )}
-          </Row>
-        ) : undefined}
+        canEdit={() => false}
+        canDelete={() => false}
+        extraActions={isManager ? (row, { openEdit, openDelete }) => {
+          const isSelf = row.id === user.user_id
+          const items = [
+            { id: 'edit', label: t('admin_edit'), onSelect: openEdit },
+            ...(isSelf ? [] : [{ id: 'active', label: row.is_active ? t('admin_deactivate') : t('admin_activate'), onSelect: () => toggleActive(row) }]),
+            ...((row.log_count ?? 0) > 0 ? [{ id: 'logs', label: t('admin_delete_logs') || '로그 삭제', onSelect: () => { setDeleteLogsTarget(row); setDeleteMsg(null); setDeleteError(null) } }] : []),
+            ...(isSelf ? [] : [{ id: 'del', label: t('admin_delete_user') || '계정 삭제', danger: true, onSelect: openDelete }]),
+          ]
+          return (
+            <Menu align="right" width={180}
+              trigger={<Button variant="secondary" size="sm">{t('admin_manage') || '관리'}</Button>}
+              sections={[{ items }]} />
+          )
+        } : undefined}
         labels={{
-          add: t('admin_new_user'), edit: t('admin_edit'), delete: t('admin_delete'),
-          newTitle: t('admin_create_title'), editTitle: t('admin_create_title'),
-          confirmDelete: (u) => t('admin_deactivate_confirm', u.username),
+          add: t('admin_new_user'), edit: t('admin_save') || '저장', delete: t('admin_delete'),
+          newTitle: t('admin_create_title'), editTitle: t('admin_users_title'),
+          confirmDelete: (u) => t('admin_delete_user_confirm', u.username),
           empty: t('admin_loading'), loading: t('admin_loading'),
         }}
       />
