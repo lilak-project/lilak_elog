@@ -9,6 +9,12 @@ dist/
 *.log
 npm-debug.log*
 
+# local config / secrets (commit .env.example only)
+.env
+.env.local
+*.env
+!.env.example
+
 # os / editor
 .DS_Store
 .idea/
