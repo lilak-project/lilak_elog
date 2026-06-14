@@ -13,7 +13,7 @@ import {
   TopBar, CommandBar, Drawer, ShortcutsModal,
   Container, Row, Stack, Button, Icon,
   useCommands, useShortcut, useCommandRegistry, useTagIndex,
-  makeDataFindModes, INDEX_CHARS, subscribeBarInput, subscribeBarLead, closeBarInput,
+  makeDataFindModes, INDEX_CHARS, subscribeBarInput, subscribeBarLead, openBarInput, closeBarInput,
   subscribeBarSlotActive, subscribeCommandActive,
 } from 'lilak-ui'
 import { useAuth } from '../context/AuthContext'
@@ -163,6 +163,37 @@ export default function Shell() {
   // `\` toggles the system drawer.
   useShortcut('\\', () => setDrawerOpen((o) => !o), [], 'system panel')
 
+  // `/account [id]` → create an account through the command bar (#6). `/account`
+  // alone prompts id → email → password; `/account <id>` skips the id step. Each
+  // step re-prompts with an error hint on bad input; the last step registers.
+  const startAccountFlow = useCallback((presetId = '') => {
+    const data = { username: (presetId || '').trim(), email: '', password: '' }
+    let seq = 0
+    const ask = (opts) => openBarInput({ key: 'acct-' + (seq++), onCancel: closeBarInput, ...opts })
+    const askId = (err) => ask({
+      label: t('acct_id'), placeholder: t('acct_id_ph'), hint: err, initialValue: data.username,
+      onSubmit: (v) => { v = v.trim(); if (!/^[A-Za-z0-9_-]{3,32}$/.test(v)) return askId(t('reg_id_invalid')); data.username = v; askEmail() },
+    })
+    const askEmail = (err) => ask({
+      label: t('acct_email'), placeholder: t('acct_email_ph'), hint: err, initialValue: data.email, inputMode: 'email',
+      onSubmit: (v) => { v = v.trim(); if (!v) return askEmail(t('reg_email_required')); data.email = v; askPassword() },
+    })
+    const askPassword = (err) => ask({
+      label: t('acct_password'), placeholder: t('acct_password_ph'), hint: err, secure: true, inputMode: 'numeric',
+      onSubmit: async (v) => {
+        if (!/^[0-9]{4,20}$/.test(v)) return askPassword(t('reg_pw_invalid'))
+        data.password = v
+        try {
+          const res = await api.post('/auth/register', { username: data.username, email: data.email, password: data.password })
+          closeBarInput()
+          window.alert(res.data?.pending ? t('reg_pending') : t('acct_created', data.username))
+        } catch (e) { askPassword(e?.response?.data?.detail || t('reg_fail')) }
+      },
+    })
+    if (data.username && /^[A-Za-z0-9_-]{3,32}$/.test(data.username)) askEmail()
+    else askId()
+  }, [t])
+
   // ── register the core commands into the connector ────────────────────────
   useCommands(() => {
     const list = [
@@ -190,6 +221,10 @@ export default function Shell() {
         id, aliases: [alias], title: t('cmd_logout') || 'Log out', category: 'system',
         keywords: 'out logout signout sign-out', run: () => logout(),
       })),
+      // `/account [id]` → create an account (prompted id → email → password).
+      { id: 'account', aliases: ['signup'], title: t('cmd_account') || 'Create account', category: 'system',
+        keywords: 'account signup register new user create 계정 가입 회원', freeArg: true,
+        run: (arg) => startAccountFlow(arg) },
       // commands with OPTIONS: choosing them lists the choices (no auto-fill)
       { id: 'theme', title: t('cmd_theme') || 'Theme', category: 'view', keywords: 'color',
         args: (themes || ['bright', 'dark', 'lowcontrast']).map((th) => ({ value: th, label: t(`theme_${th}`) || th })),
@@ -202,7 +237,7 @@ export default function Shell() {
       list.push({ id: tb.id, title: t('tab_' + tb.type) || tb.label, category: 'tab', keywords: tb.type, run: () => activateTab(tb.id) })
     }
     return list
-  }, [tabs, lang, themes, openNewLog, openSettings, activateTab, openDrawer, setTheme, setLang])
+  }, [tabs, lang, themes, openNewLog, openSettings, activateTab, openDrawer, setTheme, setLang, startAccountFlow])
 
   // Command-mode indicator (#8): the brand logo stays bright while keyboard
   // commands are live (logs feed, esc'd) and dims to the unselected-tab colour
