@@ -41,6 +41,7 @@ export default function Shell() {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [shortcutsOpen, setShortcutsOpen] = useState(false)
   const [unread, setUnread] = useState(0)
+  const [runStatus, setRunStatus] = useState({ state: 'idle', run_number: null })
 
   // unread notification count (poll) — data glue, rendered by kit NotificationBell
   useEffect(() => {
@@ -51,6 +52,16 @@ export default function Shell() {
     const id = setInterval(fetchCount, 30_000)
     return () => { alive = false; clearInterval(id) }
   }, [user])
+
+  // current run status (idle / run#N) — poll
+  useEffect(() => {
+    let alive = true
+    const load = () => api.get('/runs/current')
+      .then((r) => { if (alive) setRunStatus(r.data || { state: 'idle', run_number: null }) }).catch(() => {})
+    load()
+    const id = setInterval(load, 15_000)
+    return () => { alive = false; clearInterval(id) }
+  }, [])
 
   const openDrawer = useCallback(() => setDrawerOpen(true), [])
   const openBar = useCallback((lead = '/') => { setBarLead(lead); setBarOpen(true) }, [])
@@ -191,15 +202,30 @@ export default function Shell() {
     return list
   }, [tabs, lang, themes, openNewLog, openSettings, activateTab, openDrawer, setTheme, setLang])
 
-  const brand = lang === 'ko' ? '라일락' : 'LILAK'
+  // Brand wordmark: "lilak" (top-left) over "elog" (bottom-right), two lines.
+  const brand = (
+    <span style={{ display: 'inline-flex', flexDirection: 'column', lineHeight: 1.0, minWidth: 46, letterSpacing: '0.01em' }}>
+      <span style={{ textAlign: 'left', fontWeight: 700 }}>lilak</span>
+      <span style={{ textAlign: 'right', fontWeight: 500, fontSize: '0.78em', letterSpacing: '0.06em', color: 'var(--nav-text-muted)' }}>elog</span>
+    </span>
+  )
   const experiment = getExperiment()
   // Current experiment shown next to the brand; brand click → project list.
   const brandSuffix = experiment ? (
-    <span style={{ marginLeft: 2, padding: '1px 7px', borderRadius: 999, fontFamily: 'var(--font-mono)', fontWeight: 500,
-      fontSize: 'var(--fs-micro, 10px)', backgroundColor: 'var(--nav-accent)', color: 'var(--nav-text-muted)' }}>{experiment}</span>
+    <span style={{ marginLeft: 2, padding: '3px 8px', borderRadius: 999, fontFamily: 'var(--font-mono)', fontWeight: 500,
+      fontSize: 'var(--fs-micro, 10px)', lineHeight: 1.2, backgroundColor: 'var(--nav-accent)', color: 'var(--nav-text-muted)' }}>{experiment}</span>
   ) : null
-  const TAB_ICONS = { experiment: 'flask', logs: 'logs', browse: 'browse', community: 'community', infography: 'infography', schedule: 'schedule', settings: 'settings' }
+  const TAB_ICONS = { experiment: 'plug', logs: 'logs', browse: 'browse', community: 'community', infography: 'infography', schedule: 'schedule', settings: 'settings' }
   const tabItems = tabs.map((tb) => ({ id: tb.id, label: t('tab_' + tb.type) || tb.label, icon: TAB_ICONS[tb.type] }))
+
+  // Run status (idle / run#N) — shown left of the account button. Same text
+  // colour as the rest of the top bar for now (refine the colours later).
+  const statusEl = (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-tiny, 11px)', color: 'var(--nav-text)' }}>
+      <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: 'var(--nav-text-muted)' }} />
+      {runStatus.state === 'running' && runStatus.run_number != null ? `run#${runStatus.run_number}` : 'idle'}
+    </span>
+  )
 
   // Single right-slot button: account + alarms live in one drawer now (no bell).
   // Unread notifications show as a small dot on this button. `\` also opens it.
@@ -235,7 +261,7 @@ export default function Shell() {
         tabs={tabItems}
         active={activeTab.id}
         onTab={activateTab}
-        right={systemBtn}
+        right={<>{statusEl}{systemBtn}</>}
       />
 
       <main style={{ flex: 1, paddingBottom: 56 }}>

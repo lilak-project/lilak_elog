@@ -346,6 +346,21 @@ def next_run_type(
     }
 
 
+# ── Current run status (idle / run#N) ────────────────────────────────────────
+@router.get("/runs/current")
+def current_run(db: Session = Depends(get_db)):
+    """Latest run boundary decides the status: a start_of_run with no later
+    end_of_run → running that run; otherwise idle."""
+    last = (db.query(models.LogEntry)
+            .filter(models.LogEntry.run_type.in_(["S", "E"]),
+                    models.LogEntry.is_deleted == False)
+            .order_by(models.LogEntry.created_at.desc())
+            .first())
+    if last and last.run_type == "S" and last.run_number is not None:
+        return {"state": "running", "run_number": last.run_number}
+    return {"state": "idle", "run_number": None}
+
+
 # ── List / search ─────────────────────────────────────────────────────────────
 
 @router.get("/logs", response_model=schemas.LogListResponse)
