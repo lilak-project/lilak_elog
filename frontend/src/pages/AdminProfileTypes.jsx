@@ -21,7 +21,7 @@ export default function AdminProfileTypes() {
           {AVATAR_ICONS.map(ic => (
             <div key={ic} title={ic}
               style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '8px 4px', borderRadius: 10, border: '1px solid var(--border-default)', backgroundColor: 'var(--surface)' }}>
-              <Avatar icon={ic} color="var(--text-secondary)" size={30} />
+              <Avatar icon={ic} color="#64748b" size={30} />
               <span style={{ fontSize: 'var(--fs-micro, 10px)', color: 'var(--text-muted)', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ic}</span>
             </div>
           ))}

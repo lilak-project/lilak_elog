@@ -5,6 +5,7 @@ import api from '../api'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LangContext'
 import { useTab } from '../context/TabContext'
+import { displayAvatar } from './settings/AccountSection'
 import { inputBase } from '../theme/uiStyles'
 
 // Users — rebuilt on the kit CrudTable. The transfer-logs and delete-all-logs
@@ -120,7 +121,7 @@ export default function AdminUsers() {
         columns={[
           { key: 'username', header: t('admin_col_username'), render: (u) => (
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-              <Avatar icon={u.profile_shape} color={u.role === 'manager' ? '#111827' : u.profile_color} seed={u.username} size={22} />
+              <Avatar {...displayAvatar(u)} seed={u.username} size={22} />
               <span style={{ fontFamily: 'var(--font-mono)' }}>{u.username}</span>
               {u.id === user.user_id && <span style={{ fontSize: 'var(--fs-micro, 10px)', color: 'var(--text-link)' }}>{t('admin_me')}</span>}
             </span>

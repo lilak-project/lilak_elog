@@ -5,6 +5,17 @@ import {
 
 // Manager profiles are always black (the colour is locked, randomize keeps it).
 export const MANAGER_COLOR = '#111827'
+// The admin account is always a black crown, fixed.
+export const ADMIN_USERNAME = 'admin'
+
+// Effective avatar { icon, color } for a user, applying the fixed rules:
+// admin → black crown; any manager → black; everyone else → their own.
+export function displayAvatar(u) {
+  if (!u) return { icon: undefined, color: undefined }
+  if (u.username === ADMIN_USERNAME) return { icon: 'crown', color: MANAGER_COLOR }
+  if (u.role === 'manager') return { icon: u.profile_shape, color: MANAGER_COLOR }
+  return { icon: u.profile_shape, color: u.profile_color }
+}
 import { useAuth } from '../../context/AuthContext'
 import { useTab } from '../../context/TabContext'
 import { useLang } from '../../context/LangContext'
@@ -42,10 +53,26 @@ function ErrorBanner({ children }) {
 
 const card = { border: '1px solid var(--border-default)', backgroundColor: 'var(--surface)', borderRadius: 12, boxShadow: '0 1px 2px rgba(0,0,0,.04)', padding: 20 }
 
+const EMPTY_SET = new Set()
+
 /* ── Avatar preview + randomize + a browsable icon/colour grid ──────────────── */
-function ProfilePicker({ shape, color, username, isManager = false, onRoll, onPick, busy, label, size = 48 }) {
+function ProfilePicker({ shape, color, username, isManager = false, locked = false, lockedNote, takenIcons = EMPTY_SET, onRoll, onPick, busy, label, size = 48 }) {
   const [open, setOpen] = useState(false)
   const effColor = isManager ? MANAGER_COLOR : color
+
+  // Locked (e.g. the admin account): show the fixed avatar, no controls.
+  if (locked) {
+    return (
+      <Row gap={12} align="center">
+        <Avatar icon={shape} color={effColor} seed={username} size={size} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {label && <div style={{ fontSize: 'var(--fs-small, 12px)', color: 'var(--text-secondary)', marginBottom: 4 }}>{label}</div>}
+          <div style={{ fontSize: 'var(--fs-tiny, 11px)', color: 'var(--text-muted)' }}>{lockedNote || '고정된 프로필입니다.'}</div>
+        </div>
+      </Row>
+    )
+  }
+
   return (
     <Stack gap={8}>
       <Row gap={12} align="center">
@@ -67,15 +94,20 @@ function ProfilePicker({ shape, color, username, isManager = false, onRoll, onPi
 
       {onPick && open && (
         <div style={{ border: '1px solid var(--border-default)', borderRadius: 10, padding: 10, backgroundColor: 'var(--surface-2)' }}>
-          {/* all available icons */}
+          {/* all available icons — ones already used by others are disabled */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(34px, 1fr))', gap: 6, maxHeight: 168, overflowY: 'auto' }}>
-            {AVATAR_ICONS.map(ic => (
-              <button key={ic} type="button" title={ic} onClick={() => onPick(ic, effColor)}
-                style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: 2, borderRadius: 8, cursor: 'pointer',
-                  background: 'none', border: ic === shape ? '2px solid var(--border-focus)' : '1px solid var(--border-default)' }}>
-                <Avatar icon={ic} color={effColor} size={26} />
-              </button>
-            ))}
+            {AVATAR_ICONS.map(ic => {
+              const used = takenIcons.has(ic) && ic !== shape
+              return (
+                <button key={ic} type="button" disabled={used} title={used ? `${ic} (사용 중)` : ic}
+                  onClick={() => { if (!used) onPick(ic, effColor) }}
+                  style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: 2, borderRadius: 8,
+                    cursor: used ? 'not-allowed' : 'pointer', opacity: used ? 0.3 : 1, background: 'none',
+                    border: ic === shape ? '2px solid var(--border-focus)' : '1px solid var(--border-default)' }}>
+                  <Avatar icon={ic} color={effColor} size={26} />
+                </button>
+              )
+            })}
           </div>
           {/* all available colours — managers are locked to black */}
           {isManager ? (
@@ -93,6 +125,32 @@ function ProfilePicker({ shape, color, username, isManager = false, onRoll, onPi
       )}
     </Stack>
   )
+}
+
+// Roll a random avatar, avoiding icons already used by other users.
+function rollAvatar(taken, manager) {
+  const avail = AVATAR_ICONS.filter(ic => !taken.has(ic))
+  const pool = avail.length ? avail : AVATAR_ICONS
+  return {
+    profile_shape: pool[Math.floor(Math.random() * pool.length)],
+    profile_color: manager ? MANAGER_COLOR : AVATAR_COLORS[Math.floor(Math.random() * AVATAR_COLORS.length)],
+  }
+}
+
+// Fetch the set of profile icons in use by OTHER users (so they're not reused).
+function useTakenIcons(selfUsername) {
+  const [taken, setTaken] = useState(EMPTY_SET)
+  useEffect(() => {
+    let alive = true
+    api.get('/users/public').then(r => {
+      if (!alive) return
+      const s = new Set((r.data || []).filter(u => u.username !== selfUsername && u.profile_shape).map(u => u.profile_shape))
+      if (selfUsername !== ADMIN_USERNAME) s.add('crown')   // crown is reserved for admin
+      setTaken(s)
+    }).catch(() => {})
+    return () => { alive = false }
+  }, [selfUsername])
+  return taken
 }
 
 /* ── Login form ─────────────────────────────────────────────────────────────── */
@@ -146,7 +204,7 @@ function LoginForm({ onSuccess }) {
                 style={{ padding: '8px 16px', cursor: 'pointer', borderTop: '1px solid var(--border-subtle)' }}
                 onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--info-bg)'}
                 onMouseLeave={e => e.currentTarget.style.backgroundColor = ''}>
-                <Avatar icon={m.profile_shape} color={m.profile_color} seed={m.username} size={28} />
+                <Avatar {...displayAvatar(m)} seed={m.username} size={28} />
                 <div style={{ minWidth: 0 }}>
                   <p style={{ margin: 0, fontSize: 'var(--fs-medium, 14px)', fontWeight: 500, color: 'var(--text-primary)' }}>{m.username}</p>
                   {m.email && <p style={{ margin: 0, fontSize: 'var(--fs-small, 12px)', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.email}</p>}
@@ -167,6 +225,7 @@ function RegisterForm({ onSuccess }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [pending, setPending] = useState(false)
+  const taken = useTakenIcons(null)   // new account → exclude every used icon
   // Roll a random Phosphor-icon profile up front; the 랜덤 button re-rolls.
   const [form, setForm] = useState(() => {
     const { profile_shape, profile_color } = randomAvatar()
@@ -178,7 +237,7 @@ function RegisterForm({ onSuccess }) {
   })
 
   function rollProfile() {
-    const { profile_shape, profile_color } = randomAvatar()
+    const { profile_shape, profile_color } = rollAvatar(taken, false)
     setForm(p => ({ ...p, profile_shape, profile_color }))
   }
 
@@ -229,7 +288,7 @@ function RegisterForm({ onSuccess }) {
           <h3 style={{ margin: 0, fontWeight: 600, color: 'var(--text-secondary)' }}>{t('register_tab')}</h3>
 
           <div style={{ paddingBottom: 12, borderBottom: '1px solid var(--border-subtle)' }}>
-            <ProfilePicker shape={form.profile_shape} color={form.profile_color} username={form.username}
+            <ProfilePicker shape={form.profile_shape} color={form.profile_color} username={form.username} takenIcons={taken}
               onRoll={rollProfile} onPick={(s, c) => setForm(p => ({ ...p, profile_shape: s, profile_color: c }))} label={t('reg_profile')} />
           </div>
 
@@ -302,10 +361,11 @@ function AccountInfo() {
   function handleLogout() { logout(); activateTab('logs') }
 
   const isManager = user.role === 'manager'
+  const isAdmin = user.username === ADMIN_USERNAME
+  const taken = useTakenIcons(user.username)
   function rollProfile() {
-    const next = randomAvatar()
-    // Managers keep the locked black colour; only the icon rerolls.
-    if (isManager) next.profile_color = MANAGER_COLOR
+    // Reroll the icon, avoiding ones used by others; managers keep black.
+    const next = rollAvatar(taken, isManager)
     setForm(p => ({ ...p, ...next }))
     setSavedMsg(null)
   }
@@ -328,7 +388,8 @@ function AccountInfo() {
     setSaving(true); setError(null); setSavedMsg(null)
     try {
       await api.patch('/auth/me', {
-        profile_shape: form.profile_shape, profile_color: isManager ? MANAGER_COLOR : form.profile_color,
+        profile_shape: isAdmin ? 'crown' : form.profile_shape,
+        profile_color: isAdmin || isManager ? MANAGER_COLOR : form.profile_color,
         email: form.email, phone: form.phone, experiment_role: form.experiment_role,
         participation_from: form.participation_from, participation_to: form.participation_to,
       })
@@ -371,8 +432,12 @@ function AccountInfo() {
           </span>
         </Row>
         {/* Profile avatar — live preview + randomize + browse-all grid */}
-        <ProfilePicker shape={form.profile_shape} color={form.profile_color} username={user.username}
-          isManager={isManager} onRoll={rollProfile} onPick={pickProfile} size={56} />
+        <ProfilePicker
+          shape={isAdmin ? 'crown' : form.profile_shape}
+          color={isAdmin ? MANAGER_COLOR : form.profile_color}
+          username={user.username}
+          isManager={isManager} locked={isAdmin} lockedNote="admin 프로필은 검은 왕관으로 고정됩니다."
+          takenIcons={taken} onRoll={rollProfile} onPick={pickProfile} size={56} />
 
         {/* Editable fields */}
         <Stack gap={12} style={{ paddingTop: 12, borderTop: '1px solid var(--border-subtle)' }}>
