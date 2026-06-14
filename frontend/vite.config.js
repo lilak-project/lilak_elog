@@ -2,7 +2,7 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { resolve } from 'path'
 
-// Research/lilak/elog — a copy of lilak_elog rebuilt with the lilak-ui kit.
+// lilak_elog_v2 — a copy of lilak_elog rebuilt with the lilak-ui kit.
 // Talks to a running elog project backend (default :8011) and aliases lilak-ui.
 const BACKEND = process.env.ELOG_BACKEND || 'http://localhost:8011'
 // The launcher (:8010) serves the project list + per-project reverse proxy
@@ -14,8 +14,8 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      // frontend -> elog -> lilak -> Research -> home, then ai_projects
-      'lilak-ui': resolve(__dirname, '../../../../ai_projects/lilak_ui/src'),
+      // frontend -> lilak_elog_v2 -> ai_projects, then into lilak_ui
+      'lilak-ui': resolve(__dirname, '../../lilak_ui/src'),
     },
   },
   // Pre-bundle the kit's runtime deps at startup so adding them mid-session
@@ -25,7 +25,7 @@ export default defineConfig({
   },
   server: {
     port: 5130,
-    fs: { allow: [resolve(__dirname), resolve(__dirname, '../../../../ai_projects/lilak_ui')] },
+    fs: { allow: [resolve(__dirname), resolve(__dirname, '../../lilak_ui')] },
     proxy: {
       '/launcher': { target: LAUNCHER, changeOrigin: true, rewrite: (p) => p.replace(/^\/launcher/, '') },
       '/api': BACKEND,
