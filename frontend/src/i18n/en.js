@@ -140,6 +140,7 @@ export default {
   form_preview: 'Preview',
   form_preview_empty: 'Nothing to preview.',
   form_attachments: 'Attachments',
+  form_camera: 'Camera / Photo',
   form_drop: 'Click to attach files or drag & drop',
   form_files_selected: (n) => `${n} file(s) selected`,
   form_author: (u) => `Posting as ${u}`,

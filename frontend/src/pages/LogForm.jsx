@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Icon } from 'lilak-ui'
+import { Icon, Button } from 'lilak-ui'
 import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -210,6 +210,7 @@ export default function LogForm({
   const { user, loading: authLoading } = useAuth()
   const { t, lang } = useLang()
   const fileInputRef = useRef(null)
+  const cameraInputRef = useRef(null)
   const tagInputRef = useRef(null)
 
   // ── Format state ─────────────────────────────────────────────────────────
@@ -484,6 +485,10 @@ export default function LogForm({
       if (runSingle.trim()) {
         const parsed = parseInt(runSingle, 10)
         if (!isNaN(parsed)) { run_number = parsed; run_number_text = runSingle.trim() }
+      } else if (!isEdit && lastRunNumber != null) {
+        // Leaving the run number blank on a new log auto-fills the last run number.
+        run_number = lastRunNumber
+        run_number_text = String(lastRunNumber)
       }
     } else {
       run_number_text = runText.trim() || null
@@ -553,11 +558,12 @@ export default function LogForm({
     borderColor:     'var(--input-border)',
     color:           'var(--text-primary)',
   }
-  const inputCls = 'w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--input-focus-border)]'
+  const inputCls = 'w-full border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--input-focus-border)]'
   const labelCls = 'shrink-0 w-20 text-right text-sm font-medium'
   const labelStyle = { color: 'var(--text-secondary)' }
 
   const cancelTo  = isEdit ? `/logs/${id}` : fromEntry ? `/logs/${fromId}` : '/'
+  const handleCancel = () => { if (onCancel) onCancel(); else navigate(cancelTo) }
   const saveLabel = saving ? t('form_saving') : isEdit ? t('form_save_edit') : fromEntry ? t('form_save_new') : t('form_save')
 
   const runPlaceholder = runType === 'range'
@@ -582,26 +588,19 @@ export default function LogForm({
         />
       )}
 
-      {/* Header (title removed — tab label serves as title) */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-3">
-          {/* Format badge + change button (new log only) */}
-          {!isEdit && !fromId && formats.length > 0 && (
-            <button
-              type="button"
-              onClick={() => setShowPicker(true)}
-              className="text-xs border px-2 py-1 rounded transition-colors"
-              style={{ backgroundColor: 'var(--info-bg)', color: 'var(--info-text)', borderColor: 'var(--border-focus)' }}
-            >
-              {selectedFormat ? selectedFormat.name : t('form_format_standard')} ✎
-            </button>
-          )}
+      {/* Header — format badge (new log only); Cancel/Save live in the form actions */}
+      {!isEdit && !fromId && formats.length > 0 && (
+        <div className="flex items-center gap-3 mb-3">
+          <button
+            type="button"
+            onClick={() => setShowPicker(true)}
+            className="text-xs border px-2 py-1 rounded transition-colors"
+            style={{ backgroundColor: 'var(--info-bg)', color: 'var(--info-text)', borderColor: 'var(--border-focus)' }}
+          >
+            {selectedFormat ? selectedFormat.name : t('form_format_standard')} ✎
+          </button>
         </div>
-        {onCancel
-          ? <button type="button" onClick={onCancel} className="text-sm hover:underline" style={{ color: 'var(--text-secondary)' }}>{t('form_cancel')}</button>
-          : <Link to={cancelTo} className="text-sm hover:underline" style={{ color: 'var(--text-secondary)' }}>{t('form_cancel')}</Link>
-        }
-      </div>
+      )}
 
       {fromEntry && (
         <div className="mb-4 border text-sm px-4 py-3 rounded-lg"
@@ -616,7 +615,13 @@ export default function LogForm({
 
       <form onSubmit={handleSubmit} className="rounded-xl border shadow-sm"
             style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border-default)' }}>
-        <div className="p-6 space-y-4">
+        {/* Top actions — same Cancel / Save as the footer (#4) */}
+        <div className="px-4 py-2.5 border-b flex items-center justify-end gap-2"
+             style={{ borderColor: 'var(--border-subtle)' }}>
+          <Button variant="secondary" type="button" onClick={handleCancel}>{t('form_cancel')}</Button>
+          <Button variant="primary" type="submit" disabled={saving}>{saveLabel}</Button>
+        </div>
+        <div className="p-4 space-y-3">
 
           {/* ── Title ─────────────────────────────────────────────────── */}
           {fieldVisible('title') && autoTitle && (
@@ -782,23 +787,17 @@ export default function LogForm({
           {fieldVisible('beam') && (
             <div className="flex items-center gap-3">
               <label className={labelCls} style={labelStyle}>Beam</label>
-              <div className="flex items-center gap-1 flex-1">
-                <span className="font-mono" style={{ color: 'var(--text-muted)' }}>&gt;</span>
-                <input value={form.beam}
-                  onChange={e => setForm(prev => ({ ...prev, beam: e.target.value }))}
-                  placeholder="예: 7Li" className={`flex-1 ${inputCls}`} style={inputStyle} />
-              </div>
+              <input value={form.beam}
+                onChange={e => setForm(prev => ({ ...prev, beam: e.target.value }))}
+                placeholder="예: 7Li" className={`flex-1 ${inputCls}`} style={inputStyle} />
             </div>
           )}
           {fieldVisible('target') && (
             <div className="flex items-center gap-3">
               <label className={labelCls} style={labelStyle}>Target</label>
-              <div className="flex items-center gap-1 flex-1">
-                <span className="font-mono" style={{ color: 'var(--text-muted)' }}>@</span>
-                <input value={form.target}
-                  onChange={e => setForm(prev => ({ ...prev, target: e.target.value }))}
-                  placeholder="예: CD2" className={`flex-1 ${inputCls}`} style={inputStyle} />
-              </div>
+              <input value={form.target}
+                onChange={e => setForm(prev => ({ ...prev, target: e.target.value }))}
+                placeholder="예: CD2" className={`flex-1 ${inputCls}`} style={inputStyle} />
             </div>
           )}
 
@@ -920,7 +919,7 @@ export default function LogForm({
                 </button>
               </div>
               {preview ? (
-                <div className="min-h-48 border rounded-lg p-4 markdown-body text-sm"
+                <div className="min-h-24 border rounded-lg p-4 markdown-body text-sm"
                      style={{ backgroundColor: 'var(--surface-2)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}>
                   {form.body
                     ? <ReactMarkdown remarkPlugins={[remarkGfm]}>{form.body}</ReactMarkdown>
@@ -932,7 +931,7 @@ export default function LogForm({
                   name="body"
                   value={form.body}
                   onChange={e => setForm(prev => ({ ...prev, body: e.target.value }))}
-                  rows={12}
+                  rows={5}
                   placeholder={t('form_body_placeholder')}
                   className={`${inputCls} font-mono resize-y`}
                   style={inputStyle}
@@ -1012,6 +1011,18 @@ export default function LogForm({
                     ])}
                   />
                 </div>
+                {/* Camera / photo — opens the device camera (or photo library) (#8) */}
+                <div className="mt-2 flex items-center gap-2">
+                  <Button variant="secondary" type="button" onClick={() => cameraInputRef.current?.click()}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><span aria-hidden="true">📷</span>{t('form_camera') || '카메라 / 사진'}</span>
+                  </Button>
+                  <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden"
+                    onChange={e => setFileItems(prev => [
+                      ...prev,
+                      ...Array.from(e.target.files).map(f => ({ file: f, name: f.name })),
+                    ])}
+                  />
+                </div>
                 {fileItems.length > 0 && (
                   <ul className="mt-2 space-y-1.5">
                     {fileItems.map((item, i) => (
@@ -1044,18 +1055,14 @@ export default function LogForm({
 
         </div>
 
-        {/* Footer */}
-        <div className="px-6 py-4 border-t rounded-b-xl flex items-center justify-between"
+        {/* Footer — Cancel / Save (#4) */}
+        <div className="px-4 py-3 border-t rounded-b-xl flex items-center justify-between gap-3"
              style={{ backgroundColor: 'var(--surface-2)', borderColor: 'var(--border-subtle)' }}>
           <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('form_author', user.username)}</span>
-          <button type="submit" disabled={saving}
-            className="disabled:opacity-50 px-6 py-2 rounded-lg text-sm font-medium transition-colors"
-            style={{ backgroundColor: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)' }}
-            onMouseEnter={e => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = 'var(--btn-primary-hover)' }}
-            onMouseLeave={e => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = 'var(--btn-primary-bg)' }}
-          >
-            {saveLabel}
-          </button>
+          <div className="flex items-center gap-2">
+            <Button variant="secondary" type="button" onClick={handleCancel}>{t('form_cancel')}</Button>
+            <Button variant="primary" type="submit" disabled={saving}>{saveLabel}</Button>
+          </div>
         </div>
       </form>
     </div>

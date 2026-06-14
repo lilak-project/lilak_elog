@@ -140,6 +140,7 @@ export default {
   form_preview: '미리보기',
   form_preview_empty: '미리볼 내용이 없습니다.',
   form_attachments: '첨부 파일',
+  form_camera: '카메라 / 사진',
   form_drop: '클릭하거나 파일을 끌어다 놓으세요',
   form_files_selected: (n) => `${n}개 파일 선택됨`,
   form_author: (u) => `작성자: ${u}`,
