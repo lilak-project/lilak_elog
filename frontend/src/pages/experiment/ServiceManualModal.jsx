@@ -242,6 +242,11 @@ function ServiceManualKo({ origin }) {
             </tr>
           </tbody>
         </table>
+        <p style={{ marginTop: 8 }}>
+          웹 서비스는 <Inline>Request URL</Inline>(시스템은 <Inline>Command URL</Inline>)을 등록합니다.
+          등록 폼에서 URL 옆 <strong>[연결 테스트]</strong> 버튼을 누르면 elog 서버가 그 주소로 직접 요청을 보내
+          응답 여부만 확인합니다(데이터 요청·부수효과 없음). 등록 전에 연결을 미리 점검할 때 쓰세요.
+        </p>
       </Section>
 
       <Section title="② HTTP webhook 컨트랙트">
@@ -414,6 +419,12 @@ function ServiceManualEn({ origin }) {
             </tr>
           </tbody>
         </table>
+        <p style={{ marginTop: 8 }}>
+          A web service registers its <Inline>Request URL</Inline> (a system its <Inline>Command URL</Inline>).
+          In the form, the <strong>[Test connection]</strong> button next to the URL has the elog server
+          reach that address and report only whether it responds (no data request, no side effects) — handy
+          to verify reachability before registering.
+        </p>
       </Section>
 
       <Section title="② HTTP webhook contract">

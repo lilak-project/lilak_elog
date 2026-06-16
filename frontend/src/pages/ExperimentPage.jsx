@@ -98,6 +98,7 @@ function ServiceForm({ initial, formats, onSave, onCancel, busy, t, isManager, h
   // status: 'idle' | 'loading' | 'ok' | 'error'
   const [discoverUrl, setDiscoverUrl] = useState('')
   const [discoverState, setDiscoverState] = useState({ status: 'idle', error: null, fields: null })
+  const [testState, setTestState] = useState({ status: 'idle', result: null })
   const [showManual, setShowManual] = useState(false)
 
   const [form, setForm] = useState(() => ({
@@ -116,6 +117,19 @@ function ServiceForm({ initial, formats, onSave, onCancel, busy, t, isManager, h
   }))
 
   function set(k, v) { setForm(p => ({ ...p, [k]: v })) }
+
+  // Just ping the URL (server-side, no side effects) to see if it's reachable.
+  async function testConnection() {
+    const url = form.request_url.trim()
+    if (!url) return
+    setTestState({ status: 'loading', result: null })
+    try {
+      const res = await api.post('/services/test-connection', { url })
+      setTestState({ status: res.data.ok ? 'ok' : 'err', result: res.data })
+    } catch (e) {
+      setTestState({ status: 'err', result: { error: e.response?.data?.detail || e.message } })
+    }
+  }
 
   async function runDiscover() {
     if (!discoverUrl.trim()) return
@@ -388,6 +402,29 @@ function ServiceForm({ initial, formats, onSave, onCancel, busy, t, isManager, h
         <p style={{ margin: '4px 0 0', fontSize: 'var(--fs-tiny, 11px)', color: 'var(--text-muted)' }}>
           {form.is_system ? 'elog이 이 시스템에 run 시작/중지 명령을 보낼 때 사용' : 'elog이 이 서비스에 데이터를 요청할 때 사용'}
         </p>
+        {/* Connection test — just pings the URL (server-side) to confirm it's alive. */}
+        <Row gap={8} align="center" style={{ marginTop: 8 }}>
+          <button type="button" onClick={testConnection}
+            disabled={!form.request_url.trim() || testState.status === 'loading'}
+            style={{ fontSize: 'var(--fs-small, 12px)', padding: '5px 12px', borderRadius: 6, fontWeight: 500,
+              border: '1px solid var(--border-default)', background: 'var(--surface-2)', cursor: 'pointer',
+              opacity: (!form.request_url.trim() || testState.status === 'loading') ? 0.5 : 1, color: 'var(--text-secondary)' }}>
+            {testState.status === 'loading' ? '테스트 중…' : '연결 테스트'}
+          </button>
+          {testState.status === 'ok' && (
+            <span style={{ fontSize: 'var(--fs-small, 12px)', color: 'var(--success-text)' }}>
+              <Icon name="check" size={12} weight="bold" style={{ verticalAlign: -2 }} /> 연결됨
+              {testState.result?.status ? ` · HTTP ${testState.result.status}` : ''}
+              {testState.result?.ms != null ? ` · ${testState.result.ms}ms` : ''}
+            </span>
+          )}
+          {testState.status === 'err' && (
+            <span style={{ fontSize: 'var(--fs-small, 12px)', color: 'var(--danger-text)' }}>
+              <Icon name="close" size={12} weight="bold" style={{ verticalAlign: -2 }} /> 연결 실패
+              {testState.result?.error ? ` · ${testState.result.error}` : ''}
+            </span>
+          )}
+        </Row>
       </div>
 
       {/* 신규 시스템: 등록 시 token 자동발급 + credentials 자동전송 안내 */}
@@ -715,6 +752,7 @@ function ServiceDetail({ svc, formats, modules, onEdit, onDelete, onClose, onCha
   const [snapshot, setSnapshot] = useState(null)   // last "request now" response
   const [actionError, setActionError] = useState(null)
   const [createdLogId, setCreatedLogId] = useState(null)
+  const [testResult, setTestResult] = useState(null)   // { ok, status, ms, error } | null
   const [taskModalFmt, setTaskModalFmt] = useState(null)  // format whose task template is being edited
   const realtimeTimerRef = useRef(null)
 
@@ -727,6 +765,16 @@ function ServiceDetail({ svc, formats, modules, onEdit, onDelete, onClose, onCha
       setSnapshot(r.data?.response ?? r.data)
     } catch (e) {
       setActionError(e.response?.data?.detail || e.message || 'Request failed')
+    } finally { setBusy(null) }
+  }
+  // Just ping the service's URL (server-side) — is it reachable? No side effects.
+  async function doTestConnection() {
+    setBusy('test'); setActionError(null); setTestResult(null)
+    try {
+      const r = await api.post('/services/test-connection', { url: svc.request_url })
+      setTestResult(r.data)
+    } catch (e) {
+      setTestResult({ ok: false, error: e.response?.data?.detail || e.message })
     } finally { setBusy(null) }
   }
   async function doRequestLog() {
@@ -832,7 +880,21 @@ function ServiceDetail({ svc, formats, modules, onEdit, onDelete, onClose, onCha
           <Button variant={svc.realtime_enabled ? 'success' : 'secondary'} size="md" disabled={busy === 'realtime' || !svc.request_url} onClick={toggleRealtime} title={t('exp_action_realtime_hint')}>
             {busy === 'realtime' ? '…' : svc.realtime_enabled ? `● ${t('exp_action_realtime')} (${svc.realtime_interval_sec || 1}s)` : `○ ${t('exp_action_realtime')}`}
           </Button>
+          <Button variant="secondary" size="md" disabled={busy === 'test' || !svc.request_url} onClick={doTestConnection}
+            title={!svc.request_url ? 'No URL configured' : '서버에 응답이 오는지만 확인 (부수효과 없음)'}>{busy === 'test' ? '…' : '연결 테스트'}</Button>
         </Row>
+
+        {testResult && (
+          <div style={{ fontSize: 'var(--fs-small, 12px)', padding: '6px 12px', borderRadius: 8,
+            border: `1px solid ${testResult.ok ? 'var(--success-text)' : 'var(--danger-text)'}`,
+            backgroundColor: testResult.ok ? 'var(--success-bg)' : 'var(--danger-bg)',
+            color: testResult.ok ? 'var(--success-text)' : 'var(--danger-text)' }}>
+            <Icon name={testResult.ok ? 'check' : 'close'} size={13} weight="bold" style={{ verticalAlign: -2 }} />
+            {testResult.ok
+              ? ` 연결됨${testResult.status ? ` · HTTP ${testResult.status}` : ''}${testResult.ms != null ? ` · ${testResult.ms}ms` : ''}`
+              : ` 연결 실패${testResult.error ? ` · ${testResult.error}` : ''}`}
+          </div>
+        )}
 
         {actionError && <div style={{ fontSize: 'var(--fs-small, 12px)', padding: '6px 12px', borderRadius: 8, border: '1px solid var(--danger-text)', backgroundColor: 'var(--danger-bg)', color: 'var(--danger-text)' }}>{actionError}</div>}
         {createdLogId && <div style={{ fontSize: 'var(--fs-small, 12px)', padding: '6px 12px', borderRadius: 8, backgroundColor: 'var(--success-bg)', color: 'var(--success-text)' }}><Icon name="check" size={13} weight="bold" style={{ verticalAlign: -2 }} /> Created log #{createdLogId}</div>}

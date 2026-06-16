@@ -130,6 +130,39 @@ def discover_service(
     return {"ok": True, "data": data}
 
 
+class _TestConnReq(_BaseModel):
+    url: str
+
+
+@router.post("/services/test-connection")
+def test_connection(
+    payload: _TestConnReq,
+    current_user: models.User = Depends(require_auth),
+):
+    """Lightweight reachability check for a web service URL — server-side so it
+    isn't blocked by browser CORS. No side effects: just opens the connection
+    and reports whether the server responded. An HTTP error code still counts
+    as 'reachable' (the host answered); only connect/timeout failures are down."""
+    import urllib.request, urllib.error, time
+    url = (payload.url or "").strip()
+    if not url:
+        return {"ok": False, "error": "URL이 비어 있습니다"}
+    t0 = time.time()
+    try:
+        req = urllib.request.Request(
+            url, method="GET",
+            headers={"Accept": "*/*", "User-Agent": "lilak-elog/connection-test"},
+        )
+        with urllib.request.urlopen(req, timeout=HANDSHAKE_TIMEOUT_SEC) as resp:
+            code = resp.status
+        return {"ok": True, "status": code, "ms": round((time.time() - t0) * 1000)}
+    except urllib.error.HTTPError as e:
+        return {"ok": True, "status": e.code, "ms": round((time.time() - t0) * 1000),
+                "detail": f"HTTP {e.code}"}
+    except Exception as e:
+        return {"ok": False, "error": str(e), "ms": round((time.time() - t0) * 1000)}
+
+
 def _send_credentials(command_url: str, elog_url: str, token: str) -> None:
     """command_url로 elog_credentials 이벤트를 전송합니다. 실패 시 예외를 던집니다."""
     import urllib.request
