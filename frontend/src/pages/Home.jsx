@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { LogToolbar, LogList, Pagination, useTaggables, tagColors, Icon, ChipGroup, Callout, Button, openBarInput, closeBarInput } from 'lilak-ui'
-import api from '../api'
+import api, { getExperiment } from '../api'
 import LogCard from '../components/LogCard'
 import LogCardExpanded from '../components/LogCardExpanded'
+import { RunGroupExpanded } from '../components/RunGroupCard'
 import LogForm, { FormatPicker } from './LogForm'
 import ErrorBoundary from '../components/ErrorBoundary'
 import { useAuth } from '../context/AuthContext'
@@ -11,15 +12,20 @@ import { useTab } from '../context/TabContext'
 import { useTheme } from '../context/ThemeContext'
 import { severityStyle } from '../components/EntryShared'
 
-const VIEW_MODES = ['brief', 'normal', 'rich']
+const VIEW_MODES = ['normal', 'run_group']
+// Run-group view fetches this many newest logs in one go (the backend's
+// max page_size), then paginates the resulting RUN groups client-side so a
+// page shows pageSize runs, not logs.
+const RUN_GROUP_FETCH = 200
 
 // The header bar shown above the inline editor — keeps "#1004 INFO AUTO"
 // visible while editing.
+// Just the identity chips (log #, level, category, auto). Rendered inside the
+// LogForm top action bar as its `headerBadge`, so the inline editor is one box.
 function EditCardHeader({ entry }) {
   const level = entry.level || 'info'
   return (
-    <div className="flex items-center gap-2 flex-wrap px-4 py-2.5 border-b rounded-t-xl"
-         style={{ backgroundColor: 'var(--surface-2)', borderColor: 'var(--border-subtle)' }}>
+    <>
       <span className="text-xs font-mono px-2 py-0.5 rounded border"
             style={{ color: 'var(--text-muted)', backgroundColor: 'var(--surface)', borderColor: 'var(--border-default)' }}>
         _{entry.log_index ?? entry.id}
@@ -41,14 +47,28 @@ function EditCardHeader({ entry }) {
           AUTO
         </span>
       )}
-    </div>
+    </>
   )
 }
 
+// Feed-display prefs are per-experiment — they must not bleed across projects
+// (all projects share one browser origin). Keys are suffixed with the current
+// experiment; the legacy un-suffixed value is used as a one-time fallback so a
+// user's existing choice carries over the first time.
+const expLS = {
+  get(base, fallback) {
+    return localStorage.getItem(`${base}:${getExperiment()}`)
+        ?? localStorage.getItem(base)
+        ?? fallback
+  },
+  set(base, v) { localStorage.setItem(`${base}:${getExperiment()}`, v) },
+}
+
 function getSavedViewMode() {
-  const saved = localStorage.getItem('elog_view_mode')
-  if (saved === 'full') { localStorage.setItem('elog_view_mode', 'rich'); return 'rich' }
-  return saved || 'brief'
+  const saved = expLS.get('elog_view_mode', null)
+  // Only Normal + Run group exist now — fold any other stored value to Normal.
+  if (saved && !VIEW_MODES.includes(saved)) return 'normal'
+  return saved || 'normal'
 }
 
 const BAR_CMD     = null
@@ -80,16 +100,31 @@ export default function Home() {
   const [entries, setEntries] = useState([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(() => Number(expLS.get('elog_page_size', 20)) || 20)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [viewMode, setViewMode] = useState(getSavedViewMode)
-  const [groupBy, setGroupBy] = useState(() => localStorage.getItem('elog_group_by') || 'run')
-  function changeGroupBy(g) { setGroupBy(g); localStorage.setItem('elog_group_by', g) }
+  const [groupBy, setGroupBy] = useState(() => expLS.get('elog_group_by', 'run'))
+  function changeGroupBy(g) { setGroupBy(g); expLS.set('elog_group_by', g) }
+
+  // ── Multi-open feed state ────────────────────────────────────────────────────
+  // Any number of entries can be open at once (both Normal and Run-group views).
+  // `openAll` is ONE shared master default (not per-mode) — switching between
+  // Normal and Run group must not change it. `seenRef` lets new entries follow
+  // that default while manual toggles persist.
+  const [openIds, setOpenIds] = useState(() => new Set())
+  const seenRef = useRef(new Set())
+  const [openAll, setOpenAll] = useState(() => expLS.get('elog_open_all', 'false') !== 'false')
+  const [commentTargetId, setCommentTargetId] = useState(null)   // log the bottom comment bar targets
+  const [formats, setFormats] = useState([])
+  const isOpen = (id) => openIds.has(id)
+  const openOne = useCallback((id) => setOpenIds(p => { if (p.has(id)) return p; const n = new Set(p); n.add(id); return n }), [])
+  const closeOne = useCallback((id) => setOpenIds(p => { if (!p.has(id)) return p; const n = new Set(p); n.delete(id); return n }), [])
+  const toggleOpen = useCallback((id) => setOpenIds(p => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n }), [])
 
   // ── Command mode ─────────────────────────────────────────────────────────────
   const [cmdMode, setCmdMode] = useState(true)
   const [focusedIdx, setFocusedIdx] = useState(0)
-  const [expandedId, setExpandedId] = useState(null)
   // `g` gesture: a quick double-tap (gg) jumps to the top; a single `g` opens the
   // bottom bar's circle into a tiny `_<n>` goto bubble (compact CommandBar mode).
   const gTapRef = useRef(0)
@@ -131,7 +166,13 @@ export default function Home() {
 
   function changeViewMode(m) {
     setViewMode(m)
-    localStorage.setItem('elog_view_mode', m)
+    expLS.set('elog_view_mode', m)
+    // Switching modes must NOT change the open/close setting (openAll). Just
+    // reset which specific entries are open; the default-open effect re-applies
+    // the (unchanged) openAll to the new mode's entries.
+    seenRef.current = new Set()
+    setOpenIds(new Set())
+    setFocusedIdx(0)
   }
 
   // Bring an entry into view reliably (scroll-margin on the cards clears the
@@ -157,29 +198,107 @@ export default function Home() {
     }
   }
 
-  function clamp(idx) { return Math.max(0, Math.min(entries.length - 1, idx)) }
+  // ── Feed entries (computed up here so the nav/effects below can use them) ────
+  const filteredEntries = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase()
+    if (!q) return entries
+    return entries.filter(e =>
+      (e.title || '').toLowerCase().includes(q) ||
+      (e.body_excerpt || '').toLowerCase().includes(q) ||
+      (e.author_name || '').toLowerCase().includes(q) ||
+      (e.category || '').toLowerCase().includes(q) ||
+      e.tags?.some(tg => tg.name.toLowerCase().includes(q))
+    )
+  }, [entries, searchQuery])
 
+  // Run-group view: merge logs sharing a run number into ONE synthetic entry,
+  // shaped exactly like a log so the SAME LogCard / LogCardExpanded kit renders
+  // it. Title "Run #N", run badges from the run, author = every author; the
+  // per-log content lives in `_runLogs` and is shown in the expanded body.
+  const runEntriesAll = useMemo(() => {
+    if (viewMode !== 'run_group') return []
+    const byKey = new Map()
+    for (const e of filteredEntries) {
+      const key = e.run_number != null ? `run:${e.run_number}` : `log:${e.id}`
+      if (!byKey.has(key)) byKey.set(key, [])
+      byKey.get(key).push(e)
+    }
+    const out = []
+    for (const [key, logs] of byKey) {
+      logs.sort((a, b) => new Date(a.created_at) - new Date(b.created_at))   // oldest → newest
+      const run = logs[0].run_number
+      const authors = [...new Set(logs.map(l => l.author_name).filter(Boolean))].join(', ')
+      const latest = Math.max(...logs.map(l => new Date(l.created_at).getTime() || 0))
+      out.push({
+        id: key, _runLogs: logs,
+        log_index: run,
+        title: run != null ? `Run #${run}` : (logs[0].title || `_${logs[0].log_index ?? logs[0].id}`),
+        run_number: run, run_number_type: 'single',
+        beam: logs.find(l => l.beam)?.beam || '', target: logs.find(l => l.target)?.target || '',
+        level: 'info', author_name: authors || logs[0].author_name,
+        created_at: new Date(latest).toISOString(),
+        tags: [], attachment_count: logs.reduce((s, l) => s + (l.attachment_count || 0), 0),
+        _latest: latest,
+      })
+    }
+    out.sort((a, b) => b._latest - a._latest)   // newest activity first
+    return out
+  }, [filteredEntries, viewMode])
+
+  // Paginate the runs themselves: a page shows `pageSize` run groups.
+  const runEntries = useMemo(() => {
+    const start = (page - 1) * pageSize
+    return runEntriesAll.slice(start, start + pageSize)
+  }, [runEntriesAll, page, pageSize])
+
+  const feedEntries = viewMode === 'run_group' ? runEntries : filteredEntries
+  const feedTotal = viewMode === 'run_group' ? runEntriesAll.length : total
+
+  // Format defs (field labels) — fetched once when the run-group view is active.
+  useEffect(() => {
+    if (viewMode === 'run_group' && formats.length === 0) {
+      api.get('/formats').then(r => setFormats(r.data || [])).catch(() => {})
+    }
+  }, [viewMode, formats.length])
+
+  // Default-open new entries per the per-mode master toggle (pure updater so it
+  // stays correct under StrictMode); manual toggles persist.
+  useEffect(() => {
+    const unseen = feedEntries.filter(e => !seenRef.current.has(e.id))
+    if (!unseen.length) return
+    unseen.forEach(e => seenRef.current.add(e.id))
+    if (openAll) setOpenIds(prev => { const n = new Set(prev); unseen.forEach(e => n.add(e.id)); return n })
+  }, [feedEntries, openAll])
+
+  // Master Open/Close: flip the shared default AND apply it to all at once.
+  // Mark every current entry "seen" so the default-open effect can't re-open
+  // them after a close (the toggle is authoritative).
+  function toggleOpenAll() {
+    const next = !openAll
+    setOpenAll(next); expLS.set('elog_open_all', String(next))
+    seenRef.current = new Set(feedEntries.map(e => e.id))
+    setOpenIds(next ? new Set(feedEntries.map(e => e.id)) : new Set())
+  }
+
+  function clamp(idx) { return Math.max(0, Math.min(feedEntries.length - 1, idx)) }
+
+  // Open mode (openAll): multi-open — moving focus leaves open entries open.
+  // Close mode: a SINGLE open entry follows focus — the newly-focused one opens
+  // and the previous one closes (the classic single-expand behaviour).
   function moveFocus(delta) {
     setFocusedIdx(prev => {
       const next = clamp(prev + delta)
-      // If a log is currently open, follow focus: close old, open new.
-      // Scrolling is handled by the focus/open effect below (keeps it in view).
-      setExpandedId(cur => {
-        if (cur == null) return null
-        const nextEntry = entries[next]
-        return nextEntry ? nextEntry.id : null
-      })
+      if (!openAll) {
+        setOpenIds(cur => cur.size === 0 ? cur : (feedEntries[next] ? new Set([feedEntries[next].id]) : new Set()))
+      }
       return next
     })
   }
 
-  // Jump focus to an absolute index (gg / G / Home / End). Mirrors moveFocus's
-  // "follow the open log" behaviour so that, with a log open, the jump also moves
-  // the open entry to the newly-focused one and brings it on screen (#8).
   function jumpFocus(idx) {
-    if (!entries[idx]) return
+    if (!feedEntries[idx]) return
     setFocusedIdx(idx)
-    setExpandedId(cur => (cur == null ? null : (entries[idx]?.id ?? null)))
+    if (!openAll) setOpenIds(cur => cur.size === 0 ? cur : new Set([feedEntries[idx].id]))
     setTimeout(() => scrollToFocused(idx), 0)
   }
 
@@ -249,7 +368,7 @@ export default function Home() {
       if (e.key === 'Escape') {
         if (inInput) return
         if (!cmdMode)   { e.preventDefault(); enterCmdMode(); return }
-        if (expandedId) { e.preventDefault(); setExpandedId(null); return }
+        { const f = feedEntries[focusedIdx]; if (f && openIds.has(f.id)) { e.preventDefault(); closeOne(f.id); return } }
         return
       }
 
@@ -269,7 +388,7 @@ export default function Home() {
           // G/End → oldest = last index (bottom). Two-step: first jump to it,
           // a second G (already focused there) scrolls to the very bottom.
           e.preventDefault()
-          { const last = entries.length - 1; if (last < 0) break
+          { const last = feedEntries.length - 1; if (last < 0) break
             if (focusedIdx === last) window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })
             else jumpFocus(last) }
           break
@@ -285,7 +404,7 @@ export default function Home() {
           break
         case '}':
           e.preventDefault()
-          { const totalPages = Math.ceil(total / pageSize); if (page < totalPages) { setPage(p => p + 1); setFocusedIdx(0) } }
+          { const totalPages = Math.ceil(feedTotal / pageSize); if (page < totalPages) { setPage(p => p + 1); setFocusedIdx(0) } }
           break
         case '-':
           e.preventDefault()
@@ -319,17 +438,20 @@ export default function Home() {
         case 'o':
         case ' ': {
           e.preventDefault()
-          const f = entries[focusedIdx]
-          if (f) setExpandedId(prev => prev === f.id ? null : f.id)
+          const f = feedEntries[focusedIdx]
+          if (!f) break
+          // Open mode → toggle this one (others stay). Close mode → single open.
+          if (openAll) toggleOpen(f.id)
+          else setOpenIds(cur => cur.has(f.id) ? new Set() : new Set([f.id]))
           break
         }
         case 'r':
         case ',':
         case 'Tab': {
           e.preventDefault()
-          const f = entries[focusedIdx]; if (!f) break
+          const f = feedEntries[focusedIdx]; if (!f || typeof f.id !== 'number') break
           // Open the focused log + comment via the collapsible bottom bar.
-          setExpandedId(f.id)
+          if (openAll) openOne(f.id); else setOpenIds(new Set([f.id]))
           commentLog(f.id)
           break
         }
@@ -348,14 +470,19 @@ export default function Home() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [cmdMode, focusedIdx, expandedId, entries, user, openNewLog, cycleTheme])
+  }, [cmdMode, focusedIdx, openIds, feedEntries, openAll, user, openNewLog, cycleTheme])
 
-  useEffect(() => { setFocusedIdx(0); setExpandedId(null) }, [entries])
+  // New page / refetch / mode switch: reset focus + open state; the default-open
+  // effect below repopulates per the (per-mode) master toggle.
+  // New data → reset focus to the top. Open state persists across refetch; the
+  // default-open effect adds any genuinely-new entry ids. Mode switches reset
+  // open state in changeViewMode (so it doesn't clobber the default-open pass).
+  useEffect(() => { setFocusedIdx(0) }, [entries])
 
-  // The comment bar belongs to an open log — if no log is open, close it so it
+  // The comment bar belongs to an open log — if nothing is open, close it so it
   // can't get stuck after the entry is collapsed/closed. Also close on unmount
   // (leaving the logs tab).
-  useEffect(() => { if (expandedId == null && expandedNoticeId == null) closeBarInput() }, [expandedId, expandedNoticeId])
+  useEffect(() => { if (openIds.size === 0 && expandedNoticeId == null) closeBarInput() }, [openIds, expandedNoticeId])
   useEffect(() => () => closeBarInput(), [])
 
   // Keep the focused entry on screen. On tab-entry / new data this scrolls to
@@ -363,20 +490,20 @@ export default function Home() {
   // follows the cursor; when an entry is open it scrolls that entry into view —
   // top-aligned if it's taller than the viewport so its start is visible.
   useEffect(() => {
-    const targetId = expandedId ?? entries[focusedIdx]?.id
+    const targetId = feedEntries[focusedIdx]?.id
     if (targetId == null) return
     const id = setTimeout(() => {
       const el = document.getElementById(`log-card-${targetId}`)
       if (!el) return
       const avail = window.innerHeight - 110   // minus fixed top + command bars
       const tall = el.getBoundingClientRect().height > avail
-      // an opened entry taller than the viewport is top-aligned so its start
-      // shows; otherwise just nudge the focused/opened entry fully into view.
-      el.scrollIntoView({ behavior: 'auto', block: (expandedId != null && tall) ? 'start' : 'nearest' })
+      // a focused entry that's open and taller than the viewport is top-aligned
+      // so its start shows; otherwise just nudge it fully into view.
+      el.scrollIntoView({ behavior: 'auto', block: (openIds.has(targetId) && tall) ? 'start' : 'nearest' })
     }, 60)
     return () => clearTimeout(id)
-  }, [focusedIdx, expandedId, entries])
-  useEffect(() => { if (!expandedId && barMode === BAR_COMMENT) enterCmdMode() }, [expandedId])
+  }, [focusedIdx, openIds, feedEntries])
+  useEffect(() => { if (openIds.size === 0 && barMode === BAR_COMMENT) enterCmdMode() }, [openIds])
 
   // Command palette → Home dispatch handlers
   useEffect(() => {
@@ -386,13 +513,15 @@ export default function Home() {
     }
     function onOpenLog(e) {
       const id = e.detail?.id; if (!id) return
-      // Scroll to and expand the log
-      const idx = entries.findIndex(en => en.id === id)
+      // Find the feed entry to open: the log itself (Normal) or the run group
+      // that contains it (Run-group view).
+      const idx = feedEntries.findIndex(en => en.id === id || (en._runLogs && en._runLogs.some(l => l.id === id)))
       if (idx >= 0) {
+        const target = feedEntries[idx]
         setFocusedIdx(idx)
-        setExpandedId(id)
+        openOne(target.id)
         setTimeout(() => {
-          document.getElementById(`log-card-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+          document.getElementById(`log-card-${target.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
         }, 50)
       } else {
         // Log not on the current page — narrow the list to that log and expand
@@ -401,7 +530,7 @@ export default function Home() {
         api.get(`/logs/${id}`).then((res) => {
           const logIndex = res.data?.log_index
           if (logIndex != null) { setServerSearchQuery(''); setCmdFilter({ logIndex }) }
-          setExpandedId(Number(id))
+          openOne(Number(id))
           setTimeout(() => {
             document.getElementById(`log-card-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
           }, 200)
@@ -424,19 +553,19 @@ export default function Home() {
       if (type === 'deleted')  alert('Use settings to view deleted logs')
     }
     function onEditFocused() {
-      const f = entries[focusedIdx]; if (f) openNewLog({ editId: f.id })
+      const f = feedEntries[focusedIdx]; if (f && typeof f.id === 'number') openNewLog({ editId: f.id })
     }
     function onContinue() {
-      const f = entries[focusedIdx]; if (f) openNewLog({ fromId: f.id })
+      const f = feedEntries[focusedIdx]; if (f && typeof f.id === 'number') openNewLog({ fromId: f.id })
     }
     function onComment(e) {
-      const f = entries[focusedIdx]; if (!f) return
-      setExpandedId(f.id)
+      const f = feedEntries[focusedIdx]; if (!f || typeof f.id !== 'number') return
+      openOne(f.id)
       commentLog(f.id, { text: e.detail?.text || '' })
     }
     function onReport(e) {
       const id = e.detail?.id; if (id == null) return
-      setExpandedId(id)
+      openOne(id)
       commentLog(id, { report: true })
     }
     // `/search <q>` from the kit command bar → full-text log search (empty = clear).
@@ -445,23 +574,23 @@ export default function Home() {
       setSearchQuery(''); setCmdFilter(null); setServerSearchQuery(q); setPage(1)
     }
     function onToggleOpen() {
-      const f = entries[focusedIdx]; if (!f) return
-      setExpandedId(prev => prev === f.id ? null : f.id)
+      const f = feedEntries[focusedIdx]; if (!f) return
+      toggleOpen(f.id)
     }
     function onCopy() {
-      const f = entries[focusedIdx]; if (!f) return
+      const f = feedEntries[focusedIdx]; if (!f || typeof f.id !== 'number') return
       navigator.clipboard?.writeText(`${location.origin}/logs/${f.id}`)
     }
     function onViewMode(e) {
       const m = e.detail?.mode; if (m) changeViewMode(m)
     }
     function onDeleteFocused() {
-      const f = entries[focusedIdx]; if (!f) return
+      const f = feedEntries[focusedIdx]; if (!f || typeof f.id !== 'number') return
       if (!window.confirm(`Delete log #${f.id}?`)) return
       api.delete(`/logs/${f.id}`).then(() => fetchEntries(page))
     }
     function onRestoreFocused() {
-      const f = entries[focusedIdx]; if (!f) return
+      const f = feedEntries[focusedIdx]; if (!f || typeof f.id !== 'number') return
       api.post(`/logs/${f.id}/restore`).then(() => fetchEntries(page))
     }
     function onExport() {
@@ -539,14 +668,14 @@ export default function Home() {
       window.removeEventListener('lilak:cmd:find-target', onFindTarget)
       window.removeEventListener('lilak:cmd:find-tags', onFindTags)
     }
-  }, [entries, focusedIdx, page]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [feedEntries, focusedIdx, page]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Pending log from another tab (e.g. "view" after Request Log) ────────────
   useEffect(() => {
     if (!pendingLogId || loading) return
     const entry = entries.find(e => e.id === pendingLogId)
     if (entry) {
-      setExpandedId(pendingLogId)
+      openOne(pendingLogId)
       clearPendingLog()
       setTimeout(() => {
         document.getElementById(`log-card-${pendingLogId}`)
@@ -558,12 +687,11 @@ export default function Home() {
     }
   }, [pendingLogId, entries, loading]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const [pageSize, setPageSize] = useState(() => Number(localStorage.getItem('elog_page_size')) || 20)
   const PAGE_SIZES = [10, 20, 50]
 
   function changePageSize(n) {
     setPageSize(n)
-    localStorage.setItem('elog_page_size', n)
+    expLS.set('elog_page_size', n)
     setPage(1)
     setFocusedIdx(0)
   }
@@ -571,7 +699,11 @@ export default function Home() {
   const fetchEntries = useCallback(async (p = 1) => {
     setLoading(true); setError(null)
     try {
-      const params = { page: p, page_size: pageSize }
+      // Run-group view paginates by RUN, not by log. Fetch a big batch of logs
+      // (newest first) so grouping yields enough runs to fill the page; runs are
+      // then sliced client-side. Normal view paginates by log as usual.
+      const rg = viewMode === 'run_group'
+      const params = rg ? { page: 1, page_size: RUN_GROUP_FETCH } : { page: p, page_size: pageSize }
       if (activeTag)      params.tag = activeTag
       if (activeCategory) params.category = activeCategory
       if (activeSource === 'human') params.is_auto = false
@@ -589,22 +721,11 @@ export default function Home() {
       setTotal(res.data.total)
     } catch { setError('error') }
     finally { setLoading(false) }
-  }, [activeTag, activeCategory, activeSource, serverSearchQuery, cmdFilter, pageSize])
+  }, [activeTag, activeCategory, activeSource, serverSearchQuery, cmdFilter, pageSize, viewMode])
 
-  useEffect(() => { fetchEntries(1); setPage(1) }, [activeTag, activeCategory, activeSource, serverSearchQuery, cmdFilter, pageSize])
-  useEffect(() => { fetchEntries(page) }, [page])
-
-  const filteredEntries = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase()
-    if (!q) return entries
-    return entries.filter(e =>
-      (e.title || '').toLowerCase().includes(q) ||
-      (e.body_excerpt || '').toLowerCase().includes(q) ||
-      (e.author_name || '').toLowerCase().includes(q) ||
-      (e.category || '').toLowerCase().includes(q) ||
-      e.tags?.some(tg => tg.name.toLowerCase().includes(q))
-    )
-  }, [entries, searchQuery])
+  useEffect(() => { fetchEntries(1); setPage(1) }, [activeTag, activeCategory, activeSource, serverSearchQuery, cmdFilter, pageSize, viewMode])
+  // Page change refetches only in Normal view; Run group paginates runs client-side.
+  useEffect(() => { if (viewMode !== 'run_group') fetchEntries(page) }, [page])
 
   // Make loaded logs searchable by the kit `#` tag command (TagIndex). Any UI
   // that registers taggable items gets the same `#`-search behaviour.
@@ -647,10 +768,10 @@ export default function Home() {
 
   async function submitComment() {
     const body = commentText.trim()
-    if (!body || !expandedId || commentSubmitting) return
+    if (!body || !commentTargetId || commentSubmitting) return
     setCommentSubmitting(true)
     try {
-      await api.post(`/logs/${expandedId}/comments`, { body, report: reportMode })
+      await api.post(`/logs/${commentTargetId}/comments`, { body, report: reportMode })
       setCommentRefresh(r => r + 1)
       setCommentText('')
       setReportMode(false)
@@ -696,7 +817,7 @@ export default function Home() {
     setDraftId(null)
     clearLogForm()
     fetchEntries(page)
-    setExpandedId(id)
+    openOne(id)
   }
 
   return (
@@ -753,9 +874,13 @@ export default function Home() {
             </span>
           )}
         </>}
-        actions={user && <>
-          <Button variant="secondary" size="md" onClick={() => openSettings('formats')}>Manage Formats</Button>
-          <Button variant="success" size="md" onClick={() => openNewLog()}>{t('home_new')}</Button>
+        actions={<>
+          <Button variant={openAll ? 'info' : 'secondary'} size="md" onClick={toggleOpenAll}
+            title={openAll ? '모두 닫기 (close 모드로)' : '모두 열기 (open 모드로)'}>{openAll ? 'Close' : 'Open'}</Button>
+          {user && <>
+            <Button variant="secondary" size="md" onClick={() => openSettings('formats')}>Manage Formats</Button>
+            <Button variant="success" size="md" onClick={() => openNewLog()}>{t('home_new')}</Button>
+          </>}
         </>}
       />
 
@@ -874,7 +999,7 @@ export default function Home() {
              style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border-focus)' }}>
           <LogForm
             embeddedFromId={logFormReq.fromId}
-            onSaved={(newId) => { clearLogForm(); fetchEntries(page); if (newId) setExpandedId(newId) }}
+            onSaved={(newId) => { clearLogForm(); fetchEntries(page); if (newId) openOne(newId) }}
             onCancel={() => clearLogForm()}
           />
         </div>
@@ -892,51 +1017,66 @@ export default function Home() {
         </div>
       )}
 
-      {/* Log feed — kit LogList renders entries in (monotonic) array order with
-          the configurable group-by divider (#8); renderEntry stays as elog glue
-          (inline edit, expanded card, focus). */}
+      {/* One feed for BOTH modes — same kit (LogCard collapsed / LogCardExpanded
+          expanded). Run-group entries are synthetic (e._runLogs); only their
+          content differs, rendered via RunGroupExpanded (kit LogDetail). */}
+      {feedEntries.length === 0 && !loading && (
+        <p style={{ textAlign: 'center', padding: '40px 0', fontSize: 'var(--fs-body, 13px)', color: 'var(--text-muted)' }}>{t('home_empty')}</p>
+      )}
       <LogList
-        entries={filteredEntries}
-        groupBy={groupBy}
+        entries={feedEntries}
+        groupBy={viewMode === 'run_group' ? 'none' : groupBy}
         reverse={false}
-        gap={viewMode === 'brief' ? 2 : 12}
+        gap={2}
         renderItem={(e, idx) => {
-          // Inline edit — the open log card turns into an editable form in place.
-          const inner = logFormReq?.editId === e.id ? (
-            <div className="rounded-xl border-2 shadow-md overflow-hidden"
-                 style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border-focus)' }}>
-              <EditCardHeader entry={e} />
-              <div className="p-4">
-                <LogForm embeddedEditId={e.id} onSaved={() => handleEditorSaved(e.id)} onCancel={() => handleEditorCancel(e.id)} />
+          const focused = (cmdMode || barMode === BAR_GOTO) && focusedIdx === idx
+          let inner
+          if (e._runLogs) {
+            // Run-group synthetic entry — same kit, merged content.
+            inner = isOpen(e.id)
+              ? <RunGroupExpanded entry={e} formats={formats} focused={focused} onClose={() => closeOne(e.id)} />
+              : <LogCard entry={e} viewMode="brief" showIndex={false} focused={focused} onToggle={() => { setFocusedIdx(idx); toggleOpen(e.id) }} />
+          } else if (logFormReq?.editId === e.id) {
+            // Inline edit — ONE box: the form renders flat (no inner box), with the
+            // log # in its top action bar and Cancel/Save in both the top and footer.
+            inner = (
+              <div className="rounded-xl border-2 shadow-md overflow-hidden"
+                   style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border-focus)' }}>
+                <LogForm embeddedEditId={e.id} flat headerBadge={<EditCardHeader entry={e} />}
+                  onSaved={() => handleEditorSaved(e.id)} onCancel={() => handleEditorCancel(e.id)} />
               </div>
-            </div>
-          ) : expandedId === e.id ? (
-            <ErrorBoundary>
-              <LogCardExpanded
+            )
+          } else if (isOpen(e.id)) {
+            inner = (
+              <ErrorBoundary>
+                <LogCardExpanded
+                  entry={e}
+                  focused={focused}
+                  refreshTrigger={commentRefresh}
+                  onClose={() => closeOne(e.id)}
+                  onNoticeToggled={() => { fetchEntries(page); fetchNotices() }}
+                  onDeleted={() => { closeOne(e.id); fetchEntries(page) }}
+                  onComment={(logId) => commentLog(logId)}
+                />
+              </ErrorBoundary>
+            )
+          } else {
+            inner = (
+              <LogCard
                 entry={e}
-                focused={(cmdMode || barMode === BAR_GOTO) && focusedIdx === idx}
-                refreshTrigger={commentRefresh}
-                onClose={() => setExpandedId(null)}
-                onNoticeToggled={() => { fetchEntries(page); fetchNotices() }}
-                onDeleted={() => { setExpandedId(null); fetchEntries(page) }}
-                onComment={(logId) => commentLog(logId)}
+                viewMode="brief"
+                focused={focused}
+                onToggle={() => { setFocusedIdx(idx); toggleOpen(e.id) }}
               />
-            </ErrorBoundary>
-          ) : (
-            <LogCard
-              entry={e}
-              viewMode={viewMode}
-              focused={(cmdMode || barMode === BAR_GOTO) && focusedIdx === idx}
-              onToggle={() => { setFocusedIdx(idx); setExpandedId(prev => prev === e.id ? null : e.id) }}
-            />
-          )
+            )
+          }
           // Stable wrapper carrying the scroll target id (used by focus/open follow).
           return <div key={e.id} id={`log-card-${e.id}`}>{inner}</div>
         }}
       />
 
       {!isSearching && (
-        <Pagination page={page} pageSize={pageSize} total={total}
+        <Pagination page={page} pageSize={pageSize} total={feedTotal}
           onPageChange={p => setPage(p)} loading={loading}
           labels={{ prev: t('page_prev'), next: t('page_next'), info: (p, tp, tot) => t('page_info', p, tp, tot) }} />
       )}

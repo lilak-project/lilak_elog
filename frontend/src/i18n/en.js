@@ -472,6 +472,7 @@ export default {
   view_brief: 'Brief',
   view_normal: 'Normal',
   view_rich: 'Rich',
+  view_run_group: 'Run group',
 
   // Quick menu panel
   menu_title: 'Menu',

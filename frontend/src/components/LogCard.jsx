@@ -3,7 +3,7 @@
 import { LogEntryCard } from 'lilak-ui'
 import { useTagColors } from '../utils/tagColors'
 
-export default function LogCard({ entry, viewMode = 'normal', focused = false, onToggle }) {
+export default function LogCard({ entry, viewMode = 'normal', focused = false, onToggle, showIndex = true }) {
   const tagColorMap = useTagColors()
   return (
     <LogEntryCard
@@ -12,6 +12,7 @@ export default function LogCard({ entry, viewMode = 'normal', focused = false, o
       focused={focused}
       onClick={onToggle}
       tagColorMap={tagColorMap}
+      showIndex={showIndex}
     />
   )
 }

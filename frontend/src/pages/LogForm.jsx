@@ -3,7 +3,7 @@ import { Icon, Button, CameraCapture } from 'lilak-ui'
 import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import api from '../api'
+import api, { getExperiment } from '../api'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LangContext'
 import { getFields, formatLogTitle } from '../utils/formatUtils'
@@ -11,7 +11,8 @@ import NumberEntryField from '../components/fields/NumberEntryField'
 import RunTypePicker from '../components/fields/RunTypePicker'
 
 const SEVERITIES = ['info', 'warning', 'error', 'critical']
-const LS_LAST_TITLE = 'elog_last_title'
+// Per-project: the last-title autofill shouldn't carry across projects.
+const lastTitleKey = () => `elog_last_title:${getExperiment()}`
 const RUN_TYPES = ['single', 'range', 'multiple']    // run_number variants (legacy name)
 
 // Coerce any stored number_entry shape into the canonical `multiple` raw
@@ -200,6 +201,8 @@ export default function LogForm({
   embeddedFromId = null,   // set when rendered as an in-page tab (continue mode)
   onSaved = null,          // callback(logId) — replaces navigate after save
   onCancel = null,         // callback() — replaces navigate on cancel
+  flat = false,            // render without the form's own box (host provides the box)
+  headerBadge = null,      // node shown at the left of the top action bar (e.g. log #)
 } = {}) {
   const params = useParams()
   const id = embeddedEditId ?? params.id
@@ -278,7 +281,9 @@ export default function LogForm({
         if (r.data.length > 0) {
           // Default selection sits behind the picker modal so the form is
           // usable immediately; the picker pops up for an explicit choice.
-          const def = r.data.find(f => f.is_default)
+          // Several formats are Default-group now (Standard + beam/target setters);
+          // the behind-picker pre-selection should still be the Standard log.
+          const def = r.data.find(f => f.is_default && f.name === 'Standard log') ?? r.data.find(f => f.is_default)
           setSelectedFormat(def ?? null)
           setShowPicker(true)
         } else {
@@ -300,7 +305,7 @@ export default function LogForm({
     }).catch(() => setLastRunLoaded(true))
 
     if (!isEdit && !fromId) {
-      setLastTitle(localStorage.getItem(LS_LAST_TITLE) || '')
+      setLastTitle(localStorage.getItem(lastTitleKey()) || '')
     }
   }, [])
 
@@ -454,12 +459,8 @@ export default function LogForm({
 
   // ── Run number validation ────────────────────────────────────────────────
   function checkRun() {
-    // Run number is required (unless the log is IDLE or the format omits run).
-    const runProvided = runType === 'single' ? runSingle.trim() : runText.trim()
-    const isIdle = chosenRunType === 'IDLE'
-    if (fieldVisible('run') && !isIdle && !runProvided) {
-      setRunError(t('form_run_required')); return false
-    }
+    // Run number is OPTIONAL — a blank run auto-fills from the previous run
+    // (for non-DAQ logs), so we only validate the range/multiple syntax.
     if (runType === 'range' && runText.trim() && !validateRange(runText)) {
       setRunError(t('form_run_range_error')); return false
     }
@@ -490,8 +491,9 @@ export default function LogForm({
       if (runSingle.trim()) {
         const parsed = parseInt(runSingle, 10)
         if (!isNaN(parsed)) { run_number = parsed; run_number_text = runSingle.trim() }
-      } else if (!isEdit && lastRunNumber != null) {
-        // Leaving the run number blank on a new log auto-fills the last run number.
+      } else if (!isEdit && !runTypeLock && lastRunNumber != null) {
+        // Blank run on a new non-DAQ log auto-fills the previous run number.
+        // System DAQ logs (run_type_lock set) get their run from the system.
         run_number = lastRunNumber
         run_number_text = String(lastRunNumber)
       }
@@ -522,7 +524,7 @@ export default function LogForm({
       } else {
         const res = await api.post('/logs', payload)
         entryId = res.data.id
-        if (payload.title) localStorage.setItem(LS_LAST_TITLE, payload.title)
+        if (payload.title) localStorage.setItem(lastTitleKey(), payload.title)
       }
 
       // Attachments
@@ -623,13 +625,16 @@ export default function LogForm({
              style={{ backgroundColor: 'var(--danger-bg)', borderColor: 'var(--danger-text)', color: 'var(--danger-text)' }}>{error}</div>
       )}
 
-      <form onSubmit={handleSubmit} className="rounded-xl border shadow-sm"
-            style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border-default)' }}>
-        {/* Top actions — same Cancel / Save as the footer (#4) */}
-        <div className="px-4 py-2.5 border-b flex items-center justify-end gap-2"
-             style={{ borderColor: 'var(--border-subtle)' }}>
-          <Button variant="secondary" type="button" onClick={handleCancel}>{t('form_cancel')}</Button>
-          <Button variant="primary" type="submit" disabled={saving}>{saveLabel}</Button>
+      <form onSubmit={handleSubmit} className={flat ? '' : 'rounded-xl border shadow-sm'}
+            style={{ backgroundColor: 'var(--surface)', borderColor: flat ? undefined : 'var(--border-default)' }}>
+        {/* Top actions — log # (host badge) on the left, Cancel / Save on the right (#4) */}
+        <div className="px-4 py-2.5 border-b flex items-center justify-between gap-2 flex-wrap"
+             style={{ borderColor: 'var(--border-subtle)', backgroundColor: flat ? 'var(--surface-2)' : undefined }}>
+          <div className="flex items-center gap-2 flex-wrap min-w-0">{headerBadge}</div>
+          <div className="flex items-center gap-2 shrink-0">
+            <Button variant="secondary" type="button" onClick={handleCancel}>{t('form_cancel')}</Button>
+            <Button variant="primary" type="submit" disabled={saving}>{saveLabel}</Button>
+          </div>
         </div>
         <div className="p-4 space-y-3">
 

@@ -472,6 +472,7 @@ export default {
   view_brief: '간략',
   view_normal: '보통',
   view_rich: '풍부',
+  view_run_group: 'Run 그룹',
 
   // Quick menu panel
   menu_title: '메뉴',
