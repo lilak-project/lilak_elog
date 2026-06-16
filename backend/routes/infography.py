@@ -278,21 +278,22 @@ def graph_data(x: str, y: Optional[str] = None, runs: Optional[str] = None, db: 
     )
     logs = [lg for lg in logs if rf(lg.run_number)]
 
-    # single-x histogram → each log's x value
+    # single-x histogram → each log's x value (x may be an expression, like y)
     if not ys:
-        values = [v for v in (_extract(lg, xkey) for lg in logs) if v is not None]
+        values = [v for v in (_eval_y(xkey, lg, known_keys, ref_to_key) for lg in logs) if v is not None]
         return {"mode": "hist", "x": xkey, "values": values}
 
     # xy graph — one point per log that has x and at least one y value.
+    # x (and the secondary x2) support the same +-*/ expression syntax as y.
     # A second x var (x2) becomes a secondary axis aligned to the primary x.
     points = []
     for lg in logs:
-        xv = _extract(lg, xkey)
+        xv = _eval_y(xkey, lg, known_keys, ref_to_key)
         if xv is None:
             continue
         pt = {"run": lg.run_number, "x": xv}
         if x2key:
-            pt["x2"] = _extract(lg, x2key)
+            pt["x2"] = _eval_y(x2key, lg, known_keys, ref_to_key)
         ys_present = False
         for yk in ys:
             yv = _eval_y(yk, lg, known_keys, ref_to_key)
@@ -375,6 +376,7 @@ class InfographPayload(BaseModel):
     source: Optional[str] = None
     y_min: Optional[float] = None
     y_max: Optional[float] = None
+    log_y: bool = False
 
 
 def _info_out(ig: models.Infograph) -> dict:
@@ -386,7 +388,7 @@ def _info_out(ig: models.Infograph) -> dict:
         "image_filename": ig.image_filename,
         "tags": json.loads(ig.tags) if ig.tags else [],
         "run": ig.run, "run_spec": ig.run_spec, "source": ig.source,
-        "y_min": ig.y_min, "y_max": ig.y_max,
+        "y_min": ig.y_min, "y_max": ig.y_max, "log_y": bool(ig.log_y),
         "author_name": ig.author_name, "created_by": ig.created_by,
         "created_at": ig.created_at, "updated_at": ig.updated_at,
     }
@@ -407,6 +409,7 @@ def _apply_payload(ig: models.Infograph, payload: InfographPayload):
     ig.source = (payload.source or "").strip() or None
     ig.y_min = payload.y_min
     ig.y_max = payload.y_max
+    ig.log_y = bool(payload.log_y)
     # keep legacy single columns roughly in sync
     ig.x_var = payload.x_vars[0] if payload.x_vars else None
     ig.y_var = payload.y_vars[0] if payload.y_vars else None

@@ -1,9 +1,10 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
-import { Icon, Modal, Button, Input, Badge, DataTable, ChipGroup, Row, Stack, Menu, DashboardGrid, TimeRangePicker, rangeBounds, useTaggables, SubTabs, openBarInput, closeBarInput } from 'lilak-ui'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { Icon, Modal, Button, Input, Badge, DataTable, Row, Stack, Menu, TimeRangePicker, rangeBounds, useTaggables, SubTabs, LogList, LogEntryCard, LogDetail, openBarInput, closeBarInput } from 'lilak-ui'
+import { jsPDF } from 'jspdf'
 import api from '../api'
 import { useAuth } from '../context/AuthContext'
-import { CommentsSection, ActionBtn, NumberBadge } from '../components/EntryShared'
-import { useTagColors, synthChipProps } from '../utils/tagColors'
+import { CommentsSection, ActionBtn } from '../components/EntryShared'
+import { useTagColors } from '../utils/tagColors'
 import {
   ResponsiveContainer, LineChart, Line,
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
@@ -39,12 +40,13 @@ function PanelEditor({ initial, vars, onClose, onSaved }) {
   const [xVars, setXVars] = useState(initial?.x_vars || [])
   const [yVars, setYVars] = useState(initial?.y_vars || [])
   const [sel, setSel] = useState(() => new Set())
-  const [yExpr, setYExpr] = useState('')
+  const [expr, setExpr] = useState('')                 // one expression box; add to x or y
   const [nBins, setNBins] = useState(initial?.n_bins ?? '')
   const [xMin, setXMin] = useState(initial?.x_min ?? '')
   const [xMax, setXMax] = useState(initial?.x_max ?? '')
   const [yMin, setYMin] = useState(initial?.y_min ?? '')
   const [yMax, setYMax] = useState(initial?.y_max ?? '')
+  const [logY, setLogY] = useState(initial?.log_y ?? false)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState(null)
 
@@ -70,6 +72,7 @@ function PanelEditor({ initial, vars, onClose, onSaved }) {
         n_bins: singleXHist && nBins !== '' ? Number(nBins) : null,
         x_min: xMin !== '' ? Number(xMin) : null, x_max: xMax !== '' ? Number(xMax) : null,
         y_min: yMin !== '' ? Number(yMin) : null, y_max: yMax !== '' ? Number(yMax) : null,
+        log_y: logY,
         tags: tagsText.split(',').map(s => s.trim()).filter(Boolean),
         run_spec: runSpec.trim() || null, source: source.trim() || null,
       }
@@ -96,11 +99,12 @@ function PanelEditor({ initial, vars, onClose, onSaved }) {
     )
   }
 
+  const footBtn = { padding: '10px 18px', fontSize: 'var(--fs-body, 13px)' }
   const footer = (
     <>
-      <Button variant="ghost" onClick={onClose}>취소</Button>
-      <Button variant="success" disabled={busy || !canGraph} onClick={() => save('graph')}>draw graph</Button>
-      <Button variant="info" disabled={busy || !canHist} onClick={() => save('histogram')}>draw histogram</Button>
+      <Button variant="ghost" size="md" style={footBtn} onClick={onClose}>취소</Button>
+      <Button variant="success" size="md" style={footBtn} disabled={busy || !canGraph} onClick={() => save('graph')}>draw graph</Button>
+      <Button variant="info" size="md" style={footBtn} disabled={busy || !canHist} onClick={() => save('histogram')}>draw histogram</Button>
     </>
   )
 
@@ -116,6 +120,7 @@ function PanelEditor({ initial, vars, onClose, onSaved }) {
           {[['x1', xMin, setXMin], ['x2', xMax, setXMax], ['y1', yMin, setYMin], ['y2', yMax, setYMax]].map(([ph, v, set]) => (
             <input key={ph} type="number" value={v} onChange={e => set(e.target.value)} placeholder={ph} style={{ ...fieldStyle, width: 72 }} />
           ))}
+          <Button variant={logY ? 'info' : 'secondary'} onClick={() => setLogY(v => !v)} title="y 축을 로그 스케일로">log y</Button>
         </Row>
 
         <Input size="md" value={runSpec} onChange={e => setRunSpec(e.target.value)} placeholder="run 선택 (예: 1:80, 94:105, !77)" />
@@ -124,15 +129,19 @@ function PanelEditor({ initial, vars, onClose, onSaved }) {
           <span style={{ color: 'var(--text-secondary)' }}> x1·x2·y1·y2는 그래프 축 범위도 강제합니다.</span>
         </p>
 
-        {/* Assign + y-expr */}
+        {/* Assign axis from selection */}
         <Row gap={8} wrap>
           <Button variant="info" disabled={sel.size === 0} onClick={assignX}>x 축으로 지정</Button>
           <Button variant="secondary" disabled={sel.size === 0 || xVars.length > 2} onClick={assignY}>y 축으로 지정</Button>
-          <span style={{ flex: 1 }} />
-          <input value={yExpr} onChange={e => setYExpr(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter' && yExpr.trim()) { setYVars(uniq([...yVars, yExpr.trim()])); setYExpr('') } }}
-            placeholder="y 식 (예: {v3} / {v4} * 2)" style={{ ...fieldStyle, width: 220 }} title="변수는 {v1} 형태로" />
-          <Button variant="secondary" disabled={!yExpr.trim() || xVars.length > 2} onClick={() => { if (yExpr.trim()) { setYVars(uniq([...yVars, yExpr.trim()])); setYExpr('') } }}>y 식 추가</Button>
+        </Row>
+
+        {/* One computed-expression box; the buttons decide whether it goes to x or y.
+            Variables are written as {v1}, {v2}, … */}
+        <Row gap={8} wrap>
+          <input value={expr} onChange={e => setExpr(e.target.value)}
+            placeholder="식 (예: {v3} / {v4} * 2)" style={{ ...fieldStyle, flex: 1, minWidth: 200 }} title="변수는 {v1} 형태로" />
+          <Button variant="info" disabled={!expr.trim() || xVars.length >= 2} onClick={() => { if (expr.trim()) { setXVars(uniq([...xVars, expr.trim()])); setExpr('') } }}>x 식 추가</Button>
+          <Button variant="secondary" disabled={!expr.trim() || xVars.length > 2} onClick={() => { if (expr.trim()) { setYVars(uniq([...yVars, expr.trim()])); setExpr('') } }}>y 식 추가</Button>
         </Row>
 
         {/* Variable / x / y columns */}
@@ -144,7 +153,7 @@ function PanelEditor({ initial, vars, onClose, onSaved }) {
                 <label key={v.key} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', fontSize: 'var(--fs-small, 12px)', cursor: 'pointer', borderBottom: '1px solid var(--border-subtle)', backgroundColor: sel.has(v.key) ? 'var(--info-bg)' : 'transparent' }}>
                   <input type="checkbox" checked={sel.has(v.key)} onChange={() => toggleSel(v.key)} />
                   {v.ref && (
-                    <button type="button" title="y 식에 삽입" onClick={e => { e.preventDefault(); setYExpr(x => (x ? x + ' ' : '') + `{${v.ref}}`) }}
+                    <button type="button" title="식에 삽입" onClick={e => { e.preventDefault(); setExpr(s => (s ? s + ' ' : '') + `{${v.ref}}`) }}
                       style={{ fontSize: 'var(--fs-micro, 10px)', fontFamily: 'var(--font-mono)', padding: '1px 4px', borderRadius: 4, flexShrink: 0, border: 'none', cursor: 'pointer', backgroundColor: 'var(--surface-2)', color: 'var(--text-link)' }}>{`{${v.ref}}`}</button>
                   )}
                   <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-primary)' }}>{v.label}</span>
@@ -158,7 +167,7 @@ function PanelEditor({ initial, vars, onClose, onSaved }) {
 
         <Row gap={8} wrap>
           <Input size="md" value={tagsText} onChange={e => setTagsText(e.target.value)} placeholder="태그 (쉼표로 구분)" style={{ flex: 1 }} />
-          <Input size="md" value={source} onChange={e => setSource(e.target.value)} placeholder="source" style={{ width: 160 }} />
+          <Input size="md" value={source} onChange={e => setSource(e.target.value)} placeholder="source (출처 라벨)" title="이 그래프 데이터의 출처/서비스 라벨 — 엔트리에 링크색 칩으로 표시됩니다 (선택)" style={{ width: 180 }} />
         </Row>
 
         {err && <div style={{ fontSize: 'var(--fs-small, 12px)', padding: '6px 10px', borderRadius: 8, backgroundColor: 'var(--danger-bg)', color: 'var(--danger-text)' }}>{err}</div>}
@@ -222,7 +231,8 @@ function InfographChart({ ig, vars, refreshKey, timeRange, runOverride }) {
         <BarChart data={hist}>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" />
           <XAxis dataKey="bin" tick={{ fontSize: 'var(--fs-tiny, 11px)' }} label={{ value: varLabel(vars, xVars[0]), position: 'insideBottom', offset: -2, fontSize: 'var(--fs-tiny, 11px)' }} />
-          <YAxis tick={{ fontSize: 'var(--fs-tiny, 11px)' }} allowDecimals={false} /><Tooltip />
+          <YAxis tick={{ fontSize: 'var(--fs-tiny, 11px)' }} allowDecimals={false}
+            scale={ig.log_y ? 'log' : 'auto'} domain={ig.log_y ? [1, 'auto'] : undefined} allowDataOverflow={ig.log_y} /><Tooltip />
           <Bar dataKey="count" fill="#6366f1" />
         </BarChart>
       </ResponsiveContainer>
@@ -261,7 +271,8 @@ function InfographChart({ ig, vars, refreshKey, timeRange, runOverride }) {
             tickFormatter={t => x2Label[t] != null ? x2Label[t] : ''}
             label={{ value: varLabel(vars, x2key), position: 'insideTop', offset: -18, fontSize: 'var(--fs-tiny, 11px)' }} />
         )}
-        <YAxis tick={{ fontSize: 'var(--fs-tiny, 11px)' }} domain={[ig.y_min != null ? ig.y_min : 'auto', ig.y_max != null ? ig.y_max : 'auto']}
+        <YAxis tick={{ fontSize: 'var(--fs-tiny, 11px)' }} scale={ig.log_y ? 'log' : 'auto'}
+          domain={[ig.y_min != null ? ig.y_min : 'auto', ig.y_max != null ? ig.y_max : 'auto']}
           allowDataOverflow={ig.y_min != null || ig.y_max != null} />
         <Tooltip labelFormatter={v => xIsTime ? fmtTime(v) : v} />
         {(data.y_vars || []).length > 1 && <Legend wrapperStyle={{ fontSize: 'var(--fs-tiny, 11px)' }} />}
@@ -294,7 +305,14 @@ function StatView({ values = [], label }) {
   )
 }
 
-function exportNodePng(node, filename) {
+function downloadBlob(blob, filename) {
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename; a.click()
+  setTimeout(() => URL.revokeObjectURL(a.href), 0)
+}
+
+// Rasterize the panel's <svg> chart to a white-background 2× canvas, then hand
+// it to a consumer (PNG download / PDF embed).
+function svgToCanvas(node, onCanvas) {
   if (!node) return
   const svg = node.querySelector('svg')
   if (!svg) { window.alert('내보낼 그래프가 없습니다.'); return }
@@ -310,10 +328,51 @@ function exportNodePng(node, filename) {
     canvas.width = w * 2; canvas.height = h * 2
     const ctx = canvas.getContext('2d'); ctx.scale(2, 2)
     ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, w, h); ctx.drawImage(img, 0, 0, w, h)
-    canvas.toBlob(blob => { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename; a.click(); URL.revokeObjectURL(a.href) })
+    onCanvas(canvas, w, h)
   }
   img.onerror = () => window.alert('이미지 변환에 실패했습니다.')
   img.src = svg64
+}
+
+function exportNodePng(node, filename) {
+  svgToCanvas(node, (canvas) => canvas.toBlob(blob => downloadBlob(blob, filename)))
+}
+
+function exportNodePdf(node, filename) {
+  svgToCanvas(node, (canvas, w, h) => {
+    const pdf = new jsPDF({ orientation: w >= h ? 'landscape' : 'portrait', unit: 'pt', format: [w, h] })
+    pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, w, h)
+    pdf.save(filename)
+  })
+}
+
+function toCsv(rows) {
+  const cell = (c) => c == null ? '' : (/[",\n]/.test(String(c)) ? `"${String(c).replace(/"/g, '""')}"` : String(c))
+  return rows.map(r => r.map(cell).join(',')).join('\n')
+}
+
+// Export the panel's underlying data (the same series the chart draws) as CSV.
+async function exportData(ig, vars, runOverride, filename) {
+  const xVars = ig.x_vars || [], yVars = ig.y_vars || []
+  const effRun = (runOverride && runOverride.trim()) || ig.run_spec
+  const runs = effRun ? `&runs=${encodeURIComponent(effRun)}` : ''
+  const q = ig.kind === 'graph'
+    ? `/infography/data?x=${encodeURIComponent(xVars.join(','))}&y=${encodeURIComponent(yVars.join(','))}${runs}`
+    : `/infography/data?x=${encodeURIComponent(xVars.join(','))}${runs}`
+  let data
+  try { data = (await api.get(q)).data } catch { window.alert('데이터를 불러오지 못했습니다.'); return }
+  const rows = []
+  if (data.points && data.points.length) {
+    const ykeys = data.y_vars || []
+    const cols = [data.x, ...(data.x2 ? [data.x2] : []), ...ykeys]
+    rows.push(cols.map(k => varLabel(vars, k)))
+    for (const p of data.points) rows.push([p.x, ...(data.x2 ? [p.x2] : []), ...ykeys.map(k => p[k])])
+  } else if (data.bins && data.bins.length) {
+    rows.push(['label', 'value']); for (const b of data.bins) rows.push([b.label, b.value])
+  } else if (data.values && data.values.length) {
+    rows.push([varLabel(vars, xVars[0])]); for (const v of data.values) rows.push([v])
+  } else { window.alert('내보낼 데이터가 없습니다.'); return }
+  downloadBlob(new Blob([toCsv(rows)], { type: 'text/csv;charset=utf-8' }), filename)
 }
 
 function kindChipText(ig, vars) {
@@ -323,80 +382,100 @@ function kindChipText(ig, vars) {
   return `${xs.join(',')} × ${(ig.y_vars || []).map(k => varLabel(vars, k)).join(', ')}`
 }
 
-// ── Panel: drag-grid cell that collapses (header only) / expands (chart+detail).
-function InfographCard({ ig, vars, refreshKey, timeRange, runOverride, commentRefresh, open, focused, canManage, onToggle, onComment, onEdit, onDuplicate, onDeleted }) {
+// Map an infograph onto the log-entry shape so it renders through the shared
+// kit feed components (LogEntryCard / LogDetail) — same UI, infography fields.
+//   _index → infograph_index (shown with the '&' prefix)
+//   run    → the run-spec string, in the run badge slot (no beam/target)
+//   tags   → plain names resolved against the elog tag-color map
+//   category → the x×y / hist / stat descriptor chip
+function igToEntry(ig, vars, tagColors) {
+  return {
+    id: ig.id,
+    log_index: ig.infograph_index ?? ig.id,
+    title: ig.title,
+    level: 'info',
+    tags: (ig.tags || []).map((name) => {
+      const c = tagColors && tagColors[name]
+      return { name, color: c && c.color, border_color: c && c.border, text_color: c && c.text }
+    }),
+    run_number_type: 'range',
+    run_number_text: ig.run_spec || null,
+    author_name: ig.author_name,
+    created_at: ig.created_at,
+    source: ig.source && ig.source !== 'human' ? ig.source : null,
+    category: kindChipText(ig, vars),
+  }
+}
+
+// Collapsed feed row — identical to a log entry, with the '&' index prefix.
+function InfographRow({ ig, vars, tagColors, focused, onToggle }) {
+  return (
+    <LogEntryCard entry={igToEntry(ig, vars, tagColors)} viewMode="normal"
+      focused={focused} onClick={onToggle} tagColorMap={tagColors} indexPrefix="&" />
+  )
+}
+
+// Expanded entry — kit LogDetail with the chart in the body slot, plus the
+// infograph action bar and its own comment thread.
+function InfographExpanded({ ig, vars, tagColors, refreshKey, timeRange, runOverride, commentRefresh, focused, canManage, onClose, onComment, onEdit, onDuplicate, onDeleted, onChanged }) {
   const { user } = useAuth()
-  const tagColors = useTagColors()
   const chartRef = useRef(null)
   const [comments, setComments] = useState([])
-  const [openKey, setOpenKey] = useState(0)
+  const [logYBusy, setLogYBusy] = useState(false)
 
   const loadComments = useCallback(() => {
     api.get(`/infographs/${ig.id}/comments`).then(r => setComments(r.data || [])).catch(() => {})
   }, [ig.id])
-  useEffect(() => { if (open) { loadComments(); setOpenKey(k => k + 1) } }, [open, loadComments])
-  useEffect(() => { if (open && commentRefresh) loadComments() }, [commentRefresh, open, loadComments])
+  useEffect(() => { loadComments() }, [loadComments])
+  useEffect(() => { if (commentRefresh) loadComments() }, [commentRefresh, loadComments])
 
   async function del() { if (!window.confirm('삭제할까요?')) return; await api.delete(`/infographs/${ig.id}`); onDeleted() }
   async function deleteComment(cid) { try { await api.delete(`/infographs/${ig.id}/comments/${cid}`); loadComments() } catch { /* ignore */ } }
 
-  const tagChip = (tname) => {
-    const { style } = synthChipProps(tname, tagColors)
-    return <span key={tname} style={{ fontSize: 'var(--fs-tiny, 11px)', padding: '1px 8px', borderRadius: 999, ...style }}>#{tname}</span>
+  // Toggle log-scale y straight from the card (no need to open the editor).
+  async function toggleLogY() {
+    if (logYBusy) return
+    setLogYBusy(true)
+    try {
+      const r = await api.put(`/infographs/${ig.id}`, {
+        title: ig.title, kind: ig.kind, x_vars: ig.x_vars || [], y_vars: ig.y_vars || [],
+        n_bins: ig.n_bins, x_min: ig.x_min, x_max: ig.x_max, image_filename: ig.image_filename,
+        tags: ig.tags || [], run: ig.run, run_spec: ig.run_spec, source: ig.source,
+        y_min: ig.y_min, y_max: ig.y_max, log_y: !ig.log_y,
+      })
+      onChanged && onChanged(r.data)
+    } catch (e) { window.alert('log y 변경 실패: ' + (e.response?.data?.detail || e.message)) }
+    finally { setLogYBusy(false) }
   }
-  const kindChip = kindChipText(ig, vars)
-  const menuItems = [
-    ...(canManage ? [{ id: 'edit', label: '변수 편집', onSelect: () => onEdit(ig) }] : []),
-    { id: 'export', label: '그림 내보내기', onSelect: () => exportNodePng(chartRef.current, `infograph-${ig.infograph_index ?? ig.id}.png`) },
-    { id: 'comment', label: '댓글', onSelect: () => onComment && onComment(ig.id) },
-    ...(canManage ? [{ id: 'duplicate', label: '복제', onSelect: () => onDuplicate(ig) }] : []),
-    ...(canManage ? [{ id: 'remove', label: '삭제', onSelect: del }] : []),
-  ]
 
-  return (
-    <div id={`infograph-card-${ig.id}`}
-      style={{ height: '100%', display: 'flex', flexDirection: 'column', borderRadius: 10, overflow: 'hidden', backgroundColor: 'var(--surface)',
-        border: '1px solid var(--border-default)', boxShadow: focused ? '0 0 0 2px var(--border-focus)' : '0 1px 2px rgba(0,0,0,0.04)' }}>
-      {/* Header = drag handle. Buttons inside don't start a drag. */}
-      <div data-drag-handle style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', borderBottom: open ? '1px solid var(--border-subtle)' : 'none', backgroundColor: 'var(--surface-2)', cursor: 'move', flexShrink: 0 }}>
-        <NumberBadge>&{ig.infograph_index ?? ig.id}</NumberBadge>
-        <Menu align="left" width={150}
-          trigger={
-            <button title="패널 메뉴" style={{ display: 'inline-flex', alignItems: 'center', gap: 3, background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: 'var(--fs-body, 13px)', fontWeight: 500, color: 'var(--text-primary)', maxWidth: 180, overflow: 'hidden' }}>
-              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ig.title}</span>
-              <Icon name="caret-down" size={11} />
-            </button>}
-          sections={[{ items: menuItems }]} />
-        {/* Collapsed = title only (like a log entry); details appear when open. */}
-        {open && <span title={kindChip} style={{ fontSize: 'var(--fs-micro, 10px)', padding: '1px 6px', borderRadius: 4, fontFamily: 'var(--font-mono)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '32%', backgroundColor: 'var(--surface)', color: 'var(--text-secondary)' }}>{kindChip}</span>}
-        <span style={{ flex: 1 }} />
-        {open && <span style={{ fontSize: 'var(--fs-tiny, 11px)', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{ig.author_name}</span>}
-        <button onClick={onToggle} title={open ? '접기 (space)' : '펴기 (space)'} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'inline-flex', flexShrink: 0 }}>
-          <Icon name={open ? 'caret-up' : 'caret-down'} size={14} />
-        </button>
-      </div>
-
-      {open && (
-        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '10px 14px 12px' }}>
-          <div ref={chartRef} style={{ height: 240, marginBottom: 10 }}>
-            <InfographChart ig={ig} vars={vars} refreshKey={`${refreshKey}-${openKey}`} timeRange={timeRange} runOverride={runOverride} />
-          </div>
-          <Row gap={10} wrap style={{ fontSize: 'var(--fs-small, 12px)', color: 'var(--text-secondary)', marginBottom: 8 }}>
-            {ig.created_at && <span>{new Date(ig.created_at).toLocaleString()}</span>}
-            {ig.source && <span style={{ color: 'var(--text-link)' }}>{ig.source}</span>}
-            {ig.run_spec && <Badge tone="neutral" mono>run {ig.run_spec}</Badge>}
-            {(ig.tags || []).map(tagChip)}
-          </Row>
-          <Row gap={6} wrap style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 8 }}>
-            <ActionBtn onClick={() => onComment && onComment(ig.id)} hoverFg="var(--text-link)" hoverBg="var(--info-bg)">댓글</ActionBtn>
-            {canManage && <ActionBtn onClick={() => onEdit(ig)} hoverFg="var(--warning-text)" hoverBg="var(--warning-bg)">변수 편집</ActionBtn>}
-            <ActionBtn onClick={() => exportNodePng(chartRef.current, `infograph-${ig.infograph_index ?? ig.id}.png`)} hoverFg="var(--text-link)" hoverBg="var(--info-bg)">그림 내보내기</ActionBtn>
-            {canManage && <ActionBtn onClick={del} hoverFg="var(--danger-text)" hoverBg="var(--danger-bg)" extraClass="ml-auto"><span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Icon name="trash" size={13} /> 삭제</span></ActionBtn>}
-          </Row>
-          <CommentsSection comments={comments} user={user} onDelete={deleteComment} />
-        </div>
-      )}
+  const body = (
+    <div ref={chartRef} style={{ height: 260 }}>
+      <InfographChart ig={ig} vars={vars} refreshKey={refreshKey} timeRange={timeRange} runOverride={runOverride} />
     </div>
+  )
+  const stem = `infograph-${ig.infograph_index ?? ig.id}`
+  const exportItems = [
+    { id: 'png', label: 'PNG 이미지', onSelect: () => exportNodePng(chartRef.current, `${stem}.png`) },
+    { id: 'pdf', label: 'PDF', onSelect: () => exportNodePdf(chartRef.current, `${stem}.pdf`) },
+    { id: 'csv', label: '데이터 (CSV)', onSelect: () => exportData(ig, vars, runOverride, `${stem}.csv`) },
+  ]
+  const actions = user && (
+    <div className="border-t pt-3 mt-1 flex items-center gap-1.5 flex-wrap" style={{ borderColor: 'var(--border-subtle)' }}>
+      <ActionBtn onClick={() => onComment(ig.id)} hoverFg="var(--text-link)">댓글</ActionBtn>
+      {canManage && <ActionBtn onClick={() => onEdit(ig)} hoverFg="var(--warning-text)">변수 편집</ActionBtn>}
+      {canManage && <Button variant={ig.log_y ? 'info' : 'secondary'} size="sm" disabled={logYBusy} onClick={toggleLogY} title="y 축 로그 스케일 토글">log y</Button>}
+      <Menu align="left" width={160}
+        trigger={<ActionBtn hoverFg="var(--text-link)"><span className="inline-flex items-center gap-1">내보내기 <Icon name="caret-down" size={11} /></span></ActionBtn>}
+        sections={[{ items: exportItems }]} />
+      {canManage && <ActionBtn onClick={() => onDuplicate(ig)} hoverFg="var(--success-text)">복제</ActionBtn>}
+      {canManage && <ActionBtn onClick={del} hoverFg="var(--danger-text)" extraClass="ml-auto"><span className="inline-flex items-center gap-1"><Icon name="trash" size={13} /> 삭제</span></ActionBtn>}
+    </div>
+  )
+  const footer = comments.length > 0 && <CommentsSection comments={comments} user={user} onDelete={deleteComment} />
+  const entry = igToEntry(ig, vars, tagColors)
+  return (
+    <LogDetail entry={entry} detail={entry} tagColorMap={tagColors} focused={focused} onClose={onClose}
+      labels={{ noBody: '데이터 없음', close: '닫기' }} indexPrefix="&" body={body} actions={actions} footer={footer} />
   )
 }
 
@@ -500,63 +579,33 @@ function SheetTab() {
   )
 }
 
-// ── Main page (Grafana-style dashboard) ───────────────────────────────────────
+// ── Main page — infographs render through the shared log feed (LogList) ───────
 export default function InfographyPage() {
   const { user } = useAuth()
+  const tagColors = useTagColors()
   const [subtab, setSubtab] = useState('graph')
   const vars = useVariables()
   const [infographs, setInfographs] = useState([])
   const [modal, setModal] = useState(null)         // null | {} (new) | infograph (edit)
   const [refreshKey, setRefreshKey] = useState(0)
-  const [cols, setCols] = useState(() => Number(localStorage.getItem('infography_cols')) || 2)
+  // Multi-open: several panels open at once. Default open; once a panel is
+  // opened it stays open (and a manual close persists) until toggled again.
   const [openIds, setOpenIds] = useState(() => new Set())
+  const seenRef = useRef(new Set())                     // ids we've already defaulted-open
   const [focusedIdx, setFocusedIdx] = useState(0)
-  const [commentBar, setCommentBar] = useState(null)   // { igId } | null
-  const commentIgRef = useRef(null)                     // which infograph the bar comments on
-  const [commentText, setCommentText] = useState('')
   const [commentRefresh, setCommentRefresh] = useState(0)
-  const commentRef = useRef(null)
-  const postingRef = useRef(false)
-  // Grafana controls
+  const commentIgRef = useRef(null)                     // which infograph the bottom bar comments on
+  // Toolbar controls
   const [range, setRange] = useState(() => rangeBounds('all'))
   const [refresh, setRefresh] = useState('off')
   const [filterTag, setFilterTag] = useState('')
   const [runOverride, setRunOverride] = useState('')
-  const [baseLayout, setBaseLayout] = useState(() => { try { return JSON.parse(localStorage.getItem('infography_layout') || '[]') } catch { return [] } })
 
-  const COLLAPSED_H = 2, EXPANDED_H = 13
-  const baseMap = useMemo(() => Object.fromEntries(baseLayout.map(l => [String(l.i), l])), [baseLayout])
-  const shown = infographs.filter(ig => !filterTag || (ig.tags || []).includes(filterTag))
-
-  // Effective layout = base positions/sizes, with collapsed panels shrunk to the header.
-  const displayLayout = useMemo(() => shown.map((ig, i) => {
-    const id = String(ig.id), b = baseMap[id]
-    const w = b?.w ?? Math.round(12 / cols)
-    const x = b?.x ?? (i % cols) * w
-    const y = b?.y ?? Math.floor(i / cols) * EXPANDED_H
-    return { i: id, x, y, w, h: openIds.has(ig.id) ? (b?.h ?? EXPANDED_H) : COLLAPSED_H }
-  }), [shown, baseMap, openIds, cols])
-
-  const saveLayout = useCallback((next) => {
-    const nextBase = next.map(n => {
-      const open = openIds.has(Number(n.i)) || openIds.has(n.i)
-      return { i: String(n.i), x: n.x, y: n.y, w: n.w, h: open ? n.h : (baseMap[String(n.i)]?.h ?? EXPANDED_H) }
-    })
-    setBaseLayout(nextBase); localStorage.setItem('infography_layout', JSON.stringify(nextBase))
-  }, [openIds, baseMap])
-
-  function retile(n) {
-    setCols(n); localStorage.setItem('infography_cols', n)
-    const w = Math.round(12 / n)
-    const next = shown.map((ig, i) => ({ i: String(ig.id), x: (i % n) * w, y: Math.floor(i / n) * EXPANDED_H, w, h: baseMap[String(ig.id)]?.h ?? EXPANDED_H }))
-    setBaseLayout(next); localStorage.setItem('infography_layout', JSON.stringify(next))
-  }
-
-  const toggleOpen = useCallback((id) => {
-    setOpenIds(prev => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next })
-  }, [])
-  const openAll = useCallback(() => setOpenIds(new Set(infographs.map(ig => ig.id))), [infographs])
-  const closeAll = useCallback(() => setOpenIds(new Set()), [])
+  // Newest (highest index) first, like the log feed.
+  const shown = infographs
+    .filter(ig => !filterTag || (ig.tags || []).includes(filterTag))
+    .slice()
+    .sort((a, b) => (b.infograph_index ?? b.id) - (a.infograph_index ?? a.id))
 
   async function duplicate(ig) {
     const { id, infograph_index, created_at, author_name, created_by, ...rest } = ig
@@ -566,6 +615,20 @@ export default function InfographyPage() {
 
   const load = useCallback(() => { api.get('/infographs').then(r => setInfographs(r.data || [])).catch(() => {}) }, [])
   useEffect(() => { load() }, [load])
+
+  // Default every panel open the first time we see it (new panels included),
+  // without reopening ones the user has since closed. Side effects (marking ids
+  // seen) stay OUT of the state updater so it remains pure under StrictMode.
+  useEffect(() => {
+    const unseen = infographs.filter(ig => !seenRef.current.has(ig.id))
+    if (!unseen.length) return
+    unseen.forEach(ig => seenRef.current.add(ig.id))
+    setOpenIds(prev => { const next = new Set(prev); unseen.forEach(ig => next.add(ig.id)); return next })
+  }, [infographs])
+
+  const toggleOpen = useCallback((id) => setOpenIds(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n }), [])
+  const openAll = useCallback(() => setOpenIds(new Set(infographs.map(ig => ig.id))), [infographs])
+  const closeAll = useCallback(() => setOpenIds(new Set()), [])
 
   // Register figures into the data index so `&<number>` / `&name` finds them.
   useTaggables(() => infographs.map((ig) => ({
@@ -577,7 +640,7 @@ export default function InfographyPage() {
     run: () => window.dispatchEvent(new CustomEvent('lilak:cmd:find-infograph', { detail: { number: ig.infograph_index ?? ig.id } })),
   })), [infographs])
 
-  // Light live refresh of open charts.
+  // Light live refresh of the open chart.
   useEffect(() => { const id = setInterval(() => setRefreshKey(k => k + 1), 30000); return () => clearInterval(id) }, [])
 
   // '&N' opens infograph #N inline.
@@ -587,30 +650,25 @@ export default function InfographyPage() {
       if (n == null || Number.isNaN(n)) return
       const ig = infographs.find(g => g.infograph_index === n) || infographs.find(g => g.id === n)
       if (!ig) return
-      setSubtab('graph'); setFocusedIdx(shown.indexOf(ig)); setOpenIds(prev => new Set(prev).add(ig.id))
+      setSubtab('graph'); setFocusedIdx(Math.max(0, shown.indexOf(ig))); setOpenIds(prev => new Set(prev).add(ig.id))
       setTimeout(() => document.getElementById(`infograph-card-${ig.id}`)?.scrollIntoView({ block: 'center', behavior: 'smooth' }), 80)
     }
     window.addEventListener('lilak:cmd:find-infograph', onFind)
     return () => window.removeEventListener('lilak:cmd:find-infograph', onFind)
   }, [infographs, shown])
 
-  // Keyboard nav: arrows + hjkl move focus, space/o/Enter toggle collapse, r comment.
+  // Keyboard nav (single-column feed): j/k move, space/o/Enter expand, r comment.
   useEffect(() => {
     if (subtab !== 'graph' || modal) return
     function scrollTo(idx) { const ig = shown[idx]; if (ig) document.getElementById(`infograph-card-${ig.id}`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }) }
     function onKey(e) {
       const el = document.activeElement
-      if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)) {
-        if (e.key === 'Escape' && commentBar) { e.preventDefault(); setCommentBar(null); el.blur() }
-        return
-      }
+      if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)) return
       if (e.metaKey || e.ctrlKey || e.altKey || !shown.length) return
       const move = (delta) => setFocusedIdx(i => { const n = Math.max(0, Math.min(shown.length - 1, i + delta)); scrollTo(n); return n })
       switch (e.key) {
-        case 'l': case 'ArrowRight': e.preventDefault(); move(1); break
-        case 'h': case 'ArrowLeft': e.preventDefault(); move(-1); break
-        case 'j': case 'ArrowDown': e.preventDefault(); move(cols); break
-        case 'k': case 'ArrowUp': e.preventDefault(); move(-cols); break
+        case 'j': case 'ArrowDown': e.preventDefault(); move(1); break
+        case 'k': case 'ArrowUp': e.preventDefault(); move(-1); break
         case 'G': case 'End': e.preventDefault(); setFocusedIdx(() => { const n = shown.length - 1; scrollTo(n); return n }); break
         case 'g': case 'Home': e.preventDefault(); setFocusedIdx(() => { scrollTo(0); return 0 }); break
         case 'o': case ' ': case 'Enter': { e.preventDefault(); const ig = shown[focusedIdx]; if (ig) toggleOpen(ig.id); break }
@@ -625,9 +683,9 @@ export default function InfographyPage() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [subtab, modal, shown, focusedIdx, cols, openIds, toggleOpen, commentBar])
+  }, [subtab, modal, shown, focusedIdx, openIds, toggleOpen])
 
-  // Comment on an infograph via the ONE collapsible bottom bar (no separate bar).
+  // Comment on an infograph via the ONE collapsible bottom bar.
   function openInfographComment(igId) {
     const idx = infographs.find(g => g.id === igId)?.infograph_index ?? ''
     commentIgRef.current = igId
@@ -660,12 +718,12 @@ export default function InfographyPage() {
 
       {subtab === 'graph' && (
         <Stack gap={12}>
-          {/* Toolbar: new panel · expand/collapse all · $tag/$run · columns · time range */}
+          {/* Toolbar: new panel · $tag/$run · time range */}
           <Row gap={8} wrap>
             {user && <Button variant="success" onClick={() => setModal({})}><Row gap={4} align="center" as="span"><Icon name="plus" size={14} /> New panel</Row></Button>}
-            {infographs.length > 0 && <>
+            {shown.length > 0 && <>
               <Button variant="secondary" onClick={openAll}>전체 열기</Button>
-              <Button variant="secondary" onClick={closeAll}>전체 접기</Button>
+              <Button variant="secondary" onClick={closeAll}>전체 닫기</Button>
             </>}
 
             <Menu align="left" width={180}
@@ -679,9 +737,6 @@ export default function InfographyPage() {
             </span>
 
             <span style={{ flex: 1 }} />
-            <ChipGroup label="" value={cols} onChange={retile}
-              options={[1, 2, 3].map(n => ({ value: n, label: String(n) }))}
-              style={{ display: 'flex', alignItems: 'center', gap: 8 }} />
             <TimeRangePicker range={range.key} refresh={refresh}
               onRangeChange={setRange} onRefreshChange={setRefresh} onRefresh={() => setRefreshKey(k => k + 1)} />
           </Row>
@@ -689,17 +744,19 @@ export default function InfographyPage() {
           {shown.length === 0
             ? <p style={{ textAlign: 'center', padding: '40px 0', fontSize: 'var(--fs-body, 13px)', color: 'var(--text-muted)' }}>{filterTag ? '해당 태그의 패널이 없습니다.' : '아직 infograph가 없습니다.'}</p>
             : (
-              <DashboardGrid cols={12} rowHeight={24} gap={10} layout={displayLayout} onLayoutChange={saveLayout} defaultW={Math.round(12 / cols)} defaultH={EXPANDED_H} editable>
-                {shown.map((ig, idx) => (
-                  <div key={String(ig.id)} style={{ height: '100%' }}>
-                    <InfographCard ig={ig} vars={vars} refreshKey={refreshKey} timeRange={range} runOverride={runOverride} commentRefresh={commentRefresh}
-                      open={openIds.has(ig.id)} focused={idx === focusedIdx} canManage={canManage(ig)}
-                      onToggle={() => { setFocusedIdx(idx); toggleOpen(ig.id) }}
-                      onComment={(id) => { setFocusedIdx(idx); openInfographComment(id) }}
-                      onEdit={setModal} onDuplicate={duplicate} onDeleted={load} />
-                  </div>
-                ))}
-              </DashboardGrid>
+              <LogList entries={shown} reverse={false} gap={12} groupBy={(ig) => ig.run_spec || ''}
+                renderItem={(ig, idx) => {
+                  const inner = openIds.has(ig.id)
+                    ? <InfographExpanded ig={ig} vars={vars} tagColors={tagColors} refreshKey={refreshKey} timeRange={range}
+                        runOverride={runOverride} commentRefresh={commentRefresh} focused={idx === focusedIdx} canManage={canManage(ig)}
+                        onClose={() => toggleOpen(ig.id)}
+                        onComment={(id) => { setFocusedIdx(idx); openInfographComment(id) }}
+                        onEdit={setModal} onDuplicate={duplicate} onDeleted={() => { toggleOpen(ig.id); load() }}
+                        onChanged={(updated) => setInfographs(prev => prev.map(g => g.id === updated.id ? updated : g))} />
+                    : <InfographRow ig={ig} vars={vars} tagColors={tagColors} focused={idx === focusedIdx}
+                        onToggle={() => { setFocusedIdx(idx); toggleOpen(ig.id) }} />
+                  return <div key={ig.id} id={`infograph-card-${ig.id}`}>{inner}</div>
+                }} />
             )}
         </Stack>
       )}

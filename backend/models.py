@@ -434,6 +434,7 @@ class Infograph(Base):
     source = Column(String(128), nullable=True)          # optional source/service label
     y_min = Column(Float, nullable=True)                 # forced y-axis range
     y_max = Column(Float, nullable=True)
+    log_y = Column(Boolean, nullable=False, default=False)  # log-scale y axis
     created_by = Column(String(64), nullable=True)
     author_name = Column(String(128), nullable=True)
     created_at = Column(DateTime, nullable=False, default=_now)
