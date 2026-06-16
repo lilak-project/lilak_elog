@@ -55,20 +55,81 @@ _FIELDS_STANDARD = [
     _field("attachments", "attachments", "Attachments", 7),
 ]
 
+# Beam / Target "setter" logs: dedicated default formats whose key field is the
+# beam (or target) setter — so beam/target live in their own log, not Standard.
+def _setter_fields(builtin: str, label: str) -> list[dict]:
+    return [
+        _field("log_index", "log_index", "Log #", 0),
+        _field("run",       "run",       "Run",   1),
+        _field(builtin,     builtin,     label,   2),
+        _field("body",      "body",      "Body",  3),
+    ]
+
+def _time_metric(order: int) -> dict:
+    """The log timestamp exposed as a plottable metric (not an input field)."""
+    f = _field("time", "time", "Time", order)
+    f["metric"] = True
+    return f
+
 def _run_fields(run_builtin: str) -> list[dict]:
-    """Fields shape for Start-of-run / Monitoring-run logs: run + title + body."""
+    """Fields shape for Start-of-run / Monitoring-run logs: run + title + body + time(metric)."""
     return [
         _field("run",   run_builtin, "Run",   0),
         _field("title", "title",     "Title", 1),
         _field("body",  "body",      "Body",  2),
+        _time_metric(3),
     ]
 
 def _end_run_fields(run_builtin: str) -> list[dict]:
-    """End-of-run logs deliberately omit the title (per spec): run + body."""
+    """End-of-run logs deliberately omit the title (per spec): run + body + time(metric)."""
     return [
         _field("run",  run_builtin, "Run",  0),
         _field("body", "body",      "Body", 1),
+        _time_metric(2),
     ]
+
+# task_types of all run-flow formats (global + per-subsystem) that should carry
+# the time metric.
+RUN_TASK_TYPES = ("init_of_run", "start_of_run", "end_of_run", "monitoring_run")
+
+def remove_beam_target_from_standard(db: Session) -> int:
+    """beam/target belong to their own setter formats, not Standard — strip them
+    from the Standard format if present. Idempotent. Returns count changed."""
+    n = 0
+    for fmt in db.query(models.LogFormat).filter(models.LogFormat.name == "Standard log").all():
+        try:
+            fields = json.loads(fmt.fields_json or "[]")
+        except Exception:
+            continue
+        kept = [f for f in fields if not (isinstance(f, dict) and f.get("builtin_id") in ("beam", "target"))]
+        if len(kept) != len(fields):
+            for i, f in enumerate(kept):
+                f["order"] = i
+            fmt.fields_json = json.dumps(kept)
+            n += 1
+    if n:
+        db.commit()
+    return n
+
+
+def ensure_time_metric_on_run_formats(db: Session) -> int:
+    """Idempotent migration: make sure every existing run-flow format exposes the
+    `time` metric, so upgraded projects match freshly-seeded ones. Returns count."""
+    n = 0
+    fmts = db.query(models.LogFormat).filter(models.LogFormat.task_type.in_(RUN_TASK_TYPES)).all()
+    for fmt in fmts:
+        try:
+            fields = json.loads(fmt.fields_json or "[]")
+        except Exception:
+            continue
+        if any(isinstance(f, dict) and (f.get("builtin_id") == "time" or f.get("key") == "time") for f in fields):
+            continue
+        fields.append(_time_metric(len(fields)))
+        fmt.fields_json = json.dumps(fields)
+        n += 1
+    if n:
+        db.commit()
+    return n
 
 
 def seed_default_formats(db: Session) -> int:
@@ -85,6 +146,24 @@ def seed_default_formats(db: Session) -> int:
             task_type=None,
             run_type_lock=None,
             is_default=True,
+        ),
+        dict(
+            name="Beam setter log",
+            fields=_setter_fields("beam", "Beam"),
+            format_type="user",
+            task_type=None,
+            run_type_lock=None,
+            is_default=True,
+            force_default=True,   # always a Default-group format, even on upgraded DBs
+        ),
+        dict(
+            name="Target setter log",
+            fields=_setter_fields("target", "Target"),
+            format_type="user",
+            task_type=None,
+            run_type_lock=None,
+            is_default=True,
+            force_default=True,
         ),
         dict(
             name="Init of run log",
@@ -136,7 +215,9 @@ def seed_default_formats(db: Session) -> int:
         db.add(models.LogFormat(
             name=s["name"],
             fields_json=json.dumps(s["fields"]),
-            is_default=s.get("is_default", False) and not has_default,
+            # force_default formats (beam/target setters) are always Default-group;
+            # the singular Standard default is only seeded on a truly fresh DB.
+            is_default=s.get("is_default", False) and (s.get("force_default", False) or not has_default),
             format_type=s["format_type"],
             task_type=s["task_type"],
             run_type_lock=s["run_type_lock"],

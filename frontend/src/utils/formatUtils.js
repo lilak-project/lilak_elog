@@ -30,6 +30,9 @@ export const BUILTIN_FIELDS = [
   { id: 'tags',          labelEn: 'Tags',           labelKo: '태그' },
   { id: 'body',          labelEn: 'Body',           labelKo: '본문' },
   { id: 'attachments',   labelEn: 'Attachments',    labelKo: '첨부파일' },
+  // `time` is the log timestamp exposed as an infography metric — not an input
+  // field, so it never renders in the compose form.
+  { id: 'time',          labelEn: 'Time (metric)',  labelKo: '시간 (metric)', auto: true, metric: true },
 ]
 
 export const BUILTIN_IDS = new Set(BUILTIN_FIELDS.map(f => f.id))

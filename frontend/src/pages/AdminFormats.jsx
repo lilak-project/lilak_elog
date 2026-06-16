@@ -93,6 +93,9 @@ function FieldEditor({ fields, onChange, t, lang }) {
                 <span className="ml-auto text-xs shrink-0" style={{ color: 'var(--text-muted)' }}>
                   {t('admin_fmt_field_required')}
                 </span>
+              ) : normBuiltin(field.builtin_id) === 'time' ? (
+                <span className="ml-auto text-xs shrink-0" title="Infography 그래프 변수 (입력 필드 아님)"
+                      style={{ color: 'var(--text-link)' }}>metric</span>
               ) : (
                 <label className="ml-auto flex items-center gap-1 text-xs shrink-0 cursor-pointer"
                        style={{ color: 'var(--text-secondary)' }}>
@@ -186,6 +189,7 @@ function FormatModal({ initial, onSave, onClose, t, lang }) {
       builtin_id: id,
       required: id === 'tags' ? true : false,
       auto_title: id === 'title' ? true : undefined,   // title defaults to format name
+      metric: bf.metric || undefined,                  // e.g. `time` is a metric, not an input
       order,
     }
   }
