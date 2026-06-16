@@ -1,8 +1,10 @@
 /**
- * Per-user UI preference helpers.
+ * Per-user, per-experiment UI preference helpers.
  *
- * localStorage keys are namespaced by username so different accounts on the
- * same browser keep independent settings.
+ * localStorage keys are namespaced by username AND experiment, so different
+ * accounts on the same browser — and the same account across different projects
+ * — keep independent settings. The server copy (/auth/me/preferences) is already
+ * per-experiment (separate DB per project), so the cache key now matches it.
  *
  * Flow:
  *   1. On login:  AuthContext fires `elog:user_changed` with the user object.
@@ -12,7 +14,7 @@
  *      savePref() which PUTs the new value to the server (best-effort).
  */
 
-import api from '../api'
+import api, { getExperiment } from '../api'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -26,26 +28,35 @@ function currentUsername() {
   }
 }
 
-/** localStorage key for a given pref under the current user. */
-export function prefKey(name) {
-  return `elog_${name}_${currentUsername()}`
+/** Current experiment (project) — prefs are scoped to it. */
+function currentExperiment() {
+  return getExperiment() || '__default__'
 }
 
-/** Read a pref for the current user (falls back to legacy unkeyed value). */
+/** localStorage key for a given pref under the current user + experiment. */
+export function prefKey(name) {
+  return `elog_${name}_${currentUsername()}@${currentExperiment()}`
+}
+
+/** Read a pref for the current user + experiment.
+ *  Falls back (one-time, for seamless migration) to the previous per-user key,
+ *  then the legacy global key. */
 export function readPref(name, fallback) {
   const username = currentUsername()
-  // User-specific key first
-  const userVal = localStorage.getItem(`elog_${name}_${username}`)
-  if (userVal !== null) return userVal
-  // Legacy global key (first login after migration)
-  const legacyVal = localStorage.getItem(`elog_${name}`)
-  return legacyVal !== null ? legacyVal : fallback
+  for (const k of [
+    `elog_${name}_${username}@${currentExperiment()}`, // per-user, per-project (current)
+    `elog_${name}_${username}`,                        // legacy per-user (pre project-scoping)
+    `elog_${name}`,                                    // legacy global
+  ]) {
+    const v = localStorage.getItem(k)
+    if (v !== null) return v
+  }
+  return fallback
 }
 
-/** Write a pref for the current user. */
+/** Write a pref for the current user + experiment. */
 export function writePref(name, value) {
-  const username = currentUsername()
-  localStorage.setItem(`elog_${name}_${username}`, value)
+  localStorage.setItem(prefKey(name), value)
 }
 
 // Gate: provider effects fire on initial mount with locally-cached values.
@@ -73,8 +84,9 @@ export async function loadServerPrefs() {
     const res = await api.get('/auth/me/preferences')
     const prefs = res.data || {}
     const username = currentUsername()
+    const exp = currentExperiment()
     for (const [k, v] of Object.entries(prefs)) {
-      if (v) localStorage.setItem(`elog_${k}_${username}`, v)
+      if (v) localStorage.setItem(`elog_${k}_${username}@${exp}`, v)
     }
     serverPrefsLoaded = true
     return prefs

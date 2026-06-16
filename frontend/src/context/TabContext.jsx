@@ -1,7 +1,9 @@
 import { createContext, useContext, useState, useCallback, useEffect } from 'react'
-import api from '../api'
+import api, { getExperiment } from '../api'
 
-const ACTIVE_TAB_KEY = 'elog_active_tab'
+// Active tab is per-project (scoped by experiment) so switching projects doesn't
+// drag the last-viewed tab across.
+const activeTabKey = () => `elog_active_tab:${getExperiment()}`
 // These can never be hidden — you need settings to re-enable tabs, and logs is core.
 const ALWAYS_ON = ['logs', 'settings']
 const VALID_TAB_IDS = ['experiment', 'logs', 'browse', 'community', 'infography', 'schedule', 'settings']
@@ -25,12 +27,12 @@ let _dynCounter = 0
 export function TabProvider({ children }) {
   const [dynamicTabs, setDynamicTabs] = useState([])
   const [activeId, setActiveId] = useState(() => {
-    const saved = localStorage.getItem(ACTIVE_TAB_KEY)
+    const saved = localStorage.getItem(activeTabKey())
     return VALID_TAB_IDS.includes(saved) ? saved : 'logs'
   })
   // Persist the active tab so a page refresh stays on the same tab.
   useEffect(() => {
-    if (VALID_TAB_IDS.includes(activeId)) localStorage.setItem(ACTIVE_TAB_KEY, activeId)
+    if (VALID_TAB_IDS.includes(activeId)) localStorage.setItem(activeTabKey(), activeId)
   }, [activeId])
   const [settingsSection, setSettingsSection] = useState('account')
   const [pendingLogId, setPendingLogId] = useState(null)  // log to open after switching to logs tab
