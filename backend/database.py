@@ -321,7 +321,8 @@ def _migrate_columns(db_path: str) -> None:
                              ("n_bins", "INTEGER"), ("x_min", "REAL"), ("x_max", "REAL"),
                              ("infograph_index", "INTEGER"), ("tags", "TEXT"),
                              ("run", "INTEGER"), ("source", "VARCHAR(128)"),
-                             ("run_spec", "TEXT"), ("y_min", "REAL"), ("y_max", "REAL")):
+                             ("run_spec", "TEXT"), ("y_min", "REAL"), ("y_max", "REAL"),
+                             ("log_y", "BOOLEAN NOT NULL DEFAULT 0")):
                 if col not in ig_existing:
                     _try_add_column(c, f"ALTER TABLE infographs ADD COLUMN {col} {ddl}")
             # Backfill sequential infograph_index by id order.
@@ -460,7 +461,8 @@ def init_db() -> None:
 
     db = SessionLocal()
     try:
-        if db.query(User).count() == 0:
+        fresh_experiment = db.query(User).count() == 0
+        if fresh_experiment:
             # 새 실험이면 default 사용자를 가져온다
             imported = _import_users_from_default(db)
             if not imported:
@@ -475,15 +477,30 @@ def init_db() -> None:
                 db.add(admin)
                 db.commit()
                 print("⚡ Created default manager account: admin / 1757")
+            # New project: hide the Schedule tab by default (manager can re-enable
+            # it from Settings). Only seeded for a brand-new experiment so existing
+            # projects keep whatever they had.
+            from settings_store import get_setting, set_setting
+            if get_setting(db, "tabs_disabled", None) is None:
+                set_setting(db, "tabs_disabled", ["schedule"])
+                print("⚡ New experiment: Schedule tab hidden by default")
         # Phase 3: seed the canonical formats (Standard / Init / Start / End /
         # Monitoring). Idempotent per format, so upgraded DBs get any canonical
         # format they're missing while keeping their existing ones.
-        from seed_formats import seed_default_formats
+        from seed_formats import seed_default_formats, ensure_time_metric_on_run_formats, remove_beam_target_from_standard
         import json as _json
         import models as models  # noqa: PLW0127
         n_seeded = seed_default_formats(db)
         if n_seeded:
             print(f"⚡ Seeded {n_seeded} built-in log formats")
+        # Ensure run-flow formats expose the `time` metric (also upgrades old DBs).
+        n_time = ensure_time_metric_on_run_formats(db)
+        if n_time:
+            print(f"⚡ Added time metric to {n_time} run formats")
+        # beam/target live in their own setter formats, not Standard.
+        n_bt = remove_beam_target_from_standard(db)
+        if n_bt:
+            print(f"⚡ Removed beam/target from {n_bt} Standard format(s)")
         # Migration: add init_of_run format if missing (added after initial seed)
         existing_init = db.query(models.LogFormat).filter(
             models.LogFormat.task_type == "init_of_run",
