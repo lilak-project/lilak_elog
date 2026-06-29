@@ -14,15 +14,18 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const stored = localStorage.getItem('elog_token')
     const storedUser = localStorage.getItem('elog_user')
-    if (stored && storedUser) {
+    // A token alone is enough (e.g. entering from the portal hands over a portal
+    // token with no cached user) — /auth/me below resolves the actual account.
+    if (stored) {
       setToken(stored)
-      const parsedUser = JSON.parse(storedUser)
-      setUser(parsedUser)
       api.defaults.headers.common['Authorization'] = `Bearer ${stored}`
-      // Emit immediately so contexts apply stored user prefs
-      emitUserChanged(parsedUser)
+      if (storedUser) {
+        const parsedUser = JSON.parse(storedUser)
+        setUser(parsedUser)
+        emitUserChanged(parsedUser)   // apply stored user prefs immediately
+      }
       api.get('/auth/me').then(async r => {
-        const cached = JSON.parse(storedUser)
+        const cached = storedUser ? JSON.parse(storedUser) : {}
         const merged = { ...cached, ...r.data, user_id: r.data.id }
         setUser(merged)
         localStorage.setItem('elog_user', JSON.stringify(merged))

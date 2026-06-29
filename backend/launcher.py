@@ -1,6 +1,7 @@
 """
 LILAK Elog Launcher — port 8010
-커버 페이지 + 프로젝트 서버 생성/관리 전담.
+앱 진입점: 빌드된 React 프론트엔드(프로젝트 페이지 포함)를 직접 서빙하고,
+프로젝트 서버 생성/관리 + 역프록시를 담당한다.
 개별 프로젝트 elog 는 8011-8019 에서 실행.
 
 포트 배정 방식:
@@ -33,9 +34,40 @@ DATA_ROOT = Path(os.environ.get("ELOG_DATA_ROOT", _ROOT / "data"))
 LAUNCHER_PORT      = int(os.environ.get("LAUNCHER_PORT", 8010))
 PROJECT_PORT_START = 8011
 PROJECT_PORT_END   = 8019
+# Default elog backend for experiment-less `/api/*` calls (login, /auth/me, …).
+# Mirrors Vite's `/api` → ELOG_BACKEND proxy so the React app works when the
+# launcher serves it directly.
+DEFAULT_BACKEND    = os.environ.get("ELOG_BACKEND", f"http://127.0.0.1:{PROJECT_PORT_START}")
 
 app = FastAPI(title="LILAK Elog Launcher")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+
+
+# ── `/launcher` 프리픽스 제거 ───────────────────────────────────────────────────
+# The React app (api.js) addresses the launcher as `/launcher/api/...` and
+# `/launcher/p/<name>/...` (Vite strips the prefix in dev). When the launcher
+# serves the app itself, strip `/launcher` here before routing so the same calls
+# resolve to the launcher's own `/api/*` and `/p/*` routes.
+@app.middleware("http")
+async def _strip_launcher_prefix(request: Request, call_next):
+    p = request.scope.get("path", "")
+    if p == "/launcher" or p.startswith("/launcher/"):
+        new = p[len("/launcher"):] or "/"
+        request.scope["path"] = new
+        request.scope["raw_path"] = new.encode("utf-8")
+    return await call_next(request)
+
+
+# Central portal accounts: `/api/auth/*` is handled HERE (not proxied to a
+# service). Included before the generic `/api/*` proxy so these specific auth
+# routes win; everything else under `/api/*` still forwards to a service.
+from portal_auth import router as portal_router
+app.include_router(portal_router)
+
+# Portal service registry + per-account permissions + access requests
+# (`/api/services`, `/api/access-requests`, `/api/admin/*`).
+from portal_services import router as portal_services_router
+app.include_router(portal_services_router)
 
 # ── 유틸 ─────────────────────────────────────────────────────────────────────
 def _port_alive(port: int) -> bool:
@@ -100,6 +132,8 @@ def _list_projects() -> list[dict]:
         if not d.is_dir():
             continue
         name = d.name
+        if name.startswith("_"):     # reserved/internal (e.g. _portal) — not a service
+            continue
         port = _read_port_file(name)
         meta = _read_meta(name)
         result.append({
@@ -242,13 +276,27 @@ def api_stop(name: str):
             ["lsof", "-ti", f":{port}", "-sTCP:LISTEN"],
             stderr=subprocess.DEVNULL
         ).decode().split()
+    except subprocess.CalledProcessError:
+        pids = []
+    for pid in pids:
+        try:
+            os.kill(int(pid), signal.SIGTERM)
+        except ProcessLookupError:
+            pass
+    # The elog backend runs a background refresh loop, so graceful shutdown can
+    # lag and the port stays bound for a while — which looks like "Stop didn't
+    # work". Wait briefly for the port to free, then SIGKILL whatever's left so
+    # Stop is reliable (the listening port is the source of truth for "running").
+    for _ in range(10):                       # up to ~2s
+        if not _port_alive(port):
+            break
+        time.sleep(0.2)
+    if _port_alive(port):
         for pid in pids:
             try:
-                os.kill(int(pid), signal.SIGTERM)
+                os.kill(int(pid), signal.SIGKILL)
             except ProcessLookupError:
                 pass
-    except subprocess.CalledProcessError:
-        pass
     (DATA_ROOT / name / ".port").unlink(missing_ok=True)
     return {"stopped": True, "port": port}
 
@@ -308,513 +356,50 @@ async def project_proxy(name: str, path: str, request: Request):
     return Response(content=content, status_code=status, media_type=ctype)
 
 
-# ── 커버 페이지 ───────────────────────────────────────────────────────────────
-COVER_HTML = r"""<!DOCTYPE html>
-<html lang="ko">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>LILAK Elog</title>
-<style>
-/* ── Reset ── */
-*{box-sizing:border-box;margin:0;padding:0}
-
-/* ── Design tokens ── */
-:root,[data-theme="lowcontrast"]{
-  --app-bg:#ede8dc;
-  --surface:#f5f0e6;
-  --surface-2:#e8e0ce;
-  --surface-3:#dac9a0;
-  --border-default:#cec5af;
-  --border-subtle:#dfd8c8;
-  --text-primary:#2c2618;
-  --text-secondary:#5a5040;
-  --text-muted:#998c78;
-  --text-emphasis:#1a1408;
-  --success-bg:#cce0c0;
-  --success-text:#3a5028;
-  --danger-bg:#e8c8c0;
-  --danger-text:#8a3020;
-  --btn-primary-bg:#8a6040;
-  --btn-primary-hover:#7a5030;
-  --btn-primary-text:#fdf8f0;
-  --input-bg:#f5f0e6;
-  --input-border:#cec5af;
-  --input-focus-border:#8a6040;
-  --input-placeholder:#998c78;
-  --nav-bg:#2c2618;
-  --nav-text:#f5f0e6;
-  --nav-text-muted:#998c78;
-  --nav-accent:#3c3428;
-  --overlay:rgba(60,40,20,0.5);
-  --scrollbar-thumb:#cec5af;
-}
-[data-theme="dark"]{
-  --app-bg:#0f172a;
-  --surface:#1e293b;
-  --surface-2:#162032;
-  --surface-3:#334155;
-  --border-default:#334155;
-  --border-subtle:#243347;
-  --text-primary:#e2e8f0;
-  --text-secondary:#94a3b8;
-  --text-muted:#64748b;
-  --text-emphasis:#f8fafc;
-  --success-bg:rgba(16,185,129,0.18);
-  --success-text:#34d399;
-  --danger-bg:rgba(127,29,29,0.35);
-  --danger-text:#fca5a5;
-  --btn-primary-bg:#3b82f6;
-  --btn-primary-hover:#2563eb;
-  --btn-primary-text:#ffffff;
-  --input-bg:#1e293b;
-  --input-border:#334155;
-  --input-focus-border:#60a5fa;
-  --input-placeholder:#64748b;
-  --nav-bg:#070d1a;
-  --nav-text:#e2e8f0;
-  --nav-text-muted:#64748b;
-  --nav-accent:#1e3a5a;
-  --overlay:rgba(0,0,0,0.6);
-  --scrollbar-thumb:#475569;
-}
-[data-theme="bright"]{
-  --app-bg:#f8fafc;
-  --surface:#ffffff;
-  --surface-2:#f1f5f9;
-  --surface-3:#e2e8f0;
-  --border-default:#e2e8f0;
-  --border-subtle:#f1f5f9;
-  --text-primary:#1e293b;
-  --text-secondary:#475569;
-  --text-muted:#94a3b8;
-  --text-emphasis:#0f172a;
-  --success-bg:#d1fae5;
-  --success-text:#065f46;
-  --danger-bg:#fee2e2;
-  --danger-text:#b91c1c;
-  --btn-primary-bg:#2563eb;
-  --btn-primary-hover:#1d4ed8;
-  --btn-primary-text:#ffffff;
-  --input-bg:#ffffff;
-  --input-border:#cbd5e1;
-  --input-focus-border:#3b82f6;
-  --input-placeholder:#94a3b8;
-  --nav-bg:#18181b;
-  --nav-text:#f4f4f5;
-  --nav-text-muted:#a1a1aa;
-  --nav-accent:#3f3f46;
-  --overlay:rgba(15,23,42,0.4);
-  --scrollbar-thumb:#cbd5e1;
-}
-
-/* ── Base ── */
-body{
-  font-family:'Inter','Segoe UI',system-ui,-apple-system,sans-serif;
-  background:var(--app-bg);
-  color:var(--text-primary);
-  min-height:100vh;
-  font-size:14px;
-  line-height:1.5;
-}
-
-/* ── Scrollbar ── */
-::-webkit-scrollbar{width:6px;height:6px}
-::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:var(--scrollbar-thumb);border-radius:3px}
-
-/* ── Nav ── */
-nav{
-  background:var(--nav-bg);
-  height:40px;
-  display:flex;
-  align-items:center;
-  padding:0 16px;
-  gap:10px;
-  position:sticky;top:0;z-index:50;
-  border-bottom:1px solid #1a2440;
-}
-.nav-logo{
-  display:flex;align-items:center;gap:8px;
-  font-weight:700;font-size:.875rem;color:var(--nav-text);
-  text-decoration:none;
-}
-.nav-logo svg{width:18px;height:18px;color:var(--nav-text)}
-.nav-spacer{flex:1}
-.nav-chip{
-  height:28px;display:flex;align-items:center;gap:6px;
-  padding:0 10px;border-radius:6px;font-size:.75rem;font-weight:500;
-  color:var(--nav-text-muted);cursor:default;
-  border:1px solid #1a2440;
-}
-
-/* ── Page layout ── */
-.page{max-width:900px;margin:0 auto;padding:36px 24px}
-.page-header{
-  display:flex;align-items:flex-end;justify-content:space-between;
-  margin-bottom:28px;gap:12px;flex-wrap:wrap;
-}
-.page-title{font-size:1.25rem;font-weight:700;color:var(--text-emphasis);letter-spacing:-.02em}
-.page-sub{font-size:.8rem;color:var(--text-muted);margin-top:2px}
-
-/* ── Button ── */
-.btn{
-  display:inline-flex;align-items:center;justify-content:center;gap:6px;
-  box-sizing:border-box;
-  border:1px solid transparent;border-radius:8px;font-size:.9rem;font-weight:500;
-  padding:9px 20px;cursor:pointer;transition:background .15s,opacity .15s;
-  white-space:nowrap;line-height:1;vertical-align:middle;
-}
-.btn:disabled{opacity:.45;cursor:not-allowed}
-.btn-primary{background:var(--btn-primary-bg);color:var(--btn-primary-text)}
-.btn-primary:hover:not(:disabled){background:var(--btn-primary-hover)}
-.btn-ghost{background:transparent;color:var(--text-secondary);border-color:var(--border-default)}
-.btn-ghost:hover:not(:disabled){background:var(--surface-2)}
-.btn-danger{background:transparent;color:var(--danger-text)}
-.btn-danger:hover:not(:disabled){background:var(--danger-bg)}
-.btn-success{background:var(--success-bg);color:var(--success-text);border-color:var(--success-text);border-opacity:.3}
-.btn-success:hover:not(:disabled){filter:brightness(.92)}
-.btn-sm{height:32px;padding:0 16px;font-size:.83rem;border-radius:7px}
-
-/* ── Grid ── */
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
-
-/* ── Card ── */
-.card{
-  background:var(--surface);
-  border:1px solid var(--border-default);
-  border-radius:12px;
-  padding:18px 20px;
-  transition:border-color .2s,box-shadow .2s;
-  display:flex;flex-direction:column;gap:14px;
-  min-height:170px;
-}
-.card:hover{border-color:var(--text-muted);box-shadow:0 4px 24px rgba(0,0,0,.15)}
-.card-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
-.card-name{
-  font-family:'JetBrains Mono','Fira Code',monospace;
-  font-size:1.1rem;font-weight:700;color:var(--text-emphasis);
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-}
-.badge{
-  display:inline-flex;align-items:center;gap:4px;
-  font-size:.68rem;font-weight:600;padding:2px 8px;
-  border-radius:20px;white-space:nowrap;flex-shrink:0;
-}
-.badge-on{background:rgba(16,185,129,.15);color:var(--success-text);border:1px solid rgba(52,211,153,.25)}
-.badge-off{background:var(--surface-2);color:var(--text-muted);border:1px solid var(--border-default)}
-.card-meta{font-size:.75rem;color:var(--text-muted);font-family:monospace;min-height:1em}
-.card-actions{display:flex;align-items:center;gap:6px;margin-top:auto}
-.card-actions .spacer{flex:1}
-
-/* ── Spinner ── */
-.spin{
-  width:12px;height:12px;border:2px solid rgba(255,255,255,.2);
-  border-top-color:currentColor;border-radius:50%;
-  animation:spin .6s linear infinite;flex-shrink:0;
-}
-@keyframes spin{to{transform:rotate(360deg)}}
-
-/* ── Empty state ── */
-.empty{
-  grid-column:1/-1;text-align:center;padding:60px 24px;
-  color:var(--text-muted);
-}
-.empty-icon{font-size:2.5rem;margin-bottom:12px;opacity:.4}
-.empty-title{font-size:1rem;font-weight:600;color:var(--text-secondary);margin-bottom:6px}
-.empty-sub{font-size:.8rem}
-
-/* ── Divider ── */
-.divider{height:1px;background:var(--border-subtle);margin:8px 0}
-
-/* ── Modal ── */
-.modal-backdrop{
-  display:none;position:fixed;inset:0;background:var(--overlay);
-  z-index:200;align-items:center;justify-content:center;
-  backdrop-filter:blur(2px);
-}
-.modal-backdrop.open{display:flex}
-.modal{
-  background:var(--surface);border:1px solid var(--border-default);
-  border-radius:16px;padding:28px;width:100%;max-width:420px;
-  box-shadow:0 20px 60px rgba(0,0,0,.5);
-}
-.modal-title{font-size:1rem;font-weight:700;color:var(--text-emphasis);margin-bottom:20px}
-.modal-label{font-size:.75rem;font-weight:500;color:var(--text-secondary);margin-bottom:6px;display:block}
-.modal-input{
-  width:100%;background:var(--input-bg);border:1px solid var(--input-border);
-  border-radius:8px;color:var(--text-primary);
-  padding:8px 12px;font-size:.875rem;outline:none;
-  transition:border-color .15s;font-family:monospace;
-}
-.modal-input:focus{border-color:var(--input-focus-border)}
-.modal-input::placeholder{color:var(--input-placeholder)}
-.modal-hint{font-size:.72rem;color:var(--text-muted);margin-top:5px}
-.modal-err{font-size:.75rem;color:var(--danger-text);min-height:1.2em;margin-top:6px}
-.modal-footer{display:flex;justify-content:flex-end;gap:8px;margin-top:20px}
-
-/* ── Toast ── */
-#toast{
-  position:fixed;bottom:24px;right:24px;z-index:300;
-  display:flex;flex-direction:column;gap:8px;pointer-events:none;
-}
-.toast-item{
-  background:var(--surface);border:1px solid var(--border-default);
-  border-radius:10px;padding:10px 16px;font-size:.8rem;
-  color:var(--text-primary);box-shadow:0 4px 20px rgba(0,0,0,.4);
-  animation:slideIn .2s ease;max-width:300px;
-}
-.toast-item.err{border-color:var(--danger-text);color:var(--danger-text)}
-@keyframes slideIn{from{transform:translateX(120%);opacity:0}to{transform:none;opacity:1}}
-</style>
-</head>
-<body>
-
-<!-- Nav -->
-<nav>
-  <a class="nav-logo" href="/">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
-      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-      <line x1="9" y1="9" x2="15" y2="9"/>
-      <line x1="9" y1="13" x2="15" y2="13"/>
-      <line x1="9" y1="17" x2="12" y2="17"/>
-    </svg>
-    <span>LILAK Elog</span>
-  </a>
-  <div class="nav-spacer"></div>
-  <div class="nav-chip" id="nav-status">
-    <span id="nav-dot" style="width:6px;height:6px;border-radius:50%;background:var(--text-muted);flex-shrink:0"></span>
-    <span id="nav-label">로딩 중</span>
-  </div>
-  <button class="nav-chip" id="btn-theme" onclick="cycleTheme()" title="테마 변경" style="cursor:pointer;border:none;background:var(--nav-accent)">
-    <span id="theme-icon">🌥</span>
-  </button>
-</nav>
-
-<!-- Page -->
-<div class="page">
-  <div class="page-header">
-    <div>
-      <div class="page-title">프로젝트</div>
-      <div class="page-sub">프로젝트를 선택하거나 새로 만드세요</div>
-    </div>
-    <button class="btn btn-primary" onclick="openNew()">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-      새 프로젝트
-    </button>
-  </div>
-
-  <div class="grid" id="grid">
-    <div class="empty"><div class="empty-icon">⏳</div><div class="empty-title">로딩 중…</div></div>
-  </div>
-</div>
-
-<!-- Modal -->
-<div class="modal-backdrop" id="modal" onclick="closeNew(event)">
-  <div class="modal" onclick="event.stopPropagation()">
-    <div class="modal-title">새 프로젝트 만들기</div>
-    <label class="modal-label" for="new-name">프로젝트 이름</label>
-    <input class="modal-input" id="new-name"
-           placeholder="my_experiment"
-           autocomplete="off" spellcheck="false"
-           onkeydown="if(event.key==='Enter')createProject()">
-    <div class="modal-hint">영문자·숫자·_·- 만 사용 가능 (1–64자)</div>
-    <div class="modal-err" id="new-err"></div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeNew()">취소</button>
-      <button class="btn btn-primary" id="btn-create" onclick="createProject()">만들기</button>
-    </div>
-  </div>
-</div>
-
-<!-- Toast container -->
-<div id="toast"></div>
-
-<script>
-let projects = [];
-let busy = new Set();
-
-// ── toast ──────────────────────────────────────────────────────────────────
-function toast(msg, isErr=false){
-  const el = document.createElement('div');
-  el.className = 'toast-item' + (isErr?' err':'');
-  el.textContent = msg;
-  document.getElementById('toast').appendChild(el);
-  setTimeout(()=>el.remove(), 3200);
-}
-
-// ── fetch ──────────────────────────────────────────────────────────────────
-async function fetchProjects(){
-  try {
-    const r = await fetch('/api/projects');
-    projects = await r.json();
-    render();
-    updateNavStatus();
-  } catch(e){ /* silent */ }
-}
-
-function updateNavStatus(){
-  const running = projects.filter(p=>p.running).length;
-  const dot   = document.getElementById('nav-dot');
-  const label = document.getElementById('nav-label');
-  if(running){
-    dot.style.background = '#34d399';
-    label.textContent = `${projects.length}개 프로젝트 · ${running}개 실행 중`;
-  } else {
-    dot.style.background = 'var(--text-muted)';
-    label.textContent = `${projects.length}개 프로젝트`;
-  }
-}
-
-// ── render ─────────────────────────────────────────────────────────────────
-function render(){
-  const grid = document.getElementById('grid');
-  if(!projects.length){
-    grid.innerHTML = `<div class="empty">
-      <div class="empty-icon">📂</div>
-      <div class="empty-title">프로젝트가 없습니다</div>
-      <div class="empty-sub">오른쪽 위 "새 프로젝트"로 시작하세요</div>
-    </div>`;
-    return;
-  }
-  grid.innerHTML = projects.map(p => {
-    const isBusy = busy.has(p.name);
-    const runBadge = p.running
-      ? `<span class="badge badge-on"><span style="width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0"></span>실행 중</span>`
-      : `<span class="badge badge-off">중지됨</span>`;
-    const portInfo = p.port ? `:${p.port}` : '';
-    const openBtn  = `<button class="btn btn-success btn-sm" onclick="openProject('${esc(p.url)}')">열기</button>`;
-    const stopBtn  = `<button class="btn btn-ghost btn-sm"${isBusy?' disabled':''}  onclick="stopProject('${esc(p.name)}')">${isBusy?'<span class="spin"></span>':''}종료</button>`;
-    const startBtn = `<button class="btn btn-primary btn-sm"${isBusy?' disabled':''} onclick="startProject('${esc(p.name)}')">${isBusy?'<span class="spin"></span>시작 중…':'시작'}</button>`;
-    const actions  = p.running ? openBtn + stopBtn : startBtn;
-    return `<div class="card">
-      <div class="card-head">
-        <span class="card-name" title="${esc(p.name)}">${esc(p.name)}</span>
-        ${runBadge}
-      </div>
-      <div class="card-meta">${portInfo}</div>
-      <div class="divider"></div>
-      <div class="card-actions">
-        ${actions}
-        <div class="spacer"></div>
-        <button class="btn btn-danger btn-sm" onclick="deleteProject('${esc(p.name)}')">삭제</button>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-function esc(s){
-  return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-}
-
-// ── actions ────────────────────────────────────────────────────────────────
-function openProject(url){ window.location.href = url; }
-
-async function startProject(name){
-  busy.add(name); render();
-  try {
-    const r = await fetch(`/api/projects/${encodeURIComponent(name)}/start`, {method:'POST'});
-    const d = await r.json();
-    if(!r.ok){ toast(d.detail||'시작 실패', true); busy.delete(name); await fetchProjects(); return; }
-    window.location.href = d.url || `http://localhost:${d.port}`;
-    return;
-  } catch(e){ toast('오류: '+e.message, true); }
-  busy.delete(name);
-  await fetchProjects();
-}
-
-async function stopProject(name){
-  if(!confirm(`'${name}' 서버를 종료하시겠습니까?`)) return;
-  busy.add(name); render();
-  try {
-    await fetch(`/api/projects/${encodeURIComponent(name)}/stop`, {method:'POST'});
-    toast(`'${name}' 종료됨`);
-  } catch(e){ toast('종료 중 오류', true); }
-  busy.delete(name);
-  await fetchProjects();
-}
-
-async function deleteProject(name){
-  if(!confirm(`'${name}' 프로젝트를 삭제하시겠습니까?\n\n⚠ 로그·첨부파일 등 모든 데이터가 영구 삭제됩니다.`)) return;
-  await fetch(`/api/projects/${encodeURIComponent(name)}/stop`, {method:'POST'}).catch(()=>{});
-  const r = await fetch(`/api/projects/${encodeURIComponent(name)}`, {method:'DELETE'}).catch(()=>null);
-  if(r?.ok) toast(`'${name}' 삭제됨`);
-  else toast('삭제 실패', true);
-  await fetchProjects();
-}
-
-// ── modal ──────────────────────────────────────────────────────────────────
-function openNew(){
-  document.getElementById('modal').classList.add('open');
-  document.getElementById('new-name').value='';
-  document.getElementById('new-err').textContent='';
-  setTimeout(()=>document.getElementById('new-name').focus(), 60);
-}
-function closeNew(e){
-  if(!e || e.target===document.getElementById('modal'))
-    document.getElementById('modal').classList.remove('open');
-}
-document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeNew(); });
-
-async function createProject(){
-  const name = document.getElementById('new-name').value.trim();
-  const errEl = document.getElementById('new-err');
-  errEl.textContent = '';
-  if(!name){ errEl.textContent = '이름을 입력하세요'; return; }
-  const btn = document.getElementById('btn-create');
-  btn.disabled = true;
-  try {
-    const r = await fetch('/api/projects', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({name})
-    });
-    const d = await r.json();
-    if(!r.ok){ errEl.textContent = d.detail||'오류'; return; }
-    closeNew();
-    toast(`'${name}' 생성됨`);
-    await fetchProjects();
-  } catch(e){ errEl.textContent = '오류: '+e.message; }
-  finally { btn.disabled = false; }
-}
-
-// ── theme ──────────────────────────────────────────────────────────────────
-const THEMES = ['lowcontrast','bright','dark'];
-const THEME_ICONS = {lowcontrast:'🌥', bright:'☀️', dark:'🌙'};
-let currentTheme = localStorage.getItem('launcher_theme') || 'lowcontrast';
-
-function applyTheme(t){
-  currentTheme = t;
-  document.documentElement.setAttribute('data-theme', t);
-  localStorage.setItem('launcher_theme', t);
-  document.getElementById('theme-icon').textContent = THEME_ICONS[t] || '🌥';
-}
-function cycleTheme(){
-  const idx = THEMES.indexOf(currentTheme);
-  applyTheme(THEMES[(idx+1) % THEMES.length]);
-}
-applyTheme(currentTheme);
-
-// ── init ───────────────────────────────────────────────────────────────────
-fetchProjects();
-setInterval(fetchProjects, 3000);
-</script>
-</body>
-</html>"""
 
 
-@app.get("/", response_class=HTMLResponse)
-def cover():
-    return COVER_HTML
+# ── 기본 백엔드 프록시 ─────────────────────────────────────────────────────────
+# The React app talks to a "default" elog backend via `/api/*` when no experiment
+# is selected (login, /auth/me, …). Vite proxies this to ELOG_BACKEND in dev; when
+# the launcher serves the app we forward it the same way. Registered AFTER the
+# launcher's own `/api/projects*` routes, so those still win for project calls;
+# everything else under `/api/*` is proxied to the default backend.
+@app.api_route("/api/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"],
+               include_in_schema=False)
+async def default_api_proxy(path: str, request: Request):
+    from starlette.concurrency import run_in_threadpool
+    from fastapi import Response
+    body = await request.body()
+    qs = request.url.query
+    target = f"{DEFAULT_BACKEND}/api/{path}" + (f"?{qs}" if qs else "")
+    fwd = {}
+    for h in ("authorization", "content-type", "accept"):
+        if h in request.headers:
+            fwd[h] = request.headers[h]
+    status, content, ctype = await run_in_threadpool(_do_proxy, request.method, target, fwd, body)
+    return Response(content=content, status_code=status, media_type=ctype)
 
 
-# ── 프로젝트 서버가 서빙하는 빌드 결과물의 정적 파일도 공유 (logo 등) ──────
+# ── React 프론트엔드(SPA) 서빙 ──────────────────────────────────────────────────
+# The launcher IS the app's entry point: it serves the built React bundle and
+# falls back to index.html for client-side routes (`/`, `/projects`, `/logs/…`),
+# so `./start.sh` lands on the React Projects page (not a hand-written cover).
+# Registered last — `/api/*` and `/p/*` routes above take precedence.
 _FRONTEND_DIST = _ROOT / "frontend" / "dist"
+_INDEX_HTML    = _FRONTEND_DIST / "index.html"
 if _FRONTEND_DIST.is_dir():
     @app.get("/{path:path}", include_in_schema=False)
-    async def static_assets(path: str):
-        candidate = _FRONTEND_DIST / path
-        if candidate.is_file():
-            return FileResponse(str(candidate))
+    async def spa(path: str):
         from fastapi import Response
+        # Serve a real built file (assets, lilak.svg, …) when it exists …
+        try:
+            if path:
+                candidate = (_FRONTEND_DIST / path).resolve()
+                if candidate.is_file() and str(candidate).startswith(str(_FRONTEND_DIST.resolve())):
+                    return FileResponse(str(candidate))
+        except Exception:
+            pass
+        # … otherwise hand back index.html and let React Router take over.
+        if _INDEX_HTML.is_file():
+            return FileResponse(str(_INDEX_HTML))
         return Response(status_code=404)

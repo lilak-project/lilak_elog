@@ -73,7 +73,8 @@ def verify_password(plain: str, stored: str) -> bool:
 
 # ── JWT helpers ─────────────────────────────────────────────────────────────
 
-def create_access_token(user_id: int, username: str, role: str) -> str:
+def create_access_token(user_id: int, username: str, role: str,
+                        extra: Optional[dict] = None) -> str:
     expire = datetime.now(timezone.utc) + timedelta(hours=ACCESS_TOKEN_EXPIRE_HOURS)
     payload = {
         "sub": str(user_id),
@@ -81,6 +82,8 @@ def create_access_token(user_id: int, username: str, role: str) -> str:
         "role": role,
         "exp": expire,
     }
+    if extra:
+        payload.update(extra)
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
 
@@ -99,6 +102,42 @@ def _extract_bearer(authorization: Optional[str]) -> Optional[str]:
     return None
 
 
+# Placeholder hash for users provisioned from a portal account — it never
+# matches verify_password(), so they can't password-login locally (they always
+# arrive carrying a portal token).
+PORTAL_PROVISIONED_HASH = "portal"
+
+
+def _resolve_portal_user(payload: dict, db: Session) -> Optional[models.User]:
+    """A portal token authenticates against THIS service's user table by email:
+    link to an existing local user with the same email (e.g. one this elog was
+    imported with), or provision a new local user mirroring the portal account."""
+    email = payload.get("email")
+    if email:
+        user = db.query(models.User).filter(models.User.email == email).first()
+        if user is not None:
+            return user if user.is_active else None
+    # No email match → provision a fresh local user from the portal claims.
+    base = payload.get("username") or (email.split("@")[0] if email else "user")
+    uname = base
+    if db.query(models.User).filter(models.User.username == uname).first():
+        uname = f"{base}_{payload.get('sub', 'p')}"
+    user = models.User(
+        username=uname,
+        display_name=payload.get("name") or uname,
+        email=email,
+        role=payload.get("prole") or "user",
+        profile_color=payload.get("color"),
+        profile_shape=payload.get("shape"),
+        is_active=True,
+        password_hash=PORTAL_PROVISIONED_HASH,
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
+
+
 def get_current_user_optional(
     authorization: Optional[str] = Header(default=None),
     db: Session = Depends(get_db),
@@ -109,6 +148,10 @@ def get_current_user_optional(
     payload = decode_access_token(token)
     if not payload:
         return None
+    # A portal token carries `portal: true` + the account's email; resolve it to
+    # a local user (link by email / auto-provision) instead of by local id.
+    if payload.get("portal"):
+        return _resolve_portal_user(payload, db)
     user = db.query(models.User).filter(
         models.User.id == int(payload["sub"]),
         models.User.is_active == True,
