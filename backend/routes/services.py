@@ -491,6 +491,18 @@ def delete_service(
 
 # ── Phase 7: action endpoints ────────────────────────────────────────────────
 
+def _current_run_number(db: Session) -> Optional[int]:
+    """The highest single run_number among non-deleted logs — the 'current run'
+    sent to a service on a manual/realtime request (it may use it or ignore it)."""
+    e = (db.query(models.LogEntry)
+           .filter(models.LogEntry.is_deleted == False,            # noqa: E712
+                   models.LogEntry.run_number_type == "single",
+                   models.LogEntry.run_number != None)             # noqa: E711
+           .order_by(models.LogEntry.run_number.desc())
+           .first())
+    return e.run_number if e else None
+
+
 def _pick_format_id(svc: models.Service, requested_format_id: Optional[int]) -> Optional[int]:
     """Pick which format to send when the caller didn't specify one.
     Prefers a system format on the service; falls back to the first linked
@@ -523,7 +535,7 @@ def request_now(
         fmt = db.query(models.LogFormat).filter(models.LogFormat.id == fid).first()
         fname = fmt.name if fmt else ""
     try:
-        data = fetch_service(svc, fid, format_name=fname, mode="snapshot")
+        data = fetch_service(svc, fid, format_name=fname, mode="snapshot", run_number=_current_run_number(db))
     except WebhookError as we:
         raise HTTPException(status_code=502, detail=f"Webhook failed: {we}")
     svc.last_request_at = datetime.utcnow()
@@ -553,7 +565,7 @@ def request_log(
         fname = fmt.name if fmt else ""
 
     try:
-        data = fetch_service(svc, fid, format_name=fname, mode="task")
+        data = fetch_service(svc, fid, format_name=fname, mode="task", run_number=_current_run_number(db))
     except WebhookError as we:
         raise HTTPException(status_code=502, detail=f"Webhook failed: {we}")
 

@@ -44,12 +44,15 @@ def fetch_service(
     format_name: str = "",
     task_log_id: Optional[int] = None,
     mode: str = "task",
+    run_number: Optional[int] = None,
     timeout: float = WEBHOOK_TIMEOUT_SEC,
 ) -> dict:
     """POST the elog → service request envelope and return parsed JSON.
 
     `mode` ∈ {"task", "snapshot", "realtime"} per the manual.
-    Always returns a dict on success. Raises WebhookError otherwise.
+    `run_number` is the run elog is asking about (the task's run for task fills,
+    the current run otherwise); the service may use it to scope its reply or
+    ignore it. Always returns a dict on success. Raises WebhookError otherwise.
     """
     if not svc or not svc.request_url:
         raise WebhookError("service has no request_url")
@@ -58,6 +61,7 @@ def fetch_service(
         "format_id":    format_id,
         "format_name":  format_name,
         "task_log_id":  task_log_id,
+        "run_number":   run_number,
         "requested_at": datetime.now(timezone.utc).isoformat(),
         "mode":         mode,
     }
@@ -155,7 +159,7 @@ def fill_task_via_webhook(task_log: models.LogEntry, svc: models.Service,
     try:
         response = fetch_service(
             svc, task_log.format_id, format_name=fmt_name,
-            task_log_id=task_log.id, mode="task",
+            task_log_id=task_log.id, mode="task", run_number=task_log.run_number,
         )
     except WebhookError as we:
         # Record the failure as a comment so the shifter sees what happened.

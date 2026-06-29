@@ -255,9 +255,14 @@ function ServiceManualKo({ origin }) {
   "format_id": 12,
   "format_name": "Vacuum readout",
   "task_log_id": 9382,
+  "run_number": 152,
   "requested_at": "2026-05-29T13:42:11Z",
   "mode": "task" | "snapshot" | "realtime"
 }`}</Code>
+        <p style={{ fontSize: 'var(--fs-tiny, 11px)', color: 'var(--text-muted)', margin: '4px 0 0' }}>
+          <Inline>run_number</Inline> = elog가 묻는 run (task fill은 그 task의 run, 그 외엔 현재 run; run이 없으면 null).
+          서비스가 이 값으로 해당 run의 데이터만 골라 응답해도 되고, 무시해도 됩니다.
+        </p>
 
         <p style={{ fontWeight:600 }}>응답 본문 (service → elog):</p>
         <Code>{`{
@@ -433,9 +438,15 @@ function ServiceManualEn({ origin }) {
   "format_id": 12,
   "format_name": "Vacuum readout",
   "task_log_id": 9382,
+  "run_number": 152,
   "requested_at": "2026-05-29T13:42:11Z",
   "mode": "task" | "snapshot" | "realtime"
 }`}</Code>
+        <p style={{ fontSize: 'var(--fs-tiny, 11px)', color: 'var(--text-muted)', margin: '4px 0 0' }}>
+          <Inline>run_number</Inline> = the run elog is asking about (the task's run for task fills,
+          the current run otherwise; null if there's no run). The service may use it to scope its
+          reply or ignore it.
+        </p>
 
         <p style={{ fontWeight:600 }}>Response body (service → elog):</p>
         <Code>{`{
