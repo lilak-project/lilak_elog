@@ -758,6 +758,25 @@ def create_log(
             for c in tmpl_children:
                 _audit(db, "create", "log_entry", c.id, "<system:task_template>")
 
+    # End-of-run: service tasks of this run that asked for an end reading
+    # (on_end) get re-queued ('pending') so the refresh loop does a final fetch.
+    if entry.run_type == "E" and entry.run_number is not None:
+        bumped = 0
+        for t in (db.query(models.LogEntry)
+                    .filter(models.LogEntry.run_number == entry.run_number,
+                            models.LogEntry.task_service_id.isnot(None),
+                            models.LogEntry.is_deleted == False)   # noqa: E712
+                    .all()):
+            try:
+                meta = json.loads(t.metadata_json or "{}")
+            except Exception:
+                meta = {}
+            if meta.get("on_end"):
+                t.task_status = "pending"
+                bumped += 1
+        if bumped:
+            db.commit()
+
     return _entry_to_detail(entry, db)
 
 

@@ -244,6 +244,8 @@ def spawn_template_tasks(parent: models.LogEntry,
             )
             if not svc:
                 continue
+            on_start = item.get("on_start", True)
+            on_end = bool(item.get("on_end", False))
             child = models.LogEntry(
                 log_index=_next_idx(),
                 title=item.get("title") or svc.name,
@@ -258,9 +260,14 @@ def spawn_template_tasks(parent: models.LogEntry,
                 source=f"service:{svc.name}",
                 is_auto=True,
                 parent_log_id=parent.id,
-                task_status="pending",     # filled by the refresh loop's first tick
+                # on_start → 'pending' so the refresh loop fills it at the run's
+                # start; otherwise 'filled' (empty) so it's only filled later by
+                # the interval and/or the end-of-run hook.
+                task_status="pending" if on_start else "filled",
                 task_service_id=svc.id,
                 task_interval_min=item.get("interval_min"),
+                # remember the end-of-run trigger so create_log can re-fill it.
+                metadata_json=json.dumps({"on_end": True}) if on_end else None,
             )
             db.add(child)
             db.flush()

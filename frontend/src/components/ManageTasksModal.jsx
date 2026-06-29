@@ -24,6 +24,8 @@ export default function ManageTasksModal({ motherId, formatId, formatName, onClo
   const [serviceSel, setServiceSel] = useState('')
   const [serviceInterval, setServiceInterval] = useState('')
   const [serviceTitle, setServiceTitle] = useState('')
+  const [serviceOnStart, setServiceOnStart] = useState(true)   // request at run start
+  const [serviceOnEnd, setServiceOnEnd] = useState(false)      // request at run end
 
   const load = useCallback(() => {
     if (isTemplate) {
@@ -88,8 +90,10 @@ export default function ManageTasksModal({ motherId, formatId, formatName, onClo
     const svc = services.find(s => s.id === Number(serviceSel))
     addItem({ kind: 'service', service_id: Number(serviceSel),
               title: serviceTitle.trim() || (svc?.name ?? ''),
-              interval_min: serviceInterval === '' ? null : Number(serviceInterval) })
-    setServiceSel(''); setServiceTitle(''); setServiceInterval('')
+              on_start: serviceOnStart,
+              interval_min: serviceInterval === '' ? null : Number(serviceInterval),
+              on_end: serviceOnEnd })
+    setServiceSel(''); setServiceTitle(''); setServiceInterval(''); setServiceOnStart(true); setServiceOnEnd(false)
   }
 
   async function removeAt(idx, child) {
@@ -123,7 +127,13 @@ export default function ManageTasksModal({ motherId, formatId, formatName, onClo
             {it.kind === 'module'
               ? <span style={{ display:'inline-flex', alignItems:'center', gap:4 }}><Icon name="refresh" size={12} /> {modMap[it.module_id]?.name || it.module_id}{it.interval_min ? ` · ${it.interval_min}분마다` : ' · 1회'}</span>
               : it.kind === 'service'
-              ? <>🌐 {it.title}{' '}<span style={{ fontSize: 'var(--fs-small, 12px)', color: 'var(--text-muted)' }}>({svcMap[it.service_id]?.name || `service#${it.service_id}`}{it.interval_min ? ` · ${it.interval_min}분마다` : ' · 1회'})</span></>
+              ? (() => {
+                  const parts = []
+                  if (it.on_start !== false) parts.push('시작')
+                  if (it.interval_min) parts.push(`${it.interval_min}분마다`)
+                  if (it.on_end) parts.push('끝')
+                  return <>🌐 {it.title}{' '}<span style={{ fontSize: 'var(--fs-small, 12px)', color: 'var(--text-muted)' }}>({svcMap[it.service_id]?.name || `service#${it.service_id}`} · {parts.length ? parts.join(' · ') : '수동'})</span></>
+                })()
               : <>📝 {it.title}{' '}<span style={{ fontSize: 'var(--fs-small, 12px)', color: 'var(--text-muted)' }}>({fmtMap[it.format_id]?.name})</span></>}
           </span>
           <button onClick={() => removeAt(idx)} disabled={busy} style={{ fontSize: 'var(--fs-small, 12px)', flexShrink:0, color: 'var(--danger-text)' }}><Icon name="close" size={13} /></button>
@@ -209,10 +219,23 @@ export default function ManageTasksModal({ motherId, formatId, formatName, onClo
             </select>
             <input value={serviceTitle} onChange={e => setServiceTitle(e.target.value)} placeholder="타이틀"
                    style={{ ...inputStyle, flex: 1, minWidth: 100 }} />
-            <input type="number" min="0" value={serviceInterval} onChange={e => setServiceInterval(e.target.value)}
-                   placeholder="자동요청(분)" style={{ ...inputStyle, width: 110 }} />
             <button onClick={addService} disabled={!serviceSel || busy}
                     style={{ fontSize: 'var(--fs-small, 12px)', paddingLeft:12, paddingRight:12, paddingTop:6, paddingBottom:6, borderRadius:8, fontWeight:500, backgroundColor: 'var(--info-bg)', color: 'var(--info-text)' }}>추가</button>
+          </div>
+          {/* 요청 빈도 — 시작할때 / N분마다 / 끝날때 (복수 선택 가능) */}
+          <div style={{ display:'flex', flexWrap:'wrap', gap:'4px 14px', alignItems:'center', fontSize: 'var(--fs-small, 12px)', color: 'var(--text-secondary)' }}>
+            <label style={{ display:'inline-flex', alignItems:'center', gap:5, cursor:'pointer' }}>
+              <input type="checkbox" checked={serviceOnStart} onChange={e => setServiceOnStart(e.target.checked)} /> 시작할때
+            </label>
+            <label style={{ display:'inline-flex', alignItems:'center', gap:5 }}>
+              <input type="checkbox" checked={serviceInterval !== '' && Number(serviceInterval) > 0}
+                     onChange={e => setServiceInterval(e.target.checked ? '5' : '')} />
+              <input type="number" min="1" value={serviceInterval} onChange={e => setServiceInterval(e.target.value)}
+                     placeholder="N" style={{ ...inputStyle, width: 56, padding: '4px 6px' }} /> 분마다
+            </label>
+            <label style={{ display:'inline-flex', alignItems:'center', gap:5, cursor:'pointer' }}>
+              <input type="checkbox" checked={serviceOnEnd} onChange={e => setServiceOnEnd(e.target.checked)} /> 끝날때
+            </label>
           </div>
           {reqServices.length === 0 && (
             <p style={{ fontSize: 'var(--fs-tiny, 11px)', color: 'var(--text-muted)' }}>

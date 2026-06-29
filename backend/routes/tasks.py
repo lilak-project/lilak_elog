@@ -46,8 +46,12 @@ class TaskItem(BaseModel):
     # format items
     format_id: Optional[int] = None
     title: Optional[str] = None
-    # service items — auto-filled by calling the service's request_url
+    # service items — auto-filled by calling the service's request_url.
+    # Request schedule for a run: on_start (once at start), interval_min (every
+    # N min during the run), on_end (once more when the run ends).
     service_id: Optional[int] = None
+    on_start: bool = True
+    on_end: bool = False
 
 
 class RegisterTasksPayload(BaseModel):
