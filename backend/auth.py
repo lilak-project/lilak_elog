@@ -109,14 +109,30 @@ PORTAL_PROVISIONED_HASH = "portal"
 
 
 def _resolve_portal_user(payload: dict, db: Session) -> Optional[models.User]:
-    """A portal token authenticates against THIS service's user table by email:
-    link to an existing local user with the same email (e.g. one this elog was
-    imported with), or provision a new local user mirroring the portal account."""
+    """A portal token authenticates against THIS service's user table by email.
+
+    - portal-provisioned / already-linked local user with the same email → link in.
+    - an INDEPENDENT local user (its own password) with the same email not yet
+      linked → DON'T silently take it over: raise 409 PORTAL_LINK_REQUIRED so the
+      user confirms ownership once (POST /api/auth/portal-link with the local
+      password). Afterwards it's linked and entry is seamless.
+    - no email match → provision a fresh local user mirroring the portal account.
+    """
     email = payload.get("email")
     if email:
         user = db.query(models.User).filter(models.User.email == email).first()
         if user is not None:
-            return user if user.is_active else None
+            if not user.is_active:
+                return None
+            linked = bool(getattr(user, "portal_linked", False)) or user.password_hash == PORTAL_PROVISIONED_HASH
+            if not linked:
+                raise HTTPException(status_code=status.HTTP_409_CONFLICT,
+                                    detail={"code": "PORTAL_LINK_REQUIRED", "email": email,
+                                            "username": user.username})
+            if not getattr(user, "portal_linked", False):
+                user.portal_linked = True
+                db.commit()
+            return user
     # No email match → provision a fresh local user from the portal claims.
     base = payload.get("username") or (email.split("@")[0] if email else "user")
     uname = base
@@ -130,6 +146,7 @@ def _resolve_portal_user(payload: dict, db: Session) -> Optional[models.User]:
         profile_color=payload.get("color"),
         profile_shape=payload.get("shape"),
         is_active=True,
+        portal_linked=True,
         password_hash=PORTAL_PROVISIONED_HASH,
     )
     db.add(user)

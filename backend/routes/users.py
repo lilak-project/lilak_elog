@@ -5,7 +5,7 @@ User management routes + auth login + self-registration + log transfer.
 from datetime import datetime, timezone
 import json
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, status
 from sqlalchemy.orm import Session
 from pydantic import BaseModel as _BM
 from typing import Optional
@@ -15,6 +15,7 @@ import schemas
 from auth import (
     create_access_token, hash_password, require_auth,
     require_manager, validate_username, validate_password, verify_password,
+    decode_access_token, _extract_bearer,
 )
 from database import get_db
 from settings_store import get_setting
@@ -42,6 +43,33 @@ def login(payload: schemas.LoginRequest, db: Session = Depends(get_db)):
         username=user.username,
         role=user.role,
     )
+
+
+class _PortalLink(_BM):
+    password: str
+
+
+@router.post("/auth/portal-link")
+def portal_link(body: _PortalLink, authorization: Optional[str] = Header(default=None),
+                db: Session = Depends(get_db)):
+    """One-time account link: a portal user proves they own this experiment's
+    same-email local account by its local password. After this the account is
+    `portal_linked`, so future portal entries (SSO) resolve straight in."""
+    token = _extract_bearer(authorization)
+    payload = decode_access_token(token) if token else None
+    if not payload or not payload.get("portal") or not payload.get("email"):
+        raise HTTPException(status_code=401, detail="포탈 토큰이 필요합니다.")
+    user = db.query(models.User).filter(
+        models.User.email == payload["email"], models.User.is_active == True).first()  # noqa: E712
+    if not user:
+        raise HTTPException(status_code=404, detail="연동할 계정을 찾을 수 없습니다.")
+    if not verify_password(body.password, user.password_hash):
+        _audit(db, "portal_link_failed", "user", user.id, user.username)
+        raise HTTPException(status_code=401, detail="비밀번호가 올바르지 않습니다.")
+    user.portal_linked = True
+    db.commit()
+    _audit(db, "portal_link", "user", user.id, user.username)
+    return {"ok": True, "username": user.username}
 
 
 @router.post("/auth/logout")

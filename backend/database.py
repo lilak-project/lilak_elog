@@ -357,6 +357,8 @@ def _migrate_columns(db_path: str) -> None:
                 _try_add_column(c, "ALTER TABLE users ADD COLUMN profile_shape VARCHAR(32)")
             if "preferences_json" not in u_existing:
                 _try_add_column(c, "ALTER TABLE users ADD COLUMN preferences_json TEXT")
+            if "portal_linked" not in u_existing:
+                _try_add_column(c, "ALTER TABLE users ADD COLUMN portal_linked BOOLEAN NOT NULL DEFAULT 0")
     except sqlite3.OperationalError:
         pass
 

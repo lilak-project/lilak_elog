@@ -66,6 +66,10 @@ class User(Base):
     password_hash = Column(String(256), nullable=False)
     # ─────────────────────────────────────────────────────────────────────────
     is_active = Column(Boolean, nullable=False, default=True)
+    # A portal account confirmed (one-time, by password) that it owns this local
+    # account — so a portal token with the same email links straight in afterward.
+    # Portal-provisioned accounts (password_hash == "portal") are linked by birth.
+    portal_linked = Column(Boolean, nullable=False, default=False)
     created_at = Column(DateTime, nullable=False, default=_now)
     updated_at = Column(DateTime, nullable=False, default=_now, onupdate=_now)
 
