@@ -106,7 +106,7 @@ else
   SERVER_PID=$!
   for i in $(seq 1 30); do
     sleep 0.3
-    curl -s "http://localhost:${PORT}/api/projects" > /dev/null 2>&1 && { open "http://localhost:${PORT}"; break; }
+    curl -s "http://localhost:${PORT}/api/projects" > /dev/null 2>&1 && { open "http://localhost:${PORT}/projects"; break; }
   done
 fi
 
