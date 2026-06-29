@@ -7,6 +7,7 @@ import { DensityProvider } from './context/DensityContext'
 import { SizeProvider } from './context/SizeContext'
 import { TabProvider } from './context/TabContext'
 import Shell from './components/Shell'
+import PortalLinkGate from './components/PortalLinkGate'
 import TabbedWorkspace from './pages/TabbedWorkspace'
 import LogDetail from './pages/LogDetail'
 import LogForm from './pages/LogForm'
@@ -37,7 +38,10 @@ export default function App() {
         <SizeProvider>
           <LangProvider>
             <AuthProvider>
-              <BrowserRouter>
+              <PortalLinkGate />
+              {/* Under the portal proxy (/pp/<svc>/<proj>/), route relative to that
+                  prefix so client-side navigation stays inside the proxied app. */}
+              <BrowserRouter basename={(typeof window !== 'undefined' && window.__PORTAL_BASE__) || undefined}>
                 <TabProvider>
                   <CommandRegistryProvider>
                     <TagIndexProvider>

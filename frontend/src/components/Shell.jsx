@@ -254,11 +254,17 @@ export default function Shell() {
   )
   const experiment = getExperiment()
   // The experiment chip is the ONLY way to the project list (logo/brand click is
-  // not — per design). Clicking it navigates to /projects.
+  // not — per design). Clicking it goes to the list: elog's own cover when
+  // standalone, but BACK TO THE LILAK PORTAL when served under the portal proxy
+  // (escape the /pp/<svc>/<proj>/ basename with a full navigation).
+  const goToList = () => {
+    if (typeof window !== 'undefined' && window.__PORTAL_BASE__) window.location.assign('/projects')
+    else navigate('/projects')
+  }
   const brandSuffix = experiment ? (
     <span role="button" tabIndex={0} title={t('projects_title')}
-      onClick={(e) => { e.stopPropagation(); navigate('/projects') }}
-      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate('/projects') } }}
+      onClick={(e) => { e.stopPropagation(); goToList() }}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); goToList() } }}
       style={{ marginLeft: 2, padding: '3px 8px', borderRadius: 999, fontFamily: 'var(--font-mono)', fontWeight: 500, cursor: 'pointer',
       fontSize: 'var(--fs-micro, 10px)', lineHeight: 1.2, backgroundColor: 'var(--nav-accent)', color: 'var(--nav-text-muted)' }}>{experiment}</span>
   ) : null

@@ -1,10 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
+    <!-- Default base = site root. When served behind a portal proxy
+         (/pp/<svc>/<proj>/), the portal injects a <base> with that prefix BEFORE
+         this one, so relative assets resolve under the proxy. (Browsers honor the
+         first <base>.) Combined with Vite `base: './'`. -->
+    <base href="/" />
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>lilak elog</title>
-    <link rel="icon" type="image/svg+xml" href="/lilak.svg" />
+    <link rel="icon" type="image/svg+xml" href="lilak.svg" />
   </head>
   <body>
     <div id="root"></div>

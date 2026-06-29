@@ -15,13 +15,19 @@ export default defineConfig(({ mode }) => {
   const PORT     = Number(env.PORT) || 5130                       // dev server port
   const BACKEND  = env.ELOG_BACKEND  || 'http://localhost:8011'   // default elog backend
   const LAUNCHER = env.ELOG_LAUNCHER || 'http://localhost:8010'   // project launcher + /p proxy
+  // Shared UI kit location — env-overridable so the deploy layout is portable
+  // (default = the sibling checkout). `build-all.sh` sets LILAK_UI_PATH.
+  const UI = env.LILAK_UI_PATH ? resolve(env.LILAK_UI_PATH) : resolve(__dirname, '../../lilak_ui')
 
   return {
+    // Relative asset URLs so the build also works when served behind a portal
+    // proxy under a path prefix (/pp/<svc>/<proj>/) — resolved against the <base>
+    // href. At site root (launcher/dev) it's equivalent to absolute.
+    base: './',
     plugins: [react()],
     resolve: {
       alias: {
-        // frontend -> lilak_elog_v2 -> ai_projects, then into lilak_ui
-        'lilak-ui': resolve(__dirname, '../../lilak_ui/src'),
+        'lilak-ui': resolve(UI, 'src'),
       },
     },
     // Pre-bundle the kit's runtime deps at startup so adding them mid-session
@@ -36,7 +42,7 @@ export default defineConfig(({ mode }) => {
       // /launcher proxies still run on this machine, so the phone only needs the
       // frontend to be reachable.
       host: true,
-      fs: { allow: [resolve(__dirname), resolve(__dirname, '../../lilak_ui')] },
+      fs: { allow: [resolve(__dirname), UI] },
       proxy: {
         // `/launcher/*` -> the launcher root (project list + per-experiment proxy)
         '/launcher': { target: LAUNCHER, changeOrigin: true, rewrite: (p) => p.replace(/^\/launcher/, '') },

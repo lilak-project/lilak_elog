@@ -7,17 +7,34 @@ import axios from 'axios'
 // prefix is proxied to the launcher :8010 by Vite). With no experiment chosen,
 // we fall back to the plain `/api` proxy (the single default backend) so the
 // app still works standalone.
+// Portal mode: when this app is served behind the LILAK Service Manager proxy
+// (`/pp/<svc>/<proj>/`), the portal injects `window.__PORTAL_BASE__` = that
+// prefix. The experiment's own backend is then reached DIRECTLY at
+// `<base>/api` (the portal proxies it), not via the launcher's `/launcher/p/…`.
+export const PORTAL_BASE =
+  (typeof window !== 'undefined' && window.__PORTAL_BASE__) || ''
+
 const EXPERIMENT_KEY = 'elog_experiment'
-export function getExperiment() { return localStorage.getItem(EXPERIMENT_KEY) || '' }
+export function getExperiment() {
+  // Under the portal, the experiment is fixed by the URL: /pp/<svc>/<proj>.
+  if (PORTAL_BASE) return PORTAL_BASE.split('/').filter(Boolean).pop() || ''
+  return localStorage.getItem(EXPERIMENT_KEY) || ''
+}
 export function setExperiment(name) {
+  if (PORTAL_BASE) return                          // fixed by URL; ignore
   if (name) localStorage.setItem(EXPERIMENT_KEY, name)
   else localStorage.removeItem(EXPERIMENT_KEY)
 }
-export function apiBaseFor(name) { return name ? `/launcher/p/${name}/api` : '/api' }
+export function apiBaseFor(name) {
+  if (PORTAL_BASE) return `${PORTAL_BASE}/api`
+  return name ? `/launcher/p/${name}/api` : '/api'
+}
 
 // The launcher's own API (project list / create / start / stop / delete) lives
-// at `/launcher/api/...`, independent of any selected experiment.
-export const launcher = axios.create({ baseURL: '/launcher/api', timeout: 30000 })
+// at `/launcher/api/...`. Unused under the portal (the portal owns that surface).
+export const launcher = axios.create({
+  baseURL: PORTAL_BASE ? `${PORTAL_BASE}/api` : '/launcher/api', timeout: 30000,
+})
 
 const api = axios.create({
   baseURL: apiBaseFor(getExperiment()),
@@ -61,6 +78,13 @@ api.interceptors.response.use(
   async (err) => {
     const status = err?.response?.status
     const url = err?.config?.url || ''
+    // Portal account-link required: an independent local account shares this
+    // portal user's email. Surface a one-time link prompt (PortalLinkGate).
+    const detail = err?.response?.data?.detail
+    if (status === 409 && detail && detail.code === 'PORTAL_LINK_REQUIRED') {
+      window.dispatchEvent(new CustomEvent('lilak:portal-link-required', { detail }))
+      return Promise.reject(err)
+    }
     if (status !== 401 || !localStorage.getItem('elog_token')) return Promise.reject(err)
 
     // The session check itself failed → genuinely logged out.
