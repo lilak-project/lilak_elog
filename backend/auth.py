@@ -145,6 +145,11 @@ def _resolve_portal_user(payload: dict, db: Session) -> Optional[models.User]:
         role=payload.get("prole") or "user",
         profile_color=payload.get("color"),
         profile_shape=payload.get("shape"),
+        # rest of the elog profile, mirrored from the portal account (superset)
+        phone=payload.get("phone"),
+        experiment_role=payload.get("erole"),
+        participation_from=payload.get("pfrom"),
+        participation_to=payload.get("pto"),
         is_active=True,
         portal_linked=True,
         password_hash=PORTAL_PROVISIONED_HASH,
