@@ -129,8 +129,19 @@ def _resolve_portal_user(payload: dict, db: Session) -> Optional[models.User]:
                 raise HTTPException(status_code=status.HTTP_409_CONFLICT,
                                     detail={"code": "PORTAL_LINK_REQUIRED", "email": email,
                                             "username": user.username})
-            if not getattr(user, "portal_linked", False):
+            # The portal is the source of truth for the SHARED identity, so keep this
+            # linked elog user in sync on EVERY entry (avatar + display name). elog-
+            # local fields (phone / experiment_role / participation) are left alone.
+            changed = not getattr(user, "portal_linked", False)
+            if changed:
                 user.portal_linked = True
+            for attr, val in (("display_name", payload.get("name")),
+                              ("profile_color", payload.get("color")),
+                              ("profile_shape", payload.get("shape"))):
+                if val is not None and getattr(user, attr, None) != val:
+                    setattr(user, attr, val)
+                    changed = True
+            if changed:
                 db.commit()
             return user
     # No email match → provision a fresh local user from the portal claims.
