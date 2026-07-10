@@ -28,7 +28,16 @@ import models
 from database import get_db
 
 # ── Configuration ──────────────────────────────────────────────────────────
-SECRET_KEY: str = os.environ.get("ELOG_SECRET_KEY", "lilak-dev-secret-CHANGE-in-production")
+# Prefer PORTAL_SECRET_KEY (the portal signs tokens with it), then ELOG_SECRET_KEY,
+# then the shared dev default. Matches config.py in the portal and every other
+# service — without this, a deployment that sets only PORTAL_SECRET_KEY would leave
+# elog verifying portal tokens against the PUBLIC dev default (forgeable manager
+# tokens). Keep both in sync; they must resolve to the same value in production.
+SECRET_KEY: str = (
+    os.environ.get("PORTAL_SECRET_KEY")
+    or os.environ.get("ELOG_SECRET_KEY")
+    or "lilak-dev-secret-CHANGE-in-production"
+)
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_HOURS: int = int(os.environ.get("ELOG_TOKEN_EXPIRE_HOURS", "24"))
 
