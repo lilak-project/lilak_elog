@@ -26,6 +26,9 @@ export default defineConfig(({ mode }) => {
     base: './',
     plugins: [react()],
     resolve: {
+      // Resolve react/react-dom to ONE copy (this app's), so the source-aliased kit
+      // can't pull in its own React and trigger "Invalid hook call".
+      dedupe: ['react', 'react-dom'],
       alias: {
         'lilak-ui': resolve(UI, 'src'),
       },
