@@ -70,6 +70,16 @@ from portal_services import router as portal_services_router
 app.include_router(portal_services_router)
 
 # ── 유틸 ─────────────────────────────────────────────────────────────────────
+def _safe_name(name: str) -> str:
+    """Reject anything that isn't a plain project name. Blocks path traversal into
+    DATA_ROOT's parent via a bare `..`/`.` segment — e.g. `DELETE /api/projects/..`
+    would otherwise `rmtree(DATA_ROOT/'..')`, and `.../export` would exfiltrate it.
+    Only create/import validated names before; every {name} route must too."""
+    if not re.match(r'^[A-Za-z0-9_-]{1,64}$', name):
+        raise HTTPException(400, "잘못된 프로젝트 이름")
+    return name
+
+
 def _port_alive(port: int) -> bool:
     try:
         with socket.create_connection(("127.0.0.1", port), timeout=0.5):
@@ -180,6 +190,7 @@ def api_create(body: NewProject):
 @app.get("/api/projects/{name}/export")
 def api_export(name: str):
     import io, zipfile
+    _safe_name(name)
     proj_dir = DATA_ROOT / name
     if not proj_dir.exists():
         raise HTTPException(404, f"'{name}' 없음")
@@ -227,6 +238,7 @@ async def api_import(file: UploadFile = File(...), name: str | None = Form(None)
 
 @app.post("/api/projects/{name}/start")
 def api_start(name: str):
+    _safe_name(name)
     proj_dir = DATA_ROOT / name
     if not proj_dir.exists():
         raise HTTPException(404, f"'{name}' 없음")
@@ -268,6 +280,7 @@ def api_start(name: str):
 
 @app.post("/api/projects/{name}/stop")
 def api_stop(name: str):
+    _safe_name(name)
     port = _read_port_file(name)
     if not port:
         return {"stopped": False, "reason": "not running"}
@@ -304,6 +317,7 @@ def api_stop(name: str):
 @app.delete("/api/projects/{name}")
 def api_delete(name: str):
     import shutil
+    _safe_name(name)
     proj_dir = DATA_ROOT / name
     if not proj_dir.exists():
         raise HTTPException(404, f"'{name}' 없음")
@@ -316,6 +330,7 @@ def api_delete(name: str):
 # port). They save `http://<host>:8010/p/<project>` as their elog_url, so the
 # project's internal port can change freely without breaking pushes.
 def _ensure_running(name: str) -> int:
+    _safe_name(name)
     proj_dir = DATA_ROOT / name
     if not proj_dir.exists():
         raise HTTPException(404, f"'{name}' not found")

@@ -73,11 +73,15 @@ if os.path.isdir(_FRONTEND):
         app.mount("/assets", StaticFiles(directory=_assets), name="assets")
 
     # 그 외 모든 경로: 실제 파일이면 그 파일, 없으면 index.html (SPA 라우팅)
+    _FRONTEND_ROOT = os.path.realpath(_FRONTEND)
+
     @app.get("/{full_path:path}", include_in_schema=False)
     async def serve_spa(full_path: str):
-        # public 폴더 파일 (logo.svg, favicon.ico 등)
-        candidate = os.path.join(_FRONTEND, full_path)
-        if os.path.isfile(candidate):
+        # public 폴더 파일 (logo.svg, favicon.ico 등) — 단, `..` 등으로 dist 밖을
+        # 벗어나는 요청은 거부하고 index.html 로 폴백한다 (경로 탈출 방지).
+        candidate = os.path.realpath(os.path.join(_FRONTEND, full_path))
+        if (candidate == _FRONTEND_ROOT or candidate.startswith(_FRONTEND_ROOT + os.sep)) \
+                and os.path.isfile(candidate):
             return FileResponse(candidate)
         # 나머지 모두 React Router 에게 위임
         index = os.path.join(_FRONTEND, "index.html")
