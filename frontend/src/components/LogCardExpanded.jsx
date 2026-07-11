@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { confirm } from './dialog'
 import { LogDetail, Icon } from 'lilak-ui'
 import api, { apiBaseFor, getExperiment } from '../api'
 import { useAuth } from '../context/AuthContext'
@@ -344,7 +345,7 @@ export default function LogCardExpanded({
   }
 
   async function handleDelete() {
-    if (!window.confirm(t('detail_delete_confirm'))) return
+    if (!await confirm(t('detail_delete_confirm'))) return
     setDeleting(true)
     try {
       await api.delete(`/logs/${entry.id}`)

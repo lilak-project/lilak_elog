@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { promptDialog } from '../components/dialog'
 import { Icon, DataCard, DataGrid, Pagination, Input, Button, Row, ChipGroup } from 'lilak-ui'
 import { useTaggables, useBookmarks } from 'lilak-ui'
 import api, { apiBaseFor, getExperiment } from '../api'
@@ -131,7 +132,7 @@ export default function Files() {
   }
 
   async function addTag(it) {
-    const name = window.prompt(t('gallery_tags_add') || '태그 추가')?.trim().toLowerCase()
+    const name = (await promptDialog(t('gallery_tags_add') || '태그 추가'))?.trim().toLowerCase()
     if (!name || !it.log_id) return
     const existing = (it.log_tags || []).map((tg) => tg.name)
     if (existing.includes(name)) return

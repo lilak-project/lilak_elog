@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { alertDialog } from '../components/dialog'
 import api from '../api'
 import { emitUserChanged, loadServerPrefs } from './userPrefs'
 
@@ -43,7 +44,7 @@ export function AuthProvider({ children }) {
       setToken(null)
       setUser(null)
       emitUserChanged(null)
-      try { window.alert('세션이 만료되었습니다. 다시 로그인해 주세요.') } catch (_) {}
+      try { alertDialog('세션이 만료되었습니다. 다시 로그인해 주세요.') } catch (_) {}
     }
     window.addEventListener('lilak:auth:expired', onExpired)
     return () => window.removeEventListener('lilak:auth:expired', onExpired)

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { confirm, alertDialog } from '../../components/dialog'
 import api from '../../api'
 import { useLang } from '../../context/LangContext'
 import { PALETTE, PALETTE_KEYS, paletteClasses } from '../../theme/palette'
@@ -297,13 +298,13 @@ export default function ShiftPatternsManager({ patterns: initial, activePattern,
   }
 
   async function handleDelete(p) {
-    if (!window.confirm(t('sched_pat_delete_confirm', p.name))) return
+    if (!await confirm(t('sched_pat_delete_confirm', p.name))) return
     try {
       await api.delete(`/schedule/shift-patterns/${p.id}`)
       await load()
     } catch (err) {
       const msg = err?.response?.data?.detail || err?.message || 'Delete failed'
-      window.alert(`삭제 실패: ${msg}`)
+      alertDialog(`삭제 실패: ${msg}`)
       // eslint-disable-next-line no-console
       console.error('[ShiftPattern delete]', err)
     }

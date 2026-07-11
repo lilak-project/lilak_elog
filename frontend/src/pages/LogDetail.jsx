@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { confirm } from '../components/dialog'
 import { Icon } from 'lilak-ui'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
@@ -38,7 +39,7 @@ export default function LogDetail() {
   }, [id])
 
   async function handleDelete() {
-    if (!window.confirm(t('detail_delete_confirm'))) return
+    if (!await confirm(t('detail_delete_confirm'))) return
     setDeleting(true)
     try { await api.delete(`/logs/${id}`); navigate('/') }
     catch { alert(t('detail_delete_fail')); setDeleting(false) }
@@ -188,7 +189,7 @@ export default function LogDetail() {
                   {canEdit && (
                     <button
                       onClick={async () => {
-                        if (!window.confirm(`Delete ${a.original_filename}?`)) return
+                        if (!await confirm(`Delete ${a.original_filename}?`)) return
                         await api.delete(`/attachments/${a.id}`)
                         setEntry(prev => ({ ...prev, attachments: prev.attachments.filter(x => x.id !== a.id) }))
                       }}

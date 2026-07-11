@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { confirm } from '../components/dialog'
 import { Icon, Button } from 'lilak-ui'
 import api from '../api'
 import { useAuth } from '../context/AuthContext'
@@ -506,7 +507,7 @@ export default function AdminFormats() {
   useEffect(() => { load() }, [])
 
   async function handleDelete(fmt) {
-    if (!window.confirm(t('admin_fmt_delete_confirm', fmt.name))) return
+    if (!await confirm(t('admin_fmt_delete_confirm', fmt.name))) return
     await api.delete(`/formats/${fmt.id}`)
     load()
   }

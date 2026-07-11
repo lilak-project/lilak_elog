@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { confirm, promptDialog, alertDialog } from '../../components/dialog'
 import { CrudForm, CopyField, Input, Button, Badge, Icon, Stack, Row } from 'lilak-ui'
 import api from '../../api'
 
@@ -43,38 +44,38 @@ export default function AdminCommunityBridges() {
 
   async function handleUpdate(b, patch) {
     try { await api.put(`/community/bridges/${b.id}`, patch); load() }
-    catch (err) { window.alert('Update failed: ' + (err.response?.data?.detail || err.message)) }
+    catch (err) { alertDialog('Update failed: ' + (err.response?.data?.detail || err.message)) }
   }
   async function handleDelete(b) {
-    if (!window.confirm(`Delete bridge "${b.name}"?`)) return
+    if (!await confirm(`Delete bridge "${b.name}"?`)) return
     try { await api.delete(`/community/bridges/${b.id}`); load() }
-    catch (err) { window.alert('Delete failed: ' + (err.response?.data?.detail || err.message)) }
+    catch (err) { alertDialog('Delete failed: ' + (err.response?.data?.detail || err.message)) }
   }
   async function handleSetBotToken(b) {
-    const newTok = window.prompt(
+    const newTok = await promptDialog(
       `${b.name} 의 Discord Bot Token 을 입력하세요.\n\nDiscord Developer Portal → Bot → Reset Token 으로 받은 값.\n(빈칸 그대로 OK 하면 토큰이 삭제됩니다.)`, '')
     if (newTok === null) return
     try { await api.put(`/community/bridges/${b.id}`, { bot_token: newTok.trim() }); load() }
-    catch (err) { window.alert('저장 실패: ' + (err.response?.data?.detail || err.message)) }
+    catch (err) { alertDialog('저장 실패: ' + (err.response?.data?.detail || err.message)) }
   }
   async function handleStartRelay(b) {
     try {
       const d = (await api.post(`/community/bridges/${b.id}/relay/start`)).data
-      if (d.ok) window.alert(d.already_running ? `이미 실행 중 (PID ${d.pid})` : `✅ 릴레이 시작 (PID ${d.pid})`)
-      else window.alert(`❌ 시작 실패: ${d.error}\n\n${d.log_tail || ''}`)
+      if (d.ok) alertDialog(d.already_running ? `이미 실행 중 (PID ${d.pid})` : `✅ 릴레이 시작 (PID ${d.pid})`)
+      else alertDialog(`❌ 시작 실패: ${d.error}\n\n${d.log_tail || ''}`)
       load()
-    } catch (err) { window.alert('호출 실패: ' + (err.response?.data?.detail || err.message)) }
+    } catch (err) { alertDialog('호출 실패: ' + (err.response?.data?.detail || err.message)) }
   }
   async function handleStopRelay(b) {
     try { await api.post(`/community/bridges/${b.id}/relay/stop`); load() }
-    catch (err) { window.alert('호출 실패: ' + (err.response?.data?.detail || err.message)) }
+    catch (err) { alertDialog('호출 실패: ' + (err.response?.data?.detail || err.message)) }
   }
   async function handleTestOutgoing(b) {
-    if (!b.outgoing_url) { window.alert('Outgoing URL이 비어있습니다.'); return }
+    if (!b.outgoing_url) { alertDialog('Outgoing URL이 비어있습니다.'); return }
     try {
       const { ok, status, response, error } = (await api.post(`/community/bridges/${b.id}/test-outgoing`)).data
-      window.alert(ok ? `✅ 전송 성공\nHTTP ${status}\n\nResponse:\n${response || '(empty)'}` : `❌ 전송 실패\nHTTP ${status}\n\nError:\n${error}`)
-    } catch (err) { window.alert('테스트 호출 실패: ' + (err.response?.data?.detail || err.message)) }
+      alertDialog(ok ? `✅ 전송 성공\nHTTP ${status}\n\nResponse:\n${response || '(empty)'}` : `❌ 전송 실패\nHTTP ${status}\n\nError:\n${error}`)
+    } catch (err) { alertDialog('테스트 호출 실패: ' + (err.response?.data?.detail || err.message)) }
   }
 
   return (
@@ -151,7 +152,7 @@ export default function AdminCommunityBridges() {
                     <p style={{ ...label, margin: 0 }}>Incoming webhook ({meta?.label} → 우리):</p>
                     {b.incoming_token ? (
                       <>
-                        <button onClick={() => { if (window.confirm('Incoming 토큰을 재생성하시겠습니까? 기존 URL은 동작하지 않게 됩니다.')) handleUpdate(b, { rotate_token: true }) }}
+                        <button onClick={async () => { if (await confirm('Incoming 토큰을 재생성하시겠습니까? 기존 URL은 동작하지 않게 됩니다.')) handleUpdate(b, { rotate_token: true }) }}
                           style={{ fontSize: 'var(--fs-micro, 10px)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-link)', textDecoration: 'underline' }}>토큰 재생성</button>
                         <button onClick={() => handleUpdate(b, { enable_incoming: false })}
                           style={{ fontSize: 'var(--fs-micro, 10px)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', textDecoration: 'underline' }}>끄기</button>

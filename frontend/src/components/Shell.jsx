@@ -8,6 +8,7 @@
  * components and registers every action into the command/hotkey connector.
  */
 import { useEffect, useState, useCallback, useMemo } from 'react'
+import { alertDialog } from './dialog'
 import { Outlet, useNavigate } from 'react-router-dom'
 import {
   TopBar, CommandBar, Drawer, ShortcutsModal,
@@ -187,7 +188,7 @@ export default function Shell() {
         try {
           const res = await api.post('/auth/register', { username: data.username, email: data.email, password: data.password })
           closeBarInput()
-          window.alert(res.data?.pending ? t('reg_pending') : t('acct_created', data.username))
+          alertDialog(res.data?.pending ? t('reg_pending') : t('acct_created', data.username))
         } catch (e) { askPassword(e?.response?.data?.detail || t('reg_fail')) }
       },
     })
@@ -215,7 +216,7 @@ export default function Shell() {
         securePrompt: (u) => (t('cmd_login_password') || 'Password for') + ' ' + u,
         run: async ({ username, password }) => {
           try { await login(username, password) }
-          catch (e) { window.alert(e?.response?.data?.detail || t('cmd_login_failed') || 'Login failed') }
+          catch (e) { alertDialog(e?.response?.data?.detail || t('cmd_login_failed') || 'Login failed') }
         },
       })),
       ...[['logout', 'out'], ['out', 'logout']].map(([id, alias]) => ({

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { confirm } from '../components/dialog'
 import { Icon, ColorPicker, Modal, Button, Input, Stack } from 'lilak-ui'
 import { useNavigate } from 'react-router-dom'
 import api from '../api'
@@ -68,12 +69,12 @@ function TagEditPopup({ tag, tags, onClose, onChanged }) {
   async function doMerge() {
     if (!mergeId) return
     const dst = tags.find(t => String(t.id) === String(mergeId))
-    if (!dst || !window.confirm(`'${tag.name}' 를 '${dst.name}' 에 합칠까요?`)) return
+    if (!dst || !await confirm(`'${tag.name}' 를 '${dst.name}' 에 합칠까요?`)) return
     try { await api.post(`/tags/${tag.id}/merge-into/${mergeId}`); onChanged(); onClose() }
     catch (e) { setErr(e.response?.data?.detail || '합치기 실패') }
   }
   async function doDelete() {
-    if (!window.confirm(`태그 '${tag.name}' (${tag.count}개 로그)를 삭제할까요?`)) return
+    if (!await confirm(`태그 '${tag.name}' (${tag.count}개 로그)를 삭제할까요?`)) return
     try { await api.delete(`/tags/${tag.id}`); onChanged(); onClose() }
     catch (e) { setErr(e.response?.data?.detail || '삭제 실패') }
   }

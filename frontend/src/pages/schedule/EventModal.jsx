@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { confirm } from '../../components/dialog'
 import api from '../../api'
 import { useAuth } from '../../context/AuthContext'
 import { useLang } from '../../context/LangContext'
@@ -142,7 +143,7 @@ export default function EventModal({
   }
 
   async function handleDelete() {
-    if (!window.confirm(t('sched_evt_delete_confirm'))) return
+    if (!await confirm(t('sched_evt_delete_confirm'))) return
     setSaving(true)
     try {
       await api.delete(`/schedule/events/${initial.id}`)

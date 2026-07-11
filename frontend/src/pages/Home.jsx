@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import { confirm } from '../components/dialog'
 import { LogToolbar, LogList, Pagination, useTaggables, tagColors, Icon, ChipGroup, Callout, Button, openBarInput, closeBarInput } from 'lilak-ui'
 import api, { getExperiment } from '../api'
 import LogCard from '../components/LogCard'
@@ -584,9 +585,9 @@ export default function Home() {
     function onViewMode(e) {
       const m = e.detail?.mode; if (m) changeViewMode(m)
     }
-    function onDeleteFocused() {
+    async function onDeleteFocused() {
       const f = feedEntries[focusedIdx]; if (!f || typeof f.id !== 'number') return
-      if (!window.confirm(`Delete log #${f.id}?`)) return
+      if (!await confirm(`Delete log #${f.id}?`)) return
       api.delete(`/logs/${f.id}`).then(() => fetchEntries(page))
     }
     function onRestoreFocused() {

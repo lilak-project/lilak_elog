@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { confirm } from './dialog'
 import { Icon, Modal, Button, Badge, Stack } from 'lilak-ui'
 import api from '../api'
 
@@ -100,7 +101,7 @@ export default function ManageTasksModal({ motherId, formatId, formatName, onClo
     if (isTemplate) {
       await persistTemplate(items.filter((_, i) => i !== idx))
     } else {
-      if (!window.confirm('이 task log를 삭제할까요?')) return
+      if (!await confirm('이 task log를 삭제할까요?')) return
       setBusy(true); setError(null)
       try {
         await api.delete(`/tasks/${child.id}`)

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { confirm, alertDialog } from '../components/dialog'
 import { SubTabs } from 'lilak-ui'
 import { btnPrimary, btnPrimaryHover, modalFrame, modalOverlay, hoverify } from '../theme/uiStyles'
 import api from '../api'
@@ -209,13 +210,13 @@ export default function SchedulePage() {
             onPatterns={() => setModal('patterns')}
             onUsers={() => setModal('free-users')}
             onClearAll={async () => {
-              if (!window.confirm('정말 모든 쉬프트 등록을 삭제하시겠습니까? 되돌릴 수 없습니다.')) return
+              if (!await confirm('정말 모든 쉬프트 등록을 삭제하시겠습니까? 되돌릴 수 없습니다.')) return
               try {
                 const r = await api.delete('/schedule/assignments')
                 await reloadAssignments()
-                window.alert(`${r.data?.deleted ?? 0}건의 쉬프트 등록을 삭제했습니다.`)
+                alertDialog(`${r.data?.deleted ?? 0}건의 쉬프트 등록을 삭제했습니다.`)
               } catch (e) {
-                window.alert('삭제 실패: ' + (e.response?.data?.detail || e.message))
+                alertDialog('삭제 실패: ' + (e.response?.data?.detail || e.message))
               }
             }}
             label={t('sched_btn_manage') || 'Manage'}

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { confirm } from '../components/dialog'
 import { useNavigate } from 'react-router-dom'
 import api from '../api'
 import { useAuth } from '../context/AuthContext'
@@ -55,7 +56,7 @@ export default function AdminLogManagement() {
     const { start: s, end: e } = buildPayload()
     if (s === null && e === null) { setErr(ko ? '범위를 입력하세요.' : 'Enter a range.'); return }
     const rangeText = `${s ?? '처음'} ~ ${e ?? '끝'}`
-    if (!window.confirm(ko
+    if (!await confirm(ko
       ? `로그 #${rangeText} 범위를 삭제할까요? (복구 가능)`
       : `Delete logs in #${rangeText}? (restorable)`)) return
     setBusy(true); setErr(null); setMsg(null)

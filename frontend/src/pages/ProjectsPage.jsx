@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { confirm } from '../components/dialog'
 import { useNavigate } from 'react-router-dom'
 import { Icon, Button, CoverPage, CoverCard, randomProjectIcon, PROJECT_ICONS, AVATAR_COLORS } from 'lilak-ui'
 import { launcher, setExperiment, getExperiment } from '../api'
@@ -205,7 +206,7 @@ export default function ProjectsPage() {
 
   async function remove(name) {
     if (!isManager) return
-    if (!window.confirm(t('projects_delete_confirm', name))) return
+    if (!await confirm(t('projects_delete_confirm', name))) return
     setBusy(name)
     try {
       await launcher.delete(`/projects/${name}`)

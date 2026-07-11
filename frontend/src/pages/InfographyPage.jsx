@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { confirm, alertDialog } from '../components/dialog'
 import { Icon, Modal, Button, Input, Badge, DataTable, Row, Stack, Menu, TimeRangePicker, rangeBounds, useTaggables, SubTabs, LogList, LogEntryCard, LogDetail, openBarInput, closeBarInput } from 'lilak-ui'
 import { jsPDF } from 'jspdf'
 import api from '../api'
@@ -315,7 +316,7 @@ function downloadBlob(blob, filename) {
 function svgToCanvas(node, onCanvas) {
   if (!node) return
   const svg = node.querySelector('svg')
-  if (!svg) { window.alert('내보낼 그래프가 없습니다.'); return }
+  if (!svg) { alertDialog('내보낼 그래프가 없습니다.'); return }
   const rect = svg.getBoundingClientRect()
   const w = Math.max(1, Math.round(rect.width)), h = Math.max(1, Math.round(rect.height))
   const clone = svg.cloneNode(true)
@@ -330,7 +331,7 @@ function svgToCanvas(node, onCanvas) {
     ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, w, h); ctx.drawImage(img, 0, 0, w, h)
     onCanvas(canvas, w, h)
   }
-  img.onerror = () => window.alert('이미지 변환에 실패했습니다.')
+  img.onerror = () => alertDialog('이미지 변환에 실패했습니다.')
   img.src = svg64
 }
 
@@ -360,7 +361,7 @@ async function exportData(ig, vars, runOverride, filename) {
     ? `/infography/data?x=${encodeURIComponent(xVars.join(','))}&y=${encodeURIComponent(yVars.join(','))}${runs}`
     : `/infography/data?x=${encodeURIComponent(xVars.join(','))}${runs}`
   let data
-  try { data = (await api.get(q)).data } catch { window.alert('데이터를 불러오지 못했습니다.'); return }
+  try { data = (await api.get(q)).data } catch { alertDialog('데이터를 불러오지 못했습니다.'); return }
   const rows = []
   if (data.points && data.points.length) {
     const ykeys = data.y_vars || []
@@ -371,7 +372,7 @@ async function exportData(ig, vars, runOverride, filename) {
     rows.push(['label', 'value']); for (const b of data.bins) rows.push([b.label, b.value])
   } else if (data.values && data.values.length) {
     rows.push([varLabel(vars, xVars[0])]); for (const v of data.values) rows.push([v])
-  } else { window.alert('내보낼 데이터가 없습니다.'); return }
+  } else { alertDialog('내보낼 데이터가 없습니다.'); return }
   downloadBlob(new Blob([toCsv(rows)], { type: 'text/csv;charset=utf-8' }), filename)
 }
 
@@ -429,7 +430,7 @@ function InfographExpanded({ ig, vars, tagColors, refreshKey, timeRange, runOver
   useEffect(() => { loadComments() }, [loadComments])
   useEffect(() => { if (commentRefresh) loadComments() }, [commentRefresh, loadComments])
 
-  async function del() { if (!window.confirm('삭제할까요?')) return; await api.delete(`/infographs/${ig.id}`); onDeleted() }
+  async function del() { if (!await confirm('삭제할까요?')) return; await api.delete(`/infographs/${ig.id}`); onDeleted() }
   async function deleteComment(cid) { try { await api.delete(`/infographs/${ig.id}/comments/${cid}`); loadComments() } catch { /* ignore */ } }
 
   // Toggle log-scale y straight from the card (no need to open the editor).
@@ -444,7 +445,7 @@ function InfographExpanded({ ig, vars, tagColors, refreshKey, timeRange, runOver
         y_min: ig.y_min, y_max: ig.y_max, log_y: !ig.log_y,
       })
       onChanged && onChanged(r.data)
-    } catch (e) { window.alert('log y 변경 실패: ' + (e.response?.data?.detail || e.message)) }
+    } catch (e) { alertDialog('log y 변경 실패: ' + (e.response?.data?.detail || e.message)) }
     finally { setLogYBusy(false) }
   }
 
@@ -507,7 +508,7 @@ function GSheetPanel() {
     try { const r = await api.post('/infography/gsheet/sync'); setMsg(`동기화 완료 (${r.data.rows}행)`); load() }
     catch (e) { setErr(e.response?.data?.detail || '동기화 실패') } finally { setBusy(false) }
   }
-  async function disconnect() { if (!window.confirm('연결을 해제할까요?')) return; await api.delete('/infography/gsheet/config'); load() }
+  async function disconnect() { if (!await confirm('연결을 해제할까요?')) return; await api.delete('/infography/gsheet/config'); load() }
   async function toggleAuto() {
     setBusy(true)
     try { await api.put('/infography/gsheet/config', { spreadsheet: status.spreadsheet_id, worksheet: status.worksheet, auto_sync: !status.auto_sync }); load() }
@@ -610,7 +611,7 @@ export default function InfographyPage() {
   async function duplicate(ig) {
     const { id, infograph_index, created_at, author_name, created_by, ...rest } = ig
     try { await api.post('/infographs', { ...rest, title: `${ig.title} (copy)` }); load() }
-    catch (e) { window.alert('복제 실패: ' + (e.response?.data?.detail || e.message)) }
+    catch (e) { alertDialog('복제 실패: ' + (e.response?.data?.detail || e.message)) }
   }
 
   const load = useCallback(() => { api.get('/infographs').then(r => setInfographs(r.data || [])).catch(() => {}) }, [])

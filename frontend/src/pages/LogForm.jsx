@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { confirm } from '../components/dialog'
 import { Icon, Button, CameraCapture } from 'lilak-ui'
 import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
@@ -970,7 +971,7 @@ export default function LogForm({
                         {a.original_filename}
                         <button type="button"
                           onClick={async () => {
-                            if (!window.confirm(`Delete ${a.original_filename}?`)) return
+                            if (!await confirm(`Delete ${a.original_filename}?`)) return
                             await api.delete(`/attachments/${a.id}`)
                             setExistingAttachments(prev => prev.filter(x => x.id !== a.id))
                           }}

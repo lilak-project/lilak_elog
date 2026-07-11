@@ -8,6 +8,7 @@ import { SizeProvider } from './context/SizeContext'
 import { TabProvider } from './context/TabContext'
 import Shell from './components/Shell'
 import PortalLinkGate from './components/PortalLinkGate'
+import { DialogHost } from './components/dialog'
 import TabbedWorkspace from './pages/TabbedWorkspace'
 import LogDetail from './pages/LogDetail'
 import LogForm from './pages/LogForm'
@@ -39,6 +40,7 @@ export default function App() {
           <LangProvider>
             <AuthProvider>
               <PortalLinkGate />
+              <DialogHost />   {/* portal-safe confirm/prompt/alert host */}
               {/* Under the portal proxy (/pp/<svc>/<proj>/), route relative to that
                   prefix so client-side navigation stays inside the proxied app. */}
               <BrowserRouter basename={(typeof window !== 'undefined' && window.__PORTAL_BASE__) || undefined}>

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { confirm } from '../../components/dialog'
 import api from '../../api'
 import { useAuth } from '../../context/AuthContext'
 import { useLang } from '../../context/LangContext'
@@ -33,7 +34,7 @@ export default function FreeUsersManager({ freeUsers: initial, onClose }) {
   }
 
   async function handleDelete(f) {
-    if (!window.confirm(t('sched_fu_delete_confirm', f.name))) return
+    if (!await confirm(t('sched_fu_delete_confirm', f.name))) return
     await api.delete(`/schedule/free-users/${f.id}`)
     await reload()
   }
