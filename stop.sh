@@ -2,10 +2,9 @@
 # LILAK Elog 서버 종료 스크립트
 #
 # 기본 동작: 이 레포(ai_projects/lilak_elog)가 띄운 모든 것을 종료한다 —
-#   • 런처 (LAUNCHER_PORT, 기본 8010)
-#   • 런처가 spawn한 모든 프로젝트 서버 (data/*/.port 로 추적, 8020+)
+#   • standalone elog 백엔드 (LAUNCHER_PORT, 기본 8010)
 #   • .port 파일 없이 수동으로 띄운 떠돌이 elog 백엔드 (명령줄에 이 레포
-#     경로가 박힌 `uvicorn main:app` / `uvicorn launcher:app`)
+#     경로가 박힌 `uvicorn main:app`)
 #
 # 다른 레포(예: lilak_clone_test/lilak_elog)의 인스턴스는 건드리지 않는다 —
 # 프로세스 명령줄이 이 레포의 절대경로를 포함하는 것만 고른다.
@@ -60,7 +59,7 @@ kill_port() {
 repo_elog_pids() {
   ps -eo pid=,command= \
     | grep -F "$SCRIPT_DIR/" \
-    | grep -E "uvicorn (main|launcher):app" \
+    | grep -E "uvicorn main:app" \
     | grep -v grep \
     | awk '{print $1}'
 }

@@ -103,7 +103,7 @@ override per machine — see `.env.example`):
 | Service | Port | Start (from the repo root) |
 |---|---|---|
 | elog backend (default experiment) | `8011` | `BACKEND_PORT=8011 ./start_backend.sh` |
-| launcher (project list + proxy) | `8010` | `cd backend && LAUNCHER_PORT=8010 ../.venv/bin/python -m uvicorn launcher:app --port 8010` |
+| standalone (single experiment) | `8010` | `./elog.sh` (or `./elog.sh -e <experiment>`) — the old multi-experiment launcher was removed; use the portal for multiple experiments |
 
 First time only, create the Python venv + deps: `python -m venv .venv && .venv/bin/pip install -r requirements.txt` (or run `./elog.sh` once to bootstrap).
 

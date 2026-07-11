@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
-# LILAK Elog — 런처 시작 스크립트
+# LILAK Elog — standalone dev 시작 스크립트 (단일 실험)
 #
 # Usage:
-#   ./elog.sh               # 런처를 8010에서 시작, 커버 페이지 열기
-#   ./elog.sh -p 9010       # 런처 포트 변경
-#   LAUNCHER_PORT=9010 ./elog.sh
+#   ./elog.sh               # 'default' 실험을 8010에서 시작
+#   ./elog.sh -e ko2421     # 특정 실험을 직접 시작
+#   ./elog.sh -p 9010       # 포트 변경
 #
-# 각 프로젝트 서버는 커버 페이지(http://localhost:8010)에서 시작/종료합니다.
-# 프로젝트 서버는 8020+ 포트에 자동 할당됩니다.
+# 다중 실험(프로젝트 목록·전환·중앙 계정)은 이제 포털 service_manager가 담당한다.
+# 예전의 standalone launcher(:8010 프로젝트 목록 + 역프록시 + 자체 계정 DB)는
+# 포털로 대체되어 제거됐다 — standalone은 한 번에 한 실험을 직접 띄운다.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
@@ -25,10 +26,9 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     -p|--port) PORT="$2"; shift 2 ;;
     -e|--experiment)
-      # 하위 호환 — 직접 특정 프로젝트를 시작하고 싶을 때
       DIRECT_EXP="$2"; shift 2 ;;
     *)
-      echo "사용법: $0 [-p PORT] [-e EXPERIMENT(직접시작)]"
+      echo "사용법: $0 [-p PORT] [-e EXPERIMENT]"
       exit 1 ;;
   esac
 done
@@ -63,23 +63,25 @@ if [ -n "$PIDS" ]; then
   done
 fi
 
+EXP="${DIRECT_EXP:-default}"
+
 echo ""
 echo "  ╔══════════════════════════════════════════╗"
-echo "  ║         🔬 LILAK Elog 런처               ║"
+echo "  ║         🔬 LILAK Elog (standalone)       ║"
 echo "  ╠══════════════════════════════════════════╣"
-printf  "  ║  커버 페이지: http://localhost:%-10s║\n" "${PORT}"
-printf  "  ║  네트워크:    http://%-21s║\n" "${LOCAL_IP}:${PORT}"
-echo "  ║  프로젝트 서버: 8020+ 자동 할당          ║"
+printf  "  ║  실험:    %-32s║\n" "${EXP}"
+printf  "  ║  로컬:    http://localhost:%-15s║\n" "${PORT}"
+printf  "  ║  네트워크: http://%-24s║\n" "${LOCAL_IP}:${PORT}"
 echo "  ╚══════════════════════════════════════════╝"
 echo ""
-echo "  커버 페이지에서 프로젝트를 시작·종료·관리하세요."
-echo "  종료: Ctrl+C (프로젝트 서버는 별도로 종료)"
+echo "  다중 실험은 포털(service_manager)을 사용하세요."
+echo "  종료: Ctrl+C"
 echo ""
 
 SERVER_PID=""
 cleanup() {
   echo ""
-  echo "  런처를 종료합니다…"
+  echo "  종료합니다…"
   wait "$SERVER_PID" 2>/dev/null
   exit 0
 }
@@ -87,27 +89,14 @@ trap cleanup INT TERM
 
 cd backend
 
-if [ -n "$DIRECT_EXP" ]; then
-  # -e 플래그: 특정 프로젝트를 직접 시작 (이전 호환)
-  echo "  직접 시작: $DIRECT_EXP"
-  # --workers 1 필수: main.py lifespan이 워커마다 모듈 러너를 시작하므로
-  # 멀티 워커면 자동 로그가 중복 생성되고 SQLite 락 경합이 발생한다.
-  ELOG_EXPERIMENT="$DIRECT_EXP" LAUNCHER_PORT="$PORT" \
-    ../.venv/bin/uvicorn main:app --host 0.0.0.0 --port "$PORT" --workers 1 &
-  SERVER_PID=$!
-  for i in $(seq 1 30); do
-    sleep 0.3
-    curl -s "http://localhost:${PORT}/api/tags" > /dev/null 2>&1 && { open "http://localhost:${PORT}"; break; }
-  done
-else
-  # 런처 시작
-  LAUNCHER_PORT="$PORT" ELOG_DATA_ROOT="$SCRIPT_DIR/data" \
-    ../.venv/bin/uvicorn launcher:app --host 0.0.0.0 --port "$PORT" --workers 1 &
-  SERVER_PID=$!
-  for i in $(seq 1 30); do
-    sleep 0.3
-    curl -s "http://localhost:${PORT}/api/projects" > /dev/null 2>&1 && { open "http://localhost:${PORT}/projects"; break; }
-  done
-fi
+# --workers 1 필수: main.py lifespan이 워커마다 모듈 러너를 시작하므로
+# 멀티 워커면 자동 로그가 중복 생성되고 SQLite 락 경합이 발생한다.
+ELOG_EXPERIMENT="$EXP" ELOG_DATA_ROOT="$SCRIPT_DIR/data" \
+  ../.venv/bin/uvicorn main:app --host 0.0.0.0 --port "$PORT" --workers 1 &
+SERVER_PID=$!
+for i in $(seq 1 30); do
+  sleep 0.3
+  curl -s "http://localhost:${PORT}/api/tags" > /dev/null 2>&1 && { open "http://localhost:${PORT}"; break; }
+done
 
 wait $SERVER_PID

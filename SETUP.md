@@ -56,9 +56,11 @@ Three processes (use 3 terminals, or background each with `&`):
 cd ~/ai_projects/lilak_elog
 BACKEND_PORT=8011 ./start_backend.sh
 
-# B) launcher (project/experiment list)  → port 8010
-cd ~/ai_projects/lilak_elog/backend
-LAUNCHER_PORT=8010 ../.venv/bin/python -m uvicorn launcher:app --host 0.0.0.0 --port 8010
+# B) standalone (single experiment)  → port 8010
+#    The old launcher (project list + reverse proxy + its own account DB) was
+#    removed — the portal (service_manager) does multi-experiment now.
+./elog.sh                 # 'default' experiment
+./elog.sh -e ko2421       # a specific experiment
 
 # C) frontend  → port 5130
 cd ~/ai_projects/lilak_elog/frontend
