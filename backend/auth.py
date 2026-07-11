@@ -14,9 +14,13 @@ USERNAME RULES
 """
 
 import hashlib
+import json
 import os
 import re
 import secrets
+import time
+import urllib.error
+import urllib.request
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
@@ -40,6 +44,40 @@ SECRET_KEY: str = (
 )
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_HOURS: int = int(os.environ.get("ELOG_TOKEN_EXPIRE_HOURS", "24"))
+
+# ── Portal introspection ─────────────────────────────────────────────────────
+# The portal mints tokens at login, so a later role change wouldn't reach elog,
+# which used to copy `role` only when it first provisioned the local mirror — a
+# portal demotion then never propagated (the mirror stayed manager forever). Ask
+# the portal's /api/introspect for the LIVE role/profile on entry (cached briefly),
+# falling back to the token claims when the portal is unreachable. Same canonical
+# mechanism nptoy/g4toy use.
+_PORTAL_PORT = os.environ.get("PORTAL_PORT")
+_INTROSPECT_TTL = 20                            # seconds; caps portal calls per token
+_introspect_cache: dict = {}                    # token -> (expiry_monotonic, fresh)
+
+
+def _introspect(token: Optional[str]) -> Optional[dict]:
+    if not token or not _PORTAL_PORT:
+        return None
+    now = time.monotonic()
+    hit = _introspect_cache.get(token)
+    if hit and hit[0] > now:
+        return hit[1]
+    try:
+        req = urllib.request.Request(
+            f"http://127.0.0.1:{_PORTAL_PORT}/api/introspect",
+            headers={"Authorization": f"Bearer {token}"})
+        with urllib.request.urlopen(req, timeout=2) as r:
+            fresh = json.loads(r.read())
+    except Exception:
+        return None
+    if len(_introspect_cache) > 512:            # bound the map (tokens rotate daily)
+        for k, (exp, _) in list(_introspect_cache.items()):
+            if exp <= now:
+                _introspect_cache.pop(k, None)
+    _introspect_cache[token] = (now + _INTROSPECT_TTL, fresh)
+    return fresh
 
 # ── Validation rules ────────────────────────────────────────────────────────
 _USERNAME_RE = re.compile(r'^[A-Za-z0-9_-]{3,32}$')
@@ -117,7 +155,7 @@ def _extract_bearer(authorization: Optional[str]) -> Optional[str]:
 PORTAL_PROVISIONED_HASH = "portal"
 
 
-def _resolve_portal_user(payload: dict, db: Session) -> Optional[models.User]:
+def _resolve_portal_user(payload: dict, db: Session, token: Optional[str] = None) -> Optional[models.User]:
     """A portal token authenticates against THIS service's user table by email.
 
     - portal-provisioned / already-linked local user with the same email → link in.
@@ -127,7 +165,13 @@ def _resolve_portal_user(payload: dict, db: Session) -> Optional[models.User]:
       password). Afterwards it's linked and entry is seamless.
     - no email match → provision a fresh local user mirroring the portal account.
     """
-    email = payload.get("email")
+    # Overlay the LIVE portal identity (fresh role/profile from /api/introspect) on
+    # the token claims, so a portal role change propagates on the NEXT entry instead
+    # of being frozen at provisioning time. Falls back to the claims if the portal
+    # is unreachable (role then tracks the ≤24 h-old token, not "forever").
+    src = {**(payload or {}), **(_introspect(token) or {})}
+    role = src.get("role") or src.get("prole") or "user"
+    email = src.get("email")
     if email:
         user = db.query(models.User).filter(models.User.email == email).first()
         if user is not None:
@@ -139,14 +183,17 @@ def _resolve_portal_user(payload: dict, db: Session) -> Optional[models.User]:
                                     detail={"code": "PORTAL_LINK_REQUIRED", "email": email,
                                             "username": user.username})
             # The portal is the source of truth for the SHARED identity, so keep this
-            # linked elog user in sync on EVERY entry (avatar + display name). elog-
-            # local fields (phone / experiment_role / participation) are left alone.
+            # linked elog user in sync on EVERY entry: avatar + display name AND role
+            # (a portal promote/demote now propagates; local role edits for a
+            # portal-linked user are transient by design). elog-local fields (phone /
+            # experiment_role / participation) are left alone.
             changed = not getattr(user, "portal_linked", False)
             if changed:
                 user.portal_linked = True
-            for attr, val in (("display_name", payload.get("name")),
-                              ("profile_color", payload.get("color")),
-                              ("profile_shape", payload.get("shape"))):
+            for attr, val in (("display_name", src.get("name")),
+                              ("profile_color", src.get("color")),
+                              ("profile_shape", src.get("shape")),
+                              ("role", role)):
                 if val is not None and getattr(user, attr, None) != val:
                     setattr(user, attr, val)
                     changed = True
@@ -154,22 +201,22 @@ def _resolve_portal_user(payload: dict, db: Session) -> Optional[models.User]:
                 db.commit()
             return user
     # No email match → provision a fresh local user from the portal claims.
-    base = payload.get("username") or (email.split("@")[0] if email else "user")
+    base = src.get("username") or (email.split("@")[0] if email else "user")
     uname = base
     if db.query(models.User).filter(models.User.username == uname).first():
-        uname = f"{base}_{payload.get('sub', 'p')}"
+        uname = f"{base}_{src.get('sub', payload.get('sub', 'p'))}"
     user = models.User(
         username=uname,
-        display_name=payload.get("name") or uname,
+        display_name=src.get("name") or uname,
         email=email,
-        role=payload.get("prole") or "user",
-        profile_color=payload.get("color"),
-        profile_shape=payload.get("shape"),
+        role=role,
+        profile_color=src.get("color"),
+        profile_shape=src.get("shape"),
         # rest of the elog profile, mirrored from the portal account (superset)
-        phone=payload.get("phone"),
-        experiment_role=payload.get("erole"),
-        participation_from=payload.get("pfrom"),
-        participation_to=payload.get("pto"),
+        phone=src.get("phone"),
+        experiment_role=src.get("erole"),
+        participation_from=src.get("pfrom"),
+        participation_to=src.get("pto"),
         is_active=True,
         portal_linked=True,
         password_hash=PORTAL_PROVISIONED_HASH,
@@ -193,7 +240,7 @@ def get_current_user_optional(
     # A portal token carries `portal: true` + the account's email; resolve it to
     # a local user (link by email / auto-provision) instead of by local id.
     if payload.get("portal"):
-        return _resolve_portal_user(payload, db)
+        return _resolve_portal_user(payload, db, token)
     user = db.query(models.User).filter(
         models.User.id == int(payload["sub"]),
         models.User.is_active == True,
