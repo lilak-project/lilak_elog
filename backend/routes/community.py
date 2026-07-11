@@ -20,6 +20,7 @@ from sqlalchemy.orm import Session
 from auth import require_auth, require_manager
 from audit_log import record as _audit
 from database import get_db, DATA_ROOT, EXPERIMENT
+from upload_util import save_upload_streaming
 from models import AiBot, ChatMessage, Comment, CommunityBridge, LogEntry, Notification, User
 from schemas import (
     ChatMessageCreate, ChatMessageOut,
@@ -32,6 +33,7 @@ _MENTION_RE = re.compile(r'@([A-Za-z0-9_]+)')
 router = APIRouter(tags=["community"])
 
 UPLOADS_DIR = os.path.join(DATA_ROOT, EXPERIMENT, "uploads")
+COMMUNITY_IMAGE_MAX = 25 * 1024 * 1024  # 25 MB — community images (previously unbounded)
 
 
 # ── Messages ──────────────────────────────────────────────────────────────────
@@ -199,9 +201,9 @@ async def upload_image(
     filename = f"comm_{uuid.uuid4().hex}{ext}"
     dest = os.path.join(UPLOADS_DIR, filename)
 
-    content = await file.read()
-    with open(dest, "wb") as f:
-        f.write(content)
+    # Stream to disk with a bounded size (was: whole file into RAM, no limit).
+    await save_upload_streaming(file, dest, COMMUNITY_IMAGE_MAX,
+                               too_large_detail="Image exceeds the 25 MB limit")
 
     # NOTE: served by the GET /community/images/{filename} route below,
     # NOT /attachments/{id} (which expects an integer attachment row).

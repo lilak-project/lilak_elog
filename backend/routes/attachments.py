@@ -17,6 +17,7 @@ import models
 import schemas
 from auth import get_current_user_optional, require_auth
 from database import UPLOAD_DIR, get_db
+from upload_util import save_upload_streaming
 
 router = APIRouter(tags=["attachments"])
 
@@ -131,15 +132,15 @@ async def upload_attachments(
     dest_dir = _attachment_dir(log_id)
 
     for upload in files:
-        content = await upload.read()
-        if len(content) > MAX_FILE_SIZE:
-            raise HTTPException(status_code=413, detail=f"File {upload.filename} exceeds 100 MB limit")
-
         safe = _safe_filename(upload.filename or "upload")
         stem, ext = os.path.splitext(safe)
         stored_name = f"{stem}_{uuid.uuid4().hex[:8]}{ext}"
         dest = dest_dir / stored_name
-        dest.write_bytes(content)
+        # Stream to disk: bounded memory + the size cap is enforced DURING the read
+        # (a huge upload can't balloon RAM before a post-read check fires).
+        size = await save_upload_streaming(
+            upload, dest, MAX_FILE_SIZE,
+            too_large_detail=f"File {upload.filename} exceeds 100 MB limit")
 
         ct = upload.content_type or mimetypes.guess_type(upload.filename or "")[0] or "application/octet-stream"
 
@@ -148,7 +149,7 @@ async def upload_attachments(
             filename=stored_name,
             original_filename=upload.filename or stored_name,
             content_type=ct,
-            size=len(content),
+            size=size,
         )
         db.add(att)
         db.flush()
