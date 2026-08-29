@@ -155,15 +155,51 @@ def _extract_bearer(authorization: Optional[str]) -> Optional[str]:
 PORTAL_PROVISIONED_HASH = "portal"
 
 
+def _sync_linked(db: Session, user: models.User, src: dict, role: str,
+                 adopt: bool = False, email: Optional[str] = None) -> models.User:
+    """Keep a linked elog user in sync with the portal on EVERY entry: avatar +
+    display name AND role (a portal promote/demote propagates; local role edits for a
+    portal-linked user are transient by design). elog-local fields (phone /
+    experiment_role / participation) are left alone.
+
+    `adopt` marks a local account as taken over by the portal identity: it also
+    retires the local password, so a seeded credential (elog plants `admin`/1757 in
+    every new project) stops being a second way in and entry becomes portal-only.
+    `email` backfills an address the local row never had, so the next entry resolves
+    on the normal email path instead of coming back through the username fallback."""
+    changed = not getattr(user, "portal_linked", False)
+    if changed:
+        user.portal_linked = True
+    if adopt and user.password_hash != PORTAL_PROVISIONED_HASH:
+        user.password_hash = PORTAL_PROVISIONED_HASH
+        changed = True
+    if email and not user.email:
+        user.email = email
+        changed = True
+    for attr, val in (("display_name", src.get("name")),
+                      ("profile_color", src.get("color")),
+                      ("profile_shape", src.get("shape")),
+                      ("role", role)):
+        if val is not None and getattr(user, attr, None) != val:
+            setattr(user, attr, val)
+            changed = True
+    if changed:
+        db.commit()
+    return user
+
+
 def _resolve_portal_user(payload: dict, db: Session, token: Optional[str] = None) -> Optional[models.User]:
-    """A portal token authenticates against THIS service's user table by email.
+    """A portal token authenticates against THIS service's user table, by email when
+    there is one and by username when there is not.
 
     - portal-provisioned / already-linked local user with the same email → link in.
     - an INDEPENDENT local user (its own password) with the same email not yet
       linked → DON'T silently take it over: raise 409 PORTAL_LINK_REQUIRED so the
       user confirms ownership once (POST /api/auth/portal-link with the local
       password). Afterwards it's linked and entry is seamless.
-    - no email match → provision a fresh local user mirroring the portal account.
+    - no email match, but a local user with the SAME USERNAME and no email of its
+      own → adopt it (see the fallback below).
+    - nothing matched → provision a fresh local user mirroring the portal account.
     """
     # Overlay the LIVE portal identity (fresh role/profile from /api/introspect) on
     # the token claims, so a portal role change propagates on the NEXT entry instead
@@ -182,29 +218,37 @@ def _resolve_portal_user(payload: dict, db: Session, token: Optional[str] = None
                 raise HTTPException(status_code=status.HTTP_409_CONFLICT,
                                     detail={"code": "PORTAL_LINK_REQUIRED", "email": email,
                                             "username": user.username})
-            # The portal is the source of truth for the SHARED identity, so keep this
-            # linked elog user in sync on EVERY entry: avatar + display name AND role
-            # (a portal promote/demote now propagates; local role edits for a
-            # portal-linked user are transient by design). elog-local fields (phone /
-            # experiment_role / participation) are left alone.
-            changed = not getattr(user, "portal_linked", False)
-            if changed:
-                user.portal_linked = True
-            for attr, val in (("display_name", src.get("name")),
-                              ("profile_color", src.get("color")),
-                              ("profile_shape", src.get("shape")),
-                              ("role", role)):
-                if val is not None and getattr(user, attr, None) != val:
-                    setattr(user, attr, val)
-                    changed = True
-            if changed:
-                db.commit()
-            return user
-    # No email match → provision a fresh local user from the portal claims.
-    base = src.get("username") or (email.split("@")[0] if email else "user")
+            # The portal is the source of truth for the SHARED identity.
+            return _sync_linked(db, user, src, role)
+
+    # ── username fallback ─────────────────────────────────────────────────────
+    # The email did not resolve: either the portal account has no email at all (a
+    # deployment running EMAIL_VERIFY_REQUIRED=0) or it carries one this service has
+    # never seen. Match on the username instead, GUARDED to a local account with no
+    # email of its own — an account that has an email is reachable by the normal path
+    # and keeps its 409 confirm-ownership step, so this can never quietly swallow an
+    # identity that had another way in. The portal still dictates the role, so an
+    # adopted account confers no privilege its portal owner lacks.
+    uname = src.get("username")
+    local = (db.query(models.User).filter(models.User.username == uname).first()
+             if uname else None)
+    if local is not None and not local.email:
+        if not local.is_active:
+            return None
+        return _sync_linked(db, local, src, role, adopt=True, email=email)
+
+    # Nothing matched → provision a fresh local user from the portal claims.
+    base = uname or (email.split("@")[0] if email else "user")
     uname = base
     if db.query(models.User).filter(models.User.username == uname).first():
         uname = f"{base}_{src.get('sub', payload.get('sub', 'p'))}"
+        # Idempotence: an earlier entry may already have provisioned this exact name.
+        # Re-using it instead of INSERTing again is what stops a repeat visit from
+        # dying on UNIQUE(users.username) — the failure that turned every
+        # authenticated request into a 500 for an emailless account.
+        prior = db.query(models.User).filter(models.User.username == uname).first()
+        if prior is not None:
+            return _sync_linked(db, prior, src, role, email=email) if prior.is_active else None
     user = models.User(
         username=uname,
         display_name=src.get("name") or uname,
