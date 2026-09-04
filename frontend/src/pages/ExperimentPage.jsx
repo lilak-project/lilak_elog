@@ -232,19 +232,31 @@ function ServiceForm({ initial, formats, onSave, onCancel, busy, t, isManager, h
   }
 
   async function sendCredentials() {
-    if (!tokenState.token || !form.request_url) return
+    if (!form.request_url) return
     setTokenState(s => ({ ...s, sending: true, sendResult: null }))
     try {
-      await fetch(form.request_url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          event: 'elog_credentials',
-          elog_url: origin,
-          elog_token: tokenState.token,
-        }),
-      })
-      setTokenState(s => ({ ...s, sending: false, sendResult: 'ok' }))
+      if (initial?.id) {
+        // Through the server. A portal-run system listens on loopback only, so
+        // a fetch from this browser would never reach it — and the address to
+        // hand back is one only the server can work out (portal_peer.self_url).
+        const res = await api.post(`/services/${initial.id}/send-credentials`)
+        setTokenState(s => ({ ...s, sending: false, sendResult: res.data?.ok ? 'ok' : 'err' }))
+      } else if (tokenState.token) {
+        // Not saved yet, so there is no service to send on our behalf. Only
+        // works for a system this browser can reach directly.
+        await fetch(form.request_url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            event: 'elog_credentials',
+            elog_url: origin,
+            elog_token: tokenState.token,
+          }),
+        })
+        setTokenState(s => ({ ...s, sending: false, sendResult: 'ok' }))
+      } else {
+        setTokenState(s => ({ ...s, sending: false, sendResult: 'err' }))
+      }
     } catch {
       setTokenState(s => ({ ...s, sending: false, sendResult: 'err' }))
     }
@@ -716,7 +728,12 @@ function ServiceRow({ svc, onOpen, isOpen, onToggleActive, t }) {
   return (
     <div style={{ display: 'flex', alignItems: 'stretch' }}>
       <button onClick={() => onOpen(svc.id)}
-        style={{ flex: 1, textAlign: 'left', cursor: 'pointer', padding: 12, background: 'var(--surface)', color: 'var(--text-primary)',
+        // minWidth:0 is load-bearing: a flex item defaults to min-width:auto, so it
+        // refuses to shrink below its content's min-content width. The inner column
+        // already sets it, but that is useless while the chain is broken HERE — one
+        // long unbreakable path or URL below stretched this button, and the whole
+        // card with it, instead of being truncated.
+        style={{ flex: 1, minWidth: 0, textAlign: 'left', cursor: 'pointer', padding: 12, background: 'var(--surface)', color: 'var(--text-primary)',
           borderWidth: 1, borderStyle: 'solid', borderColor: isOpen ? 'var(--border-focus)' : 'var(--border-default)', borderRightWidth: 0, borderRadius: '12px 0 0 12px',
           boxShadow: isOpen ? '0 0 0 1px var(--border-focus)' : undefined }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
@@ -726,10 +743,12 @@ function ServiceRow({ svc, onOpen, isOpen, onToggleActive, t }) {
               <span style={{ fontWeight: 600, fontSize: 'var(--fs-medium, 14px)', color: 'var(--text-primary)' }}>{svc.name}</span>
               {svc.realtime_enabled && <Badge tone="success" mono>{t('exp_realtime')}</Badge>}
             </div>
-            {svc.description && <p style={{ margin: '2px 0 0', fontSize: 'var(--fs-small, 12px)', color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{svc.description}</p>}
+            {svc.description && <p title={svc.description} style={{ margin: '2px 0 0', fontSize: 'var(--fs-small, 12px)', color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{svc.description}</p>}
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 'var(--fs-tiny, 11px)', marginTop: 4, flexWrap: 'wrap', color: 'var(--text-muted)' }}>
               {(svc.hostname || svc.ip) && <span>📡 {svc.hostname || svc.ip}</span>}
-              {svc.directory && <span style={{ fontFamily: 'var(--font-mono)' }}>📁 {svc.directory}</span>}
+              {/* A directory list can be hundreds of characters with no space in it.
+                  The row is a glance; the full value is in the opened panel below. */}
+              {svc.directory && <span title={svc.directory} style={{ fontFamily: 'var(--font-mono)', minWidth: 0, maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>📁 {svc.directory}</span>}
               {svc.format_names?.length > 0 && <span>📋 {svc.format_names.length} format(s)</span>}
             </div>
           </div>
@@ -824,7 +843,15 @@ function ServiceDetail({ svc, formats, modules, onEdit, onDelete, onClose, onCha
   }, [svc.realtime_enabled, svc.realtime_interval_sec, svc.id])
 
   const fmtMap = Object.fromEntries((formats ?? []).map(f => [f.id, f]))
-  const dtdd = (label, value, mono) => (<><dt>{label}</dt><dd style={{ margin: 0, fontFamily: mono ? 'var(--font-mono)' : undefined, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value}</dd></>)
+  // The opened panel is where a full path or request_url is actually READ, so it
+  // wraps rather than truncating — and `overflowWrap: anywhere` gives a break
+  // opportunity inside a token that has none, which is what let these values push
+  // the 1fr grid column wider than the card. minWidth:0 for the same reason as the
+  // row above: a grid item also defaults to min-width:auto.
+  const dtdd = (label, value, mono) => (
+    <><dt style={{ minWidth: 0 }}>{label}</dt>
+      <dd style={{ margin: 0, minWidth: 0, fontFamily: mono ? 'var(--font-mono)' : undefined,
+                   overflowWrap: 'anywhere' }}>{value}</dd></>)
   return (
     <Stack gap={12} style={{ border: '1px solid var(--border-focus)', borderRadius: 12, padding: 16, backgroundColor: 'var(--surface)' }}>
       <Row justify="between" align="center">
@@ -832,7 +859,7 @@ function ServiceDetail({ svc, formats, modules, onEdit, onDelete, onClose, onCha
         <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 'var(--fs-body, 13px)', color: 'var(--text-muted)' }}>{t('exp_btn_close')}</button>
       </Row>
 
-      {svc.description && <p style={{ margin: 0, fontSize: 'var(--fs-body, 13px)', color: 'var(--text-secondary)' }}>{svc.description}</p>}
+      {svc.description && <p style={{ margin: 0, fontSize: 'var(--fs-body, 13px)', color: 'var(--text-secondary)', overflowWrap: 'anywhere' }}>{svc.description}</p>}
 
       <dl style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', rowGap: 6, fontSize: 'var(--fs-small, 12px)', color: 'var(--text-secondary)', margin: 0 }}>
         {dtdd(t('exp_field_hostname') || 'Host name', svc.hostname || svc.ip || '—', true)}
@@ -858,7 +885,19 @@ function ServiceDetail({ svc, formats, modules, onEdit, onDelete, onClose, onCha
                     <span style={{ fontSize: 'var(--fs-medium, 14px)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-primary)' }}>{f?.name || `format#${id}`}</span>
                     {f?.task_type && <Badge tone="warning" mono>{f.task_type.replace(/_/g, ' ')}</Badge>}
                   </Row>
-                  {isManager && f && <Button variant="info" onClick={() => setTaskModalFmt(f)} style={{ flexShrink: 0 }}>Manage tasks</Button>}
+                  {isManager && f && (
+                    <Row gap={6} style={{ flexShrink: 0 }}>
+                      {/* How many tasks filing this format spawns. Shown here
+                          because it is the one thing you want to know before
+                          deciding whether to open the dialog, and a format with
+                          none is exactly the case that goes unnoticed — an
+                          empty template is why a run start pulled no readings. */}
+                      <Badge tone={f.task_count ? 'info' : 'neutral'} mono>
+                        {f.task_count ?? 0} {(f.task_count ?? 0) === 1 ? 'task' : 'tasks'}
+                      </Badge>
+                      <Button variant="info" onClick={() => setTaskModalFmt(f)}>Manage tasks</Button>
+                    </Row>
+                  )}
                 </Row>
               )
             })}

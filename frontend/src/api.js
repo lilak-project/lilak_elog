@@ -45,19 +45,52 @@ const api = axios.create({
 // effect runs. React runs child effects before parent ones, so without this the
 // Shell's notification poll (and others) would fire before AuthContext's effect
 // sets the header, get a spurious 401, and wrongly tear down a valid session.
+// The portal hands its token over as the elog session token, but only when a
+// project is ENTERED from the project list (ProjectsPage.enter). So once
+// `elog_token` is gone, reloading the page does not bring it back: the app sits
+// permanently logged out, reads still work because most GETs allow anonymous,
+// and every Edit/Delete button silently disappears because they are gated on
+// `user`. That is not a session that expired -- it is a session that was thrown
+// away while the portal one is still perfectly good. Re-adopt it here.
+const PORTAL_TOKEN_KEY = 'lilak_portal_token'
+
+function useToken(tok) {
+  localStorage.setItem('elog_token', tok)
+  localStorage.removeItem('elog_user')      // force AuthContext to re-fetch /auth/me
+  api.defaults.headers.common['Authorization'] = `Bearer ${tok}`
+}
+
 {
   const t = localStorage.getItem('elog_token')
-  if (t) api.defaults.headers.common['Authorization'] = `Bearer ${t}`
+  if (t) {
+    api.defaults.headers.common['Authorization'] = `Bearer ${t}`
+  } else {
+    // No elog session, but the portal one is still in this browser: adopt it
+    // rather than showing a logged-out page the user cannot log back in to.
+    const portal = localStorage.getItem(PORTAL_TOKEN_KEY)
+    if (portal) useToken(portal)
+  }
 }
 
 // Clear stale credentials and tell the app to surface the login screen. We
 // dispatch a custom event so any listener (AuthContext) can react without
 // coupling api.js to React state. Idempotent — only fires once per session.
 function endSession() {
-  if (!localStorage.getItem('elog_token')) return
+  const failed = localStorage.getItem('elog_token')
+  if (!failed) return
   localStorage.removeItem('elog_token')
   localStorage.removeItem('elog_user')
   delete api.defaults.headers.common['Authorization']
+
+  // Falling back to the portal token is what makes this recoverable. It is only
+  // tried when the token that failed was a DIFFERENT one -- re-adopting the very
+  // token that just 401'd would loop.
+  const portal = localStorage.getItem(PORTAL_TOKEN_KEY)
+  if (portal && portal !== failed) {
+    useToken(portal)
+    window.dispatchEvent(new CustomEvent('lilak:auth:renewed'))
+    return
+  }
   window.dispatchEvent(new CustomEvent('lilak:auth:expired'))
 }
 
@@ -87,8 +120,29 @@ api.interceptors.response.use(
     }
     if (status !== 401 || !localStorage.getItem('elog_token')) return Promise.reject(err)
 
-    // The session check itself failed → genuinely logged out.
-    if (isAuthCheck(url)) { endSession(); return Promise.reject(err) }
+    // The session check itself failed. Before throwing the session away, make
+    // sure it is really gone: a service that has just restarted answers the
+    // first request in flight with a 401 while it is still coming up, and one
+    // such answer used to log the tab out for good -- reads kept working (most
+    // GETs allow anonymous) so the page looked normal, with every Edit/Delete
+    // button quietly missing. Confirm once, out of band so this interceptor
+    // does not recurse on its own retry.
+    if (isAuthCheck(url)) {
+      const tok = localStorage.getItem('elog_token')
+      if (tok) {
+        try {
+          await new Promise(r => setTimeout(r, 700))
+          await axios.get(`${api.defaults.baseURL}/auth/me`, {
+            headers: { Authorization: `Bearer ${tok}` }, timeout: 10000,
+          })
+          // Still good — that 401 was the restart, not the session.
+          window.dispatchEvent(new CustomEvent('lilak:auth:renewed'))
+          return Promise.reject(err)
+        } catch { /* genuinely rejected → fall through and end it */ }
+      }
+      endSession()
+      return Promise.reject(err)
+    }
 
     // Stray 401 from some other endpoint → verify the token once before nuking.
     // Concurrent stray 401s (e.g. the 30s poll) while a check is in flight just

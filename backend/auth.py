@@ -79,6 +79,40 @@ def _introspect(token: Optional[str]) -> Optional[dict]:
     _introspect_cache[token] = (now + _INTROSPECT_TTL, fresh)
     return fresh
 
+def portal_login(username: str, password: str) -> Optional[str]:
+    """Ask the PORTAL to check these credentials; return its token, or None.
+
+    This is what lets one password work in both places without there being two of
+    them. The portal stays the only store — nothing is copied here, and a password
+    change there takes effect immediately.
+
+    It exists because a portal-provisioned account has no local password at all
+    (`password_hash == PORTAL_PROVISIONED_HASH`, set when SSO adopts an account so
+    a seeded credential stops being a second way in). Entering through a portal
+    card hands over a token and never shows a login form — but a bookmark straight
+    to /pp/<svc>/<proj>/ does, and there was no password on earth that would work
+    on it. Now that form authenticates against the portal.
+
+    Loopback only, like _introspect: the portal is on this host and this must not
+    become a way to point elog at some other authenticator.
+    """
+    if not username or not password or not _PORTAL_PORT:
+        return None
+    body = json.dumps({"username": username, "password": password}).encode()
+    req = urllib.request.Request(
+        f"http://127.0.0.1:{_PORTAL_PORT}/api/auth/login",
+        data=body, headers={"Content-Type": "application/json"}, method="POST")
+    try:
+        with urllib.request.urlopen(req, timeout=5) as r:
+            data = json.loads(r.read())
+    except Exception:
+        # Wrong password, portal down, verification pending — all the same here:
+        # no token, so the caller falls through to its own 401.
+        return None
+    token = data.get("access_token")
+    return token if isinstance(token, str) and token else None
+
+
 # ── Validation rules ────────────────────────────────────────────────────────
 _USERNAME_RE = re.compile(r'^[A-Za-z0-9_-]{3,32}$')
 

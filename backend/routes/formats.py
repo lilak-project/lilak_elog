@@ -57,6 +57,7 @@ def _to_out(fmt: models.LogFormat, db: Session = None) -> schemas.LogFormatOut:
         system_id=fmt.system_id,
         system_name=system_name,
         owner_kind=owner_kind,
+        task_count=fmt.task_count,
         created_at=fmt.created_at,
         created_by=fmt.created_by,
     )
@@ -110,13 +111,21 @@ def update_format(
     fmt = db.query(models.LogFormat).filter(models.LogFormat.id == fmt_id).first()
     if not fmt:
         raise HTTPException(status_code=404, detail="Format not found")
-    # System / service / module formats are auto-managed and not editable.
-    out = _to_out(fmt, db)
-    if out.owner_kind in ("system", "service", "module"):
-        raise HTTPException(
-            status_code=403,
-            detail=f"This format is managed by its {out.owner_kind} and cannot be edited.",
-        )
+    # System / service / module formats are auto-managed, but a MANAGER may still
+    # edit them -- this endpoint is manager-only already, and the blanket 403 that
+    # used to sit here made the one thing these formats most need impossible: a
+    # system pushes keys (run_number, note, elapsed_s...) that only render once the
+    # format declares them, and the format that has to declare them is the very one
+    # that was locked. It was also inconsistent, since delete_format below has never
+    # had the guard: a manager could destroy the format but not add a field to it.
+    #
+    # What stays auto-managed, so an edit here is not lost by surprise:
+    #   • sync_system_formats RENAMES a system format to follow its service's name
+    #     on re-registration, but never rewrites fields_json -- field edits survive.
+    #   • _auto_create_log_format (plain services) is find-or-create on NAME PLUS
+    #     FIELD SIGNATURE, so editing a *service* format's fields makes the next
+    #     Discover create a second format rather than reuse the edited one. Rename
+    #     it if that is not what you want.
     if payload.name is not None:
         fmt.name = payload.name
     if payload.fields is not None:

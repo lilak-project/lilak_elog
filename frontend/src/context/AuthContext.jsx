@@ -46,8 +46,29 @@ export function AuthProvider({ children }) {
       emitUserChanged(null)
       try { alertDialog('세션이 만료되었습니다. 다시 로그인해 주세요.') } catch (_) {}
     }
+    // The counterpart: the session turned out to be fine (a restart race), or it
+    // was renewed from the portal token. Re-read the account so the buttons that
+    // are gated on `user` come back on their own -- otherwise the operator has
+    // to find their way out to the project list and back in, which is not
+    // something the page ever tells them.
+    function onRenewed() {
+      const tok = localStorage.getItem('elog_token')
+      if (!tok) return
+      setToken(tok)
+      api.defaults.headers.common['Authorization'] = `Bearer ${tok}`
+      api.get('/auth/me').then(r => {
+        const merged = { ...r.data, user_id: r.data.id }
+        setUser(merged)
+        localStorage.setItem('elog_user', JSON.stringify(merged))
+        emitUserChanged(merged)
+      }).catch(() => {})
+    }
     window.addEventListener('lilak:auth:expired', onExpired)
-    return () => window.removeEventListener('lilak:auth:expired', onExpired)
+    window.addEventListener('lilak:auth:renewed', onRenewed)
+    return () => {
+      window.removeEventListener('lilak:auth:expired', onExpired)
+      window.removeEventListener('lilak:auth:renewed', onRenewed)
+    }
   }, [])
 
   const login = useCallback(async (username, password) => {

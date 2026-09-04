@@ -426,27 +426,30 @@ function FormatRow({ fmt, onEdit, onDelete, t }) {
         </div>
       </div>
       <div className="flex items-center gap-2 shrink-0">
-        {['system', 'service', 'module'].includes(fmt.owner_kind) ? (
+        {/* Auto-managed formats are labelled, not locked. A manager edits them
+            like any other -- adding a field is the only way a system's pushed
+            keys (run_number, note, ...) ever render, and that had been the one
+            format nobody could touch. Delete stays hidden for them: removing a
+            format its service depends on is not an edit, and the service would
+            keep pushing into a format that no longer exists. */}
+        {['system', 'service', 'module'].includes(fmt.owner_kind) && (
           <span className="text-xs px-2.5 py-1 rounded border"
                 style={{ color: 'var(--text-muted)', borderColor: 'var(--border-subtle)' }}
-                title="시스템/서비스/모듈이 관리하는 포맷은 편집할 수 없습니다">
-            🔒 {fmt.owner_kind}
+                title={`${fmt.owner_kind}이(가) 관리하는 포맷입니다. 필드를 추가해도 유지되지만, 이름은 서비스 이름을 따라 다시 바뀔 수 있습니다.`}>
+            {fmt.owner_kind}
           </span>
-        ) : (
-          <>
-            <button onClick={() => onEdit(fmt)}
-              className="text-xs border px-2.5 py-1 rounded transition-colors"
-              style={{ color: 'var(--text-secondary)', borderColor: 'var(--border-default)' }}>
-              {t('admin_edit')}
-            </button>
-            {!fmt.is_default && (
-              <button onClick={() => onDelete(fmt)}
-                className="text-xs border px-2.5 py-1 rounded transition-colors"
-                style={{ color: 'var(--danger-text)', borderColor: 'var(--border-default)' }}>
-                {t('admin_fmt_delete')}
-              </button>
-            )}
-          </>
+        )}
+        <button onClick={() => onEdit(fmt)}
+          className="text-xs border px-2.5 py-1 rounded transition-colors"
+          style={{ color: 'var(--text-secondary)', borderColor: 'var(--border-default)' }}>
+          {t('admin_edit')}
+        </button>
+        {!fmt.is_default && !['system', 'service', 'module'].includes(fmt.owner_kind) && (
+          <button onClick={() => onDelete(fmt)}
+            className="text-xs border px-2.5 py-1 rounded transition-colors"
+            style={{ color: 'var(--danger-text)', borderColor: 'var(--border-default)' }}>
+            {t('admin_fmt_delete')}
+          </button>
         )}
       </div>
     </div>

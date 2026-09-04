@@ -16,6 +16,7 @@ from auth import (
     create_access_token, hash_password, require_auth,
     require_manager, validate_username, validate_password, verify_password,
     decode_access_token, _extract_bearer,
+    portal_login, _resolve_portal_user,
 )
 from database import get_db
 from settings_store import get_setting
@@ -33,8 +34,26 @@ def login(payload: schemas.LoginRequest, db: Session = Depends(get_db)):
         models.User.is_active == True,
     ).first()
     if not user or not verify_password(payload.password, user.password_hash):
-        _audit(db, "login_failed", "user", None, payload.username)
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="아이디 또는 비밀번호가 올바르지 않습니다.")
+        # Local check failed — ask the PORTAL before giving up. A portal-provisioned
+        # account has no local password by design (SSO retires it so a seeded
+        # credential cannot bypass the portal), so this form was unusable for it: the
+        # only way in was a portal card that hands over a token, and a bookmark
+        # straight to this project dead-ended. Authenticating against the portal
+        # keeps ONE password store while making this form work.
+        portal_tok = portal_login(payload.username, payload.password)
+        resolved = None
+        if portal_tok:
+            claims = decode_access_token(portal_tok)
+            if claims:
+                # Same resolution portal entry uses: link by email, else by
+                # username, else provision. Raises 409 when a local account with
+                # its own password must confirm ownership first.
+                resolved = _resolve_portal_user(claims, db, token=portal_tok)
+        if resolved is None:
+            _audit(db, "login_failed", "user", None, payload.username)
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="아이디 또는 비밀번호가 올바르지 않습니다.")
+        user = resolved
+        _audit(db, "login_portal", "user", user.id, user.username)
     token = create_access_token(user.id, user.username, user.role)
     _audit(db, "login", "user", user.id, user.username)
     return schemas.TokenResponse(

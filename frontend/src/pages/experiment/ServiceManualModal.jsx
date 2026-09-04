@@ -289,6 +289,13 @@ function ServiceManualKo({ origin }) {
           New Service 폼에서 URL만 입력하고 [Discover]를 누르면 elog가 아래 요청을 보내고,
           응답의 서비스 정보 + log field 목록으로 폼을 채우고 log format을 자동 생성합니다.
         </p>
+        <Note>
+          <strong>포털이 실행하는 서비스는 <Inline>portal://&lt;서비스이름&gt;/&lt;경로&gt;</Inline> 로 등록하세요.</strong><br />
+          예: <Inline>portal://hv/api/elog</Inline>. 포털 managed 서비스는 시작할 때 포트를
+          풀에서 받아가므로 재시작하면 번호가 달라질 수 있고, 그러면 고정 URL은 엉뚱한 서비스를
+          가리킵니다. 이 스킴은 요청할 때마다 <Inline>$PORTAL_DATA_ROOT/&lt;이름&gt;/.port</Inline>
+          를 읽어 풀립니다. 다른 서버에서 도는 서비스는 지금처럼 http:// 주소로 등록하면 됩니다.
+        </Note>
         <p style={{ fontWeight:600 }}>Handshake 요청 (elog → service):</p>
         <Code>{`POST <your-request-url>
 {
@@ -473,6 +480,13 @@ function ServiceManualEn({ origin }) {
           Enter the URL in the New Service form and click [Discover]: elog sends a handshake request,
           reads back the service info + log field list, auto-fills the form, and creates the log format.
         </p>
+        <Note>
+          <strong>Register a portal-run service as <Inline>portal://&lt;service&gt;/&lt;path&gt;</Inline></strong> —
+          e.g. <Inline>portal://hv/api/elog</Inline>. A portal-managed service takes its port from a pool
+          when it starts, so the number can differ after a restart and a fixed URL then points at another
+          service. This scheme is resolved on every call from <Inline>$PORTAL_DATA_ROOT/&lt;service&gt;/.port</Inline>.
+          A service running on another host is registered with its http:// address, exactly as before.
+        </Note>
         <p style={{ fontWeight:600 }}>Handshake request (elog → service):</p>
         <Code>{`POST <your-request-url>
 {

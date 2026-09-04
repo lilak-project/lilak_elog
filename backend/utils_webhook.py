@@ -8,6 +8,9 @@ Service contract (as documented in the Experiment-tab Manual modal):
   response (success):
     {fields: {<key>: <value | {value,error,…}>, …}, title?: str, body?: str}
 
+`request_url` may also be `portal://<service>/<path>`, resolved to that
+service's current loopback port on every call — see portal_peer.py.
+
 Failure modes (timeout, non-200, non-JSON, malformed) raise WebhookError. The
 caller decides how to record the error — typically by writing a comment on
 the related task log and leaving it for a shifter to fill manually.
@@ -24,6 +27,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 import models
+import portal_peer
 from utils_fields import normalize_format_fields
 from utils_tasks  import add_confirmation_required
 
@@ -57,6 +61,13 @@ def fetch_service(
     if not svc or not svc.request_url:
         raise WebhookError("service has no request_url")
 
+    # Resolved per call, never cached: a portal-managed service's port is
+    # assigned when it starts and can differ after a restart.
+    try:
+        url = portal_peer.resolve(svc.request_url)
+    except portal_peer.PortalPeerError as pe:
+        raise WebhookError(str(pe)) from pe
+
     envelope = {
         "format_id":    format_id,
         "format_name":  format_name,
@@ -68,7 +79,7 @@ def fetch_service(
     body = json.dumps(envelope).encode("utf-8")
 
     req = urllib.request.Request(
-        svc.request_url,
+        url,
         data=body,
         headers={
             "Content-Type": "application/json",

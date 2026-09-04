@@ -232,6 +232,9 @@ class LogFormatOut(BaseModel):
     system_id: Optional[int] = None
     system_name: Optional[str] = None   # resolved service name for grouping
     owner_kind: Optional[str] = None     # 'system' | 'service' | 'module' | None
+    #: Tasks this format spawns when a log is filed with it. Sent with the
+    #: format so the list can show it without a request per row.
+    task_count: int = 0
     created_at: datetime
     created_by: Optional[str]
 

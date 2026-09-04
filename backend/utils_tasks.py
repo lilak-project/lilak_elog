@@ -73,6 +73,68 @@ def confirm_log_entry(entry: models.LogEntry, user: models.User, db: Session) ->
 
 # ── Task spawning ────────────────────────────────────────────────────────────
 
+def format_owner(fmt, db) -> "models.Service | None":
+    """The service a log format belongs to — by the SAME rule everywhere.
+
+    There are two links, and they disagreed. A SYSTEM gets the FK columns
+    (system_id/subsystem_id) filled by seed_formats; a plain SERVICE registered by
+    handshake is linked only through the service_formats association, leaving those
+    FKs NULL. routes/formats._to_out already preferred the association, but the task
+    chain below still read the FKs alone — so a monitoring service's format could
+    never be spawned as a task, and setting its task_type appeared to do nothing.
+    """
+    try:
+        if fmt.services:
+            # Sorted, not services[0]: association order is not guaranteed, and a
+            # format wrongly linked to TWO services (it happens — a stray link in
+            # KO2520 tied "Actuator Monitoring log" to both Actuator Monitoring and
+            # MTE) would otherwise resolve to a different owner on different calls
+            # and fire the webhook at the wrong service half the time.
+            return sorted(fmt.services, key=lambda s: s.id)[0]
+    except Exception:
+        pass
+    ref = (fmt.system_id or fmt.subsystem_id) if fmt else None
+    return db.query(models.Service).filter(models.Service.id == ref).first() if ref else None
+
+
+def system_run_number(fmt: models.LogFormat, db: Session) -> int | None:
+    """The run number the format's own system is on, or None if it has none.
+
+    A named system runs its own counter: MTE was on 392 while the experiment
+    was on run 142. It files its own Start/End logs with that counter, so the
+    answer is already in the logbook — the most recent run number on any of
+    that system's formats.
+
+    This is what `spawn_task_logs` needs when it hangs an MTE task off a GANIL
+    run. Stamping the parent's 142 would claim the wrong run; leaving it blank,
+    which is what it used to do, threw away a number the logbook already knew
+    and left the entry with no run at all.
+    """
+    system_id = getattr(fmt, "system_id", None)
+    subsystem_id = getattr(fmt, "subsystem_id", None)
+    if system_id is None and subsystem_id is None:
+        return None
+
+    family = db.query(models.LogFormat.id)
+    if system_id is not None:
+        family = family.filter(models.LogFormat.system_id == system_id)
+    else:
+        family = family.filter(models.LogFormat.subsystem_id == subsystem_id)
+    ids = [row[0] for row in family.all()]
+    if not ids:
+        return None
+
+    last = (db.query(models.LogEntry)
+              .filter(models.LogEntry.format_id.in_(ids),
+                      models.LogEntry.run_number.isnot(None),
+                      models.LogEntry.run_number_type == "single",
+                      models.LogEntry.is_deleted == False)          # noqa: E712
+              .order_by(models.LogEntry.created_at.desc(),
+                        models.LogEntry.id.desc())
+              .first())
+    return last.run_number if last else None
+
+
 def spawn_task_logs(parent: models.LogEntry,
                     parent_fmt: models.LogFormat,
                     db: Session) -> list[models.LogEntry]:
@@ -91,32 +153,36 @@ def spawn_task_logs(parent: models.LogEntry,
     if parent_fmt.system_id is not None or parent_fmt.subsystem_id is not None:
         return []
 
+    # "Owned by a service" means either link — see format_owner. Without the
+    # `.services.any()` arm a plain service's format was invisible here.
     siblings = (
         db.query(models.LogFormat)
           .filter(models.LogFormat.task_type == parent_fmt.task_type,
                   models.LogFormat.id        != parent_fmt.id,
                   (models.LogFormat.system_id.isnot(None) |
-                   models.LogFormat.subsystem_id.isnot(None)))
+                   models.LogFormat.subsystem_id.isnot(None) |
+                   models.LogFormat.services.any()))
           .all()
     )
 
     spawned: list[models.LogEntry] = []
     for sib in siblings:
-        svc_name = "system"
-        svc_ref_id = sib.system_id or sib.subsystem_id
-        if svc_ref_id:
-            svc = (
-                db.query(models.Service)
-                  .filter(models.Service.id == svc_ref_id)
-                  .first()
-            )
-            if svc:
-                svc_name = svc.name
+        owner = format_owner(sib, db)
+        svc_name = owner.name if owner else "system"
 
         from database import next_log_index
         next_log_idx = next_log_index(db)
+        # A NAMED system's format (Start of MTE run) carries that subsystem's own
+        # run counter, not the experiment's — MTE was on 390 while the run was 140.
+        # Stamping the parent's number on it claimed the wrong run for the entry and
+        # made the logbook show two different meanings of "run 140".
+        # spawn_template_tasks has always applied this rule; this path had not.
+        own_run = sib.system_id is not None or sib.subsystem_id is not None
+        # Its own counter, not the parent's — and not nothing, which is what
+        # this used to leave behind.
+        sib_run = system_run_number(sib, db) if own_run else None
         next_run_idx = None
-        if parent.run_number is not None and (parent.run_number_type or "single") == "single":
+        if (not own_run) and parent.run_number is not None and (parent.run_number_type or "single") == "single":
             prior = (
                 db.query(func.count(models.LogEntry.id))
                   .filter(models.LogEntry.run_number      == parent.run_number,
@@ -133,9 +199,9 @@ def spawn_task_logs(parent: models.LogEntry,
             body="",
             author_id=None,
             author_name=svc_name,
-            run_number=parent.run_number,
-            run_number_type=parent.run_number_type or "single",
-            run_number_text=parent.run_number_text,
+            run_number=sib_run if own_run else parent.run_number,
+            run_number_type=("single" if own_run else (parent.run_number_type or "single")),
+            run_number_text=None if own_run else parent.run_number_text,
             run_type=sib.run_type_lock or parent.run_type,
             level="info",
             format_id=sib.id,
@@ -146,6 +212,14 @@ def spawn_task_logs(parent: models.LogEntry,
         db.add(child)
         db.flush()
         spawned.append(child)
+
+        # The child is itself a system's run log, and that log has its own task
+        # template — the monitoring services MTE wants read at the start of a
+        # run. Filed directly by MTE those came along; reached this way, as a
+        # task of somebody else's run, they did not, and the run went unread.
+        # A system brings its own sub-tasks wherever it is called from.
+        if sib.task_template_json:
+            spawned.extend(spawn_template_tasks(child, sib, db))
 
     return spawned
 
@@ -298,11 +372,9 @@ def fire_webhook_fills(child_ids: list[int]) -> None:
                 return
             fmt = sess.query(models.LogFormat).filter(
                 models.LogFormat.id == child.format_id).first()
-            svc_ref_id = (fmt.system_id or fmt.subsystem_id) if fmt else None
-            if not fmt or not svc_ref_id:
+            if not fmt:
                 return
-            svc = sess.query(models.Service).filter(
-                models.Service.id == svc_ref_id).first()
+            svc = format_owner(fmt, sess)
             if not svc or not svc.request_url:
                 # No request_url → leave the task empty for manual fill.
                 return

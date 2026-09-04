@@ -118,6 +118,29 @@ class LogFormat(Base):
     task_template_json = Column(Text, nullable=True)
 
 
+    @property
+    def task_count(self) -> int:
+        """How many tasks this format spawns — the length of its template.
+
+        A property rather than a column: the template is the truth and a stored
+        count would be a second one, wrong the moment somebody edits the
+        template without going through whatever kept it in step. Reading it
+        costs a JSON parse of a field that is already loaded.
+        """
+        import json
+
+        raw = self.task_template_json
+        if not raw:
+            return 0
+        try:
+            items = json.loads(raw)
+        except (ValueError, TypeError):
+            # A template edited into something unparsable is a real state; the
+            # number of tasks it spawns is then zero, which is also what
+            # spawn_template_tasks does with it.
+            return 0
+        return len(items) if isinstance(items, list) else 0
+
 class LogEntry(Base):
     __tablename__ = "log_entries"
 

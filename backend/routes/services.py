@@ -21,6 +21,7 @@ from pydantic import BaseModel as _BaseModel
 from sqlalchemy.orm import Session
 
 import models
+import portal_peer
 import schemas
 from auth import require_auth, require_manager
 from audit_log import record as _audit
@@ -84,8 +85,17 @@ def _resolve_formats(db: Session, ids: list[int]) -> list[models.LogFormat]:
 
 def _do_handshake(url: str, elog_url: str) -> dict:
     """POST the elog_handshake envelope to `url` and return parsed dict.
-    Raises WebhookError on any failure."""
+    Raises WebhookError on any failure.
+
+    `url` may be `portal://<service>/<path>` — a portal-managed service has no
+    fixed port, so Discover accepts the scheme and resolves it here, exactly as
+    every later data request will.
+    """
     import urllib.request, urllib.error
+    try:
+        url = portal_peer.resolve(url)
+    except portal_peer.PortalPeerError as pe:
+        raise WebhookError(str(pe)) from pe
     envelope = json.dumps({
         "event":    "elog_handshake",
         "elog_url": elog_url,
@@ -147,6 +157,11 @@ def test_connection(
     url = (payload.url or "").strip()
     if not url:
         return {"ok": False, "error": "URL이 비어 있습니다"}
+    # portal:// 은 여기서도 풀어줘야 [연결 테스트]가 등록과 같은 곳을 봅니다.
+    try:
+        url = portal_peer.resolve(url)
+    except portal_peer.PortalPeerError as pe:
+        return {"ok": False, "error": str(pe)}
     t0 = time.time()
     try:
         req = urllib.request.Request(
@@ -164,8 +179,15 @@ def test_connection(
 
 
 def _send_credentials(command_url: str, elog_url: str, token: str) -> None:
-    """command_url로 elog_credentials 이벤트를 전송합니다. 실패 시 예외를 던집니다."""
+    """command_url로 elog_credentials 이벤트를 전송합니다. 실패 시 예외를 던집니다.
+
+    command_url은 portal://<service>/<path> 형식도 됩니다 (portal_peer 참고).
+    """
     import urllib.request
+    try:
+        command_url = portal_peer.resolve(command_url)
+    except portal_peer.PortalPeerError as pe:
+        raise WebhookError(str(pe)) from pe
     envelope = json.dumps({
         "event":      "elog_credentials",
         "elog_url":   elog_url,
@@ -266,6 +288,48 @@ def _auto_create_log_format(
     db.flush()
     svc.log_formats.append(fmt)
     return fmt
+
+
+class _CredsReq(_BaseModel):
+    pass
+
+
+@router.post("/services/{svc_id}/send-credentials")
+def resend_credentials(
+    svc_id: int,
+    current_user: models.User = Depends(require_manager),
+    db: Session = Depends(get_db),
+):
+    """Send this system its elog URL + API token again.
+
+    Done here rather than from the browser. The browser cannot do it for a
+    portal-managed system at all -- that service listens on loopback only, so
+    a fetch from someone's laptop never reaches it -- and it does not know the
+    address to hand back either (see portal_peer.self_url).
+    """
+    svc = db.query(models.Service).filter(models.Service.id == svc_id).first()
+    if not svc:
+        raise HTTPException(status_code=404, detail="Service not found")
+    if not svc.is_system:
+        raise HTTPException(status_code=400, detail="Only a system receives credentials")
+    if not svc.request_url:
+        raise HTTPException(status_code=400, detail="This system has no command URL")
+
+    token = (db.query(models.ApiToken)
+               .filter(models.ApiToken.source_name == svc.name,
+                       models.ApiToken.is_active == True)      # noqa: E712
+               .order_by(models.ApiToken.id.desc())
+               .first())
+    if not token:
+        raise HTTPException(status_code=404,
+                            detail="This system has no active token; re-register it")
+
+    elog_url = portal_peer.self_url("")
+    try:
+        _send_credentials(svc.request_url, elog_url, token.token)
+    except WebhookError as we:
+        return {"ok": False, "elog_url": elog_url, "error": str(we)}
+    return {"ok": True, "elog_url": elog_url}
 
 
 # ── List / detail ────────────────────────────────────────────────────────────
@@ -378,8 +442,11 @@ def create_service(
 
         # command_url(request_url)이 있으면 credentials 전송 시도
         if svc.request_url:
-            import os
-            elog_url = payload.elog_url or os.environ.get("ELOG_PUBLIC_URL", "")
+            # NOT the browser's origin, which is the PORTAL's -- a system posting
+            # to <origin>/api/logs would hit the portal, and going through the
+            # portal proxy needs a portal session the system does not have.
+            # self_url() hands back the address the system can actually reach.
+            elog_url = portal_peer.self_url(payload.elog_url or "")
             try:
                 _send_credentials(svc.request_url, elog_url, token_str)
                 cred_sent = True
@@ -492,15 +559,15 @@ def delete_service(
 # ── Phase 7: action endpoints ────────────────────────────────────────────────
 
 def _current_run_number(db: Session) -> Optional[int]:
-    """The highest single run_number among non-deleted logs — the 'current run'
-    sent to a service on a manual/realtime request (it may use it or ignore it)."""
-    e = (db.query(models.LogEntry)
-           .filter(models.LogEntry.is_deleted == False,            # noqa: E712
-                   models.LogEntry.run_number_type == "single",
-                   models.LogEntry.run_number != None)             # noqa: E711
-           .order_by(models.LogEntry.run_number.desc())
-           .first())
-    return e.run_number if e else None
+    """The run elog tells a service about on a manual/realtime request.
+
+    Delegates to routes.logs so there is one definition of "the current run".
+    This used to be MAX(run_number) over every log, which answered a different
+    question and lost to any named system whose own counter ran ahead — every
+    monitoring log came back stamped with MTE's run number instead of the
+    experiment's."""
+    from routes.logs import current_run_number
+    return current_run_number(db)
 
 
 def _pick_format_id(svc: models.Service, requested_format_id: Optional[int]) -> Optional[int]:
@@ -571,7 +638,16 @@ def request_log(
 
     # Build an empty log, apply the response, then commit.
     from database import next_log_index
+    from utils_tasks import system_run_number
     next_log_idx = next_log_index(db)
+    # Stamp the run this log is ABOUT. It was left blank, so a manual request
+    # produced an entry with no run at all — even when its own title said
+    # "Run 142 running" — and it could not be found by a run search or grouped
+    # with the rest of that run. Same rule the task chain uses: a named system's
+    # format carries that system's own counter, everything else the experiment's.
+    fmt_obj = db.query(models.LogFormat).filter(models.LogFormat.id == fid).first() if fid else None
+    own_run = bool(fmt_obj and (fmt_obj.system_id is not None or fmt_obj.subsystem_id is not None))
+    run_no = system_run_number(fmt_obj, db) if own_run else _current_run_number(db)
     entry = models.LogEntry(
         log_index=next_log_idx,
         title=svc.name,
@@ -580,6 +656,8 @@ def request_log(
         author_name=f"<service:{svc.name}>",
         level="info",
         run_type=None,
+        run_number=run_no,
+        run_number_type="single",
         source=f"service:{svc.name}",
         is_auto=True,
         format_id=fid,

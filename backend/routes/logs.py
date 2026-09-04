@@ -347,18 +347,52 @@ def next_run_type(
 
 
 # ── Current run status (idle / run#N) ────────────────────────────────────────
-@router.get("/runs/current")
-def current_run(db: Session = Depends(get_db)):
+#: Formats owned by a NAMED system — "Start of MTE run" and friends. They carry
+#: that subsystem's own run counter, which is not the experiment's.
+def _named_system_format_ids(db: Session):
+    return (db.query(models.LogFormat.id)
+              .filter(models.LogFormat.system_id.isnot(None) |
+                      models.LogFormat.subsystem_id.isnot(None)))
+
+
+def current_run_number(db: Session) -> Optional[int]:
+    """The experiment's current run, or None when idle — the ONE definition.
+
+    Exported so every caller agrees; routes/services used to answer this with
+    "the highest run_number in the table", which is not the same question and got
+    it wrong twice over: a named system's counter runs far ahead of the
+    experiment's (MTE was on 387 while the run was 139), and the maximum is not
+    the current one even among main-system logs."""
+    state = _current_run_state(db)
+    return state["run_number"]
+
+
+def _current_run_state(db: Session) -> dict:
     """Latest run boundary decides the status: a start_of_run with no later
-    end_of_run → running that run; otherwise idle."""
+    end_of_run → running that run; otherwise idle.
+
+    Only the MAIN system's boundaries count. A named system (MTE) pushes its own
+    Start/End with ITS run counter, and those are S/E rows too — so taking the
+    latest S/E of any kind made an MTE run number become the experiment's current
+    run. The main system is the one that uses the canonical run formats (the ones
+    with no system_id), which is exactly what this excludes the complement of.
+    A hand-written log with a run type and no format still counts: that is the
+    manual path for setting the run."""
     last = (db.query(models.LogEntry)
             .filter(models.LogEntry.run_type.in_(["S", "E"]),
-                    models.LogEntry.is_deleted == False)
+                    models.LogEntry.is_deleted == False,
+                    (models.LogEntry.format_id.is_(None) |
+                     models.LogEntry.format_id.notin_(_named_system_format_ids(db))))
             .order_by(models.LogEntry.created_at.desc())
             .first())
     if last and last.run_type == "S" and last.run_number is not None:
         return {"state": "running", "run_number": last.run_number}
     return {"state": "idle", "run_number": None}
+
+
+@router.get("/runs/current")
+def current_run(db: Session = Depends(get_db)):
+    return _current_run_state(db)
 
 
 # ── List / search ─────────────────────────────────────────────────────────────
@@ -658,18 +692,27 @@ def create_log(
     if resolved_run_type is None and payload.run_number is not None:
         resolved_run_type = _compute_run_type(db, payload.run_number)
 
-    # IDLE logs carry the last-set run number when none was provided.
+    # A log filed without a run number belongs to the run that is going: that
+    # is the whole point of writing one during a run, and making the shifter
+    # retype the number is how a logbook ends up with entries on no run at all.
+    #
+    # Two things were wrong here. It only filled the number in for run types
+    # IDLE and A — a plain note, which has no run type at all, fell through and
+    # got nothing. And it answered "which run" with the newest run_number in
+    # the table, which is the mistake `current_run_number` exists to prevent: a
+    # named system's counter runs far ahead of the experiment's, so a note
+    # written during run 142 came out stamped 393, MTE's number.
+    #
+    # A named system's own log is the exception and keeps its blank: stamping
+    # the experiment's run on an MTE format would claim the wrong run in the
+    # other direction.
     run_number_final = payload.run_number
-    if run_number_final is None and (resolved_run_type in ("IDLE", "A")):
-        last_run = (
-            db.query(models.LogEntry.run_number)
-              .filter(models.LogEntry.run_number.isnot(None),
-                      models.LogEntry.run_number_type == "single",
-                      models.LogEntry.is_deleted == False)   # noqa: E712
-              .order_by(models.LogEntry.id.desc()).first()
-        )
-        if last_run:
-            run_number_final = last_run[0]
+    if run_number_final is None:
+        # `_named_system_format_ids` hands back a query, not a list; comparing
+        # an id against it directly matches Row tuples and is always true.
+        named_format_ids = {row[0] for row in _named_system_format_ids(db).all()}
+        if resolved_format_id not in named_format_ids:
+            run_number_final = current_run_number(db)
 
     # Phase 5: per-run sequential counter. Only when this log has a numeric
     # run_number (text variants like "1-5,7" don't participate). The COUNT
