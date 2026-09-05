@@ -292,13 +292,20 @@ _NEXT_RUN_TYPE = {
 
 def _last_run_state_log(db: Session, run_number: int) -> Optional[models.LogEntry]:
     """The most recent non-deleted, non-Monitoring log on `run_number` — the
-    log that defines the run's current state. (M logs are transparent.)"""
+    log that defines the run's current state. (M logs are transparent.)
+
+    Named-system boundaries are excluded for the same reason _current_run_state
+    excludes them: MTE files its own End while the experiment's run is still
+    going, and reading that as the run's state ended it early — every log after
+    it came out IDLE instead of Running."""
     return (
         db.query(models.LogEntry)
           .filter(models.LogEntry.run_number == run_number,
                   models.LogEntry.is_deleted == False,                # noqa: E712
                   models.LogEntry.run_type.isnot(None),
-                  models.LogEntry.run_type != "M")
+                  models.LogEntry.run_type != "M",
+                  (models.LogEntry.format_id.is_(None) |
+                   models.LogEntry.format_id.notin_(_named_system_format_ids(db))))
           .order_by(models.LogEntry.created_at.desc())
           .first()
     )
@@ -631,6 +638,19 @@ def create_log(
                 if resolved_run_type is None:
                     resolved_run_type = _LOG_TYPE_TO_RUN_TYPE[payload.log_type]
 
+        # The experiment's run number belongs to the MAIN system alone. A named
+        # system runs its own counter (MTE was on 395 while the run was 146), and
+        # a run boundary from it must never be read as the experiment's — which is
+        # what happens the moment such a log carries a run_type on a format that
+        # is not that system's own. Its own formats are exempt: _current_run_state
+        # already excludes them, so "Start of MTE run" stays a run boundary for
+        # MTE without ever standing for the experiment.
+        if (svc and svc.is_system and not svc.is_main_system
+                and resolved_run_type is not None):
+            own = {f.id for f in (svc.log_formats or [])}
+            if resolved_format_id not in own:
+                resolved_run_type = None
+
     # Accept either `level` (preferred) or legacy `severity` from the payload.
     level_val = payload.level or payload.severity or "info"
 
@@ -687,11 +707,6 @@ def create_log(
     from database import next_log_index as _next_log_index
     next_log_index = _next_log_index(db)
 
-    # If no run_type was given but a run number is present, derive it from the
-    # run state (between Start and End → Running, after End → IDLE).
-    if resolved_run_type is None and payload.run_number is not None:
-        resolved_run_type = _compute_run_type(db, payload.run_number)
-
     # A log filed without a run number belongs to the run that is going: that
     # is the whole point of writing one during a run, and making the shifter
     # retype the number is how a logbook ends up with entries on no run at all.
@@ -707,12 +722,35 @@ def create_log(
     # the experiment's run on an MTE format would claim the wrong run in the
     # other direction.
     run_number_final = payload.run_number
-    if run_number_final is None:
+
+    # This column means ONE thing: which experiment run the entry belongs to, and
+    # that is the main system's to set (or a person's, editing a log). A named
+    # system runs its own counter — MTE was on 397 while the run was 148 — and it
+    # used to write that straight in here, so the logbook read as a jump from 148
+    # to 397 in a list that is supposed to be one experiment's runs. Its own number
+    # is not lost: the title says "Run 397 — finished" and its format fields carry
+    # it. Only the column is taken back.
+    pusher = None
+    if api_token is not None:
+        pusher = (db.query(models.Service)
+                    .filter(models.Service.name == (api_token.source_name or api_token.name))
+                    .first())
+    if pusher is not None and pusher.is_system and not pusher.is_main_system:
+        run_number_final = current_run_number(db)
+    elif run_number_final is None:
         # `_named_system_format_ids` hands back a query, not a list; comparing
         # an id against it directly matches Row tuples and is always true.
         named_format_ids = {row[0] for row in _named_system_format_ids(db).all()}
         if resolved_format_id not in named_format_ids:
             run_number_final = current_run_number(db)
+
+    # Between the main system's Start and its End, a log is Running. This has to
+    # come AFTER run_number_final, and key off it rather than payload.run_number:
+    # a note written during a run carries no number of its own — it inherits the
+    # running one just above — and keying off the payload meant exactly those
+    # logs, the ones a shifter actually types, never got a run type at all.
+    if resolved_run_type is None and run_number_final is not None:
+        resolved_run_type = _compute_run_type(db, run_number_final)
 
     # Phase 5: per-run sequential counter. Only when this log has a numeric
     # run_number (text variants like "1-5,7" don't participate). The COUNT

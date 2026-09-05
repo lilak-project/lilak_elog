@@ -1,4 +1,6 @@
 export default {
+  live:                    '실시간',
+  live_hint:               '새 로그가 들어오면 자동으로 목록에 올립니다 (1페이지에서만).',
   // Navbar
   nav_home: '홈',
   nav_search: '검색',

@@ -247,6 +247,9 @@ export default function LogCardExpanded({
   onClose,
   onNoticeToggled,      // called after notice state changes (re-fetches parent list)
   onDeleted,            // called after soft-delete so parent can refresh
+  onChanged,            // called after this entry's TAGS change (confirm/report),
+                        // so the collapsed row in the parent list stops showing
+                        // the old ones — reloadDetail only refreshes this card
   onComment,            // if provided, 댓글 버튼이 이 콜백을 호출 (Home bottom bar); 없으면 인라인 폼
 }) {
   const { user } = useAuth()
@@ -385,7 +388,7 @@ export default function LogCardExpanded({
 
   const banner = (
     <>
-      <ConfirmationBanner entry={detail || entry} onChanged={reloadDetail} />
+      <ConfirmationBanner entry={detail || entry} onChanged={() => { reloadDetail(); onChanged?.(entry.id) }} />
       {pending && (
         <div className="flex items-center justify-between gap-3 mb-3 px-3 py-2 rounded-lg border"
              style={{ backgroundColor: 'var(--info-bg)', borderColor: '#2563eb', color: 'var(--info-text)' }}>

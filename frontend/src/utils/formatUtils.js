@@ -227,11 +227,29 @@ export function formatLogTitle(entry) {
   return [prefix, title].filter(Boolean).join(' ').trim()
 }
 
+/**
+ * One number, in a notation that actually shows it.
+ *
+ * toFixed alone loses whole quantities: a vacuum reading of 2.9e-5 mbar came out
+ * as "0.000" and then, with trailing zeros stripped, plain "0" — a gauge that
+ * looked broken while it was working. Outside the range fixed notation can
+ * express, fall back to exponential.
+ */
+function displayNumber(n, digits) {
+  const v = Number(n)
+  if (!Number.isFinite(v)) return String(n ?? '')
+  const a = Math.abs(v)
+  if (a !== 0 && (a < 10 ** -digits || a >= 1e7)) return v.toExponential(Math.max(1, digits - 1))
+  // Number(...) drops the trailing zeros toFixed adds, without touching the
+  // integer part (a plain regex would turn 100 into 1).
+  return String(Number(v.toFixed(digits)))
+}
+
 /** Format a number_entry value for display. */
 export function formatNumberEntry(canonical, opts = {}) {
   if (!canonical || typeof canonical !== 'object') return ''
   const { value = 0, error = 0 } = canonical
   const digits = opts.digits ?? 3
-  if (!error) return Number(value).toFixed(digits).replace(/\.?0+$/, '')
-  return `${Number(value).toFixed(digits)} ± ${Number(error).toFixed(digits)}`
+  if (!error) return displayNumber(value, digits)
+  return `${displayNumber(value, digits)} ± ${displayNumber(error, digits)}`
 }

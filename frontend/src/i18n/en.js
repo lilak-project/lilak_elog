@@ -1,4 +1,6 @@
 export default {
+  live:                    'Live',
+  live_hint:               'New logs appear as they are filed (page 1 only).',
   // Navbar
   nav_home: 'Home',
   nav_search: 'Search',

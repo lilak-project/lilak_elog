@@ -42,13 +42,27 @@ def login(payload: schemas.LoginRequest, db: Session = Depends(get_db)):
         # keeps ONE password store while making this form work.
         portal_tok = portal_login(payload.username, payload.password)
         resolved = None
+        claims = None
+        # TEMP DIAGNOSTIC — says which step of the fallback gave up. Remove once
+        # the portal login is confirmed working.
+        print(f"[portal-login] user={payload.username!r} token={'yes' if portal_tok else 'no'}",
+              flush=True)
         if portal_tok:
             claims = decode_access_token(portal_tok)
+            print(f"[portal-login] claims={'yes' if claims else 'no'}"
+                  + (f" sub={claims.get('sub')} username={claims.get('username')!r}"
+                     f" email={claims.get('email')!r} portal={claims.get('portal')}" if claims else ""),
+                  flush=True)
             if claims:
                 # Same resolution portal entry uses: link by email, else by
                 # username, else provision. Raises 409 when a local account with
                 # its own password must confirm ownership first.
-                resolved = _resolve_portal_user(claims, db, token=portal_tok)
+                try:
+                    resolved = _resolve_portal_user(claims, db, token=portal_tok)
+                    print(f"[portal-login] resolved={resolved.username if resolved else None!r}", flush=True)
+                except Exception as exc:                       # noqa: BLE001 — diagnostic
+                    print(f"[portal-login] resolve raised {type(exc).__name__}: {exc}", flush=True)
+                    raise
         if resolved is None:
             _audit(db, "login_failed", "user", None, payload.username)
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="아이디 또는 비밀번호가 올바르지 않습니다.")

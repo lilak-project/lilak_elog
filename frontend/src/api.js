@@ -106,8 +106,23 @@ function endSession() {
 const isAuthCheck = (url = '') => /\/auth\/me(?:$|[/?])/.test(url) && !url.includes('preferences')
 let verifying = false
 
+// The backend stores UTC and serialises it NAIVE — "2026-09-04T07:36:47.568432",
+// with no zone. `new Date()` reads a zoneless date-time as LOCAL time, so every
+// timestamp in the UI was off by the machine's offset (nine hours here: 07:36
+// shown for a log filed at 16:36). Marking it here, once, fixes all 84 display
+// sites at the boundary rather than at each `new Date()`.
+const ZONELESS = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?$/
+function markUTC(value) {
+  if (typeof value === 'string') return ZONELESS.test(value) ? value + 'Z' : value
+  if (Array.isArray(value)) return value.map(markUTC)
+  if (value && typeof value === 'object') {
+    for (const k of Object.keys(value)) value[k] = markUTC(value[k])
+  }
+  return value
+}
+
 api.interceptors.response.use(
-  (resp) => resp,
+  (resp) => { resp.data = markUTC(resp.data); return resp },
   async (err) => {
     const status = err?.response?.status
     const url = err?.config?.url || ''

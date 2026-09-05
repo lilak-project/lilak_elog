@@ -168,6 +168,13 @@ def spawn_task_logs(parent: models.LogEntry,
     spawned: list[models.LogEntry] = []
     for sib in siblings:
         owner = format_owner(sib, db)
+        # A SYSTEM files its own Start/End — that is what `is_system` means here
+        # ("your program PUSHES logs to elog"). Spawning a task for it as well
+        # produced two rows for the same boundary: MTE's own "Run 395" push and
+        # an identical task hanging off the main run. Only pull services, the
+        # ones elog has to ask, get a task.
+        if owner is not None and owner.is_system:
+            continue
         svc_name = owner.name if owner else "system"
 
         from database import next_log_index

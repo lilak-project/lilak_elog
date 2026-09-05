@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { confirm } from '../components/dialog'
-import { Icon } from 'lilak-ui'
+import { Icon, remarkSoftBreaks } from 'lilak-ui'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -140,7 +140,7 @@ export default function LogDetail() {
 
           {entry.body ? (
             <div className="markdown-body text-sm leading-relaxed" style={{ color: 'var(--text-primary)' }}>
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{entry.body}</ReactMarkdown>
+              <ReactMarkdown remarkPlugins={[remarkGfm, remarkSoftBreaks]}>{entry.body}</ReactMarkdown>
             </div>
           ) : (
             <p className="italic text-sm" style={{ color: 'var(--text-muted)' }}>{t('detail_no_body')}</p>

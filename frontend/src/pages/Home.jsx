@@ -105,6 +105,12 @@ export default function Home() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [viewMode, setViewMode] = useState(getSavedViewMode)
+  // Live mode: the logbook fills itself as services push. On by preference, and
+  // remembered, because a shift wants it on all shift.
+  const [live, setLive] = useState(() => expLS.get('elog_live', '0') === '1')
+  function toggleLive() { setLive(v => { expLS.set('elog_live', v ? '0' : '1'); return !v }) }
+  //: id of the newest entry we have SHOWN — the thing a tick compares against.
+  const newestShownRef = useRef(null)
   const [groupBy, setGroupBy] = useState(() => expLS.get('elog_group_by', 'run'))
   function changeGroupBy(g) { setGroupBy(g); expLS.set('elog_group_by', g) }
 
@@ -724,6 +730,40 @@ export default function Home() {
     finally { setLoading(false) }
   }, [activeTag, activeCategory, activeSource, serverSearchQuery, cmdFilter, pageSize, viewMode])
 
+  // Remember what the list currently shows, so a tick can tell "something new
+  // arrived" from "the same page, re-rendered".
+  useEffect(() => { newestShownRef.current = entries[0]?.id ?? newestShownRef.current }, [entries])
+
+  // Poll for arrivals rather than re-fetching on a timer: a blind refetch every
+  // few seconds resets focus and collapses what you were reading, so it only
+  // refetches when the newest id actually changed. Page 1 only — pulling the
+  // list out from under someone reading page 4 is worse than being late.
+  useEffect(() => {
+    if (!live || page !== 1) return
+    let alive = true
+    const tick = async () => {
+      try {
+        const res = await api.get('/logs', { params: { page: 1, page_size: 1 } })
+        const newest = res.data.items?.[0]?.id ?? null
+        if (alive && newest != null && newest !== newestShownRef.current) fetchEntries(1)
+      } catch { /* a service restarting mid-poll is ordinary; try again next tick */ }
+    }
+    const id = setInterval(tick, 4000)
+    return () => { alive = false; clearInterval(id) }
+  }, [live, page, fetchEntries])
+
+  // Refresh ONE entry in place. A full refetch would work, but it resets focus
+  // and the scroll position — confirming a log should not move the page under
+  // the person who just clicked.
+  const refreshOne = useCallback(async (id) => {
+    try {
+      const { data } = await api.get(`/logs/${id}`)
+      if (data && typeof data === 'object') {
+        setEntries(list => list.map(e => (e.id === id ? { ...e, ...data } : e)))
+      }
+    } catch { /* the list is still right enough; the next load will settle it */ }
+  }, [])
+
   useEffect(() => { fetchEntries(1); setPage(1) }, [activeTag, activeCategory, activeSource, serverSearchQuery, cmdFilter, pageSize, viewMode])
   // Page change refetches only in Normal view; Run group paginates runs client-side.
   useEffect(() => { if (viewMode !== 'run_group') fetchEntries(page) }, [page])
@@ -847,6 +887,15 @@ export default function Home() {
         ]}
         filterActive={showFilter || isFiltered} onToggleFilter={() => setShowFilter(s => !s)} filterLabel={t('filter_title')}
         status={<>
+          <button onClick={toggleLive} title={t('live_hint')}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'none',
+                     border: 0, padding: 0, cursor: 'pointer', font: 'inherit',
+                     fontSize: 'var(--fs-small, 12px)',
+                     color: live ? 'var(--ok-text, #2f9e44)' : 'var(--text-muted)' }}>
+            <span style={{ width: 8, height: 8, borderRadius: 999, flexShrink: 0,
+                           background: live ? 'var(--ok-text, #2f9e44)' : 'var(--text-muted)' }} />
+            {t('live')}
+          </button>
           {isFiltered && (
             <span className="text-xs truncate" style={{ color: 'var(--text-secondary)' }}>
               {t('home_filtered')}
@@ -960,7 +1009,8 @@ export default function Home() {
                     onClose={() => setExpandedNoticeId(null)}
                     onNoticeToggled={() => { fetchNotices(); fetchEntries(page) }}
                     onDeleted={() => { setExpandedNoticeId(null); fetchNotices() }}
-                    onComment={(logId) => commentLog(logId)}
+                    onChanged={refreshOne}
+                  onComment={(logId) => commentLog(logId)}
                   />
                 </ErrorBoundary>
               ) : (
@@ -1057,6 +1107,7 @@ export default function Home() {
                   onClose={() => closeOne(e.id)}
                   onNoticeToggled={() => { fetchEntries(page); fetchNotices() }}
                   onDeleted={() => { closeOne(e.id); fetchEntries(page) }}
+                  onChanged={refreshOne}
                   onComment={(logId) => commentLog(logId)}
                 />
               </ErrorBoundary>
