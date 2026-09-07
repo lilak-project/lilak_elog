@@ -61,6 +61,23 @@ app.include_router(tasks.router,           prefix="/api")
 app.include_router(infography.router,      prefix="/api")
 app.include_router(settings_router.router, prefix="/api")
 
+# ── Portal live mode: one number, the size of this logbook ───────────────────
+@app.get("/api/live", include_in_schema=False)
+def api_live():
+    from database import SessionLocal, EXPERIMENT
+    from models import LogEntry
+    db = SessionLocal()
+    try:
+        n = db.query(LogEntry).count()
+        latest = db.query(LogEntry.log_index).order_by(LogEntry.id.desc()).first()
+    finally:
+        db.close()
+    return {"ok": True, "items": [
+        {"label": "logs", "value": str(n), "unit": "", "state": "ok" if n else ""},
+        {"label": "latest", "value": f"#{latest[0]}" if latest and latest[0] is not None else "—", "unit": "", "state": ""},
+    ], "note": EXPERIMENT}
+
+
 # ── Serve built React frontend (SPA catch-all) ────────────────────────────────
 _FRONTEND = os.path.abspath(
     os.path.join(os.path.dirname(__file__), "..", "frontend", "dist")
