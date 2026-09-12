@@ -53,6 +53,10 @@ def _set_sqlite_pragmas(dbapi_conn, _rec):
     cur = dbapi_conn.cursor()
     cur.execute("PRAGMA journal_mode=WAL")
     cur.execute("PRAGMA foreign_keys=ON")
+    # Wait for another connection's write instead of failing instantly. Log
+    # numbering now serialises on the write lock, so a concurrent create must
+    # queue rather than raise "database is locked".
+    cur.execute("PRAGMA busy_timeout=5000")
     cur.close()
 
 
@@ -169,6 +173,8 @@ def _migrate_columns(db_path: str) -> None:
         _try_add_column(c, "ALTER TABLE log_entries ADD COLUMN task_interval_min INTEGER")
     if "task_service_id" not in existing:
         _try_add_column(c, "ALTER TABLE log_entries ADD COLUMN task_service_id INTEGER")
+    if "task_due_at" not in existing:
+        _try_add_column(c, "ALTER TABLE log_entries ADD COLUMN task_due_at DATETIME")
     if "beam" not in existing:
         _try_add_column(c, "ALTER TABLE log_entries ADD COLUMN beam VARCHAR(128)")
     if "target" not in existing:
@@ -581,13 +587,53 @@ def _seed_run_formats_legacy(db) -> None:
     db.commit()
 
 
-def next_log_index(db) -> int:
-    """Next log_index for a new entry.
+#: The row in `settings` holding the log counter. A number is RESERVED by
+#: advancing it, not predicted by reading the table.
+LOG_SEQ_KEY = "log_index_seq"
 
-    Monotonic and stable: max log_index across ALL rows (including soft-deleted)
-    + 1. Numbers are never reused or renumbered after deletions, so a log keeps
-    the same number for its whole life and references to it stay valid.
+
+def next_log_index(db) -> int:
+    """Reserve the next log_index for a new entry.
+
+    Monotonic and stable: numbers are never reused or renumbered after
+    deletions, so a log keeps the same number for its whole life and references
+    to it stay valid.
+
+    This used to be `MAX(log_index) + 1`, read in one statement and written in
+    another. Between those two the number was only a prediction, and two logs
+    created in that gap took the SAME one -- 13 duplicated numbers in the KO2520
+    logbook once three DAQ systems began pushing run boundaries at the same
+    instant, each spawning its own task logs. A duplicate number is not cosmetic:
+    `_594` in a search, a `g` jump, or a Dooray message stops naming one log.
+
+    The counter is now advanced by a single UPDATE. SQLite serialises that on the
+    database write lock and holds it until this transaction commits, so a second
+    caller waits (busy_timeout) and then reads a value that already accounts for
+    the first. Rolling back un-reserves the number, so a failed create leaves no
+    hole either.
     """
     import models
-    from sqlalchemy import func
-    return (db.query(func.coalesce(func.max(models.LogEntry.log_index), 0)).scalar() or 0) + 1
+    from sqlalchemy import func, text
+
+    row = db.execute(
+        text("UPDATE settings SET value = CAST(CAST(value AS INTEGER) + 1 AS TEXT) "
+             "WHERE key = :k RETURNING CAST(value AS INTEGER)"),
+        {"k": LOG_SEQ_KEY},
+    ).first()
+    if row is not None:
+        return int(row[0])
+
+    # First call on this database (or one that predates the counter): seed it
+    # from the highest number ever issued, so existing logs keep their numbers.
+    highest = db.query(func.coalesce(func.max(models.LogEntry.log_index), 0)).scalar() or 0
+    nxt = highest + 1
+    db.execute(text("INSERT OR IGNORE INTO settings (key, value) VALUES (:k, :v)"),
+               {"k": LOG_SEQ_KEY, "v": str(nxt)})
+    # Another connection may have seeded it first; re-run the reservation so the
+    # winner's value is respected rather than overwritten.
+    row = db.execute(
+        text("UPDATE settings SET value = CAST(CAST(value AS INTEGER) + 1 AS TEXT) "
+             "WHERE key = :k AND CAST(value AS INTEGER) > :seeded RETURNING CAST(value AS INTEGER)"),
+        {"k": LOG_SEQ_KEY, "seeded": nxt},
+    ).first()
+    return int(row[0]) if row is not None else nxt

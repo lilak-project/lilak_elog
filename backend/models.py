@@ -184,6 +184,11 @@ class LogEntry(Base):
     # auto-request interval in minutes (None = one-shot, no rescheduling).
     task_module = Column(String(128), nullable=True)
     task_interval_min = Column(Integer, nullable=True)
+    # "Not before" — the earliest this task may be filled. Set from a template
+    # item's delay_min so a reading can be taken N minutes INTO a run rather
+    # than at its start; cleared on the first fill, after which task_interval_min
+    # alone drives the repeat. Null = collect as soon as the loop sees it.
+    task_due_at = Column(DateTime, nullable=True, index=True)
     # For auto-fill service tasks: which registered service backs this task log.
     # The background refresh loop calls the service's request_url to fill it.
     task_service_id = Column(Integer, nullable=True)

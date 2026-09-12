@@ -317,7 +317,7 @@ function ServiceManualKo({ origin }) {
 }`}</Code>
         <p>
           <Inline>log_fields</Inline>의 <Inline>type</Inline>은{' '}
-          <Inline>number_entry</Inline> · <Inline>text</Inline> · <Inline>body</Inline> ·{' '}
+          <Inline>number_entry</Inline> · <Inline>text</Inline> · <Inline>select</Inline> · <Inline>body</Inline> ·{' '}
           <Inline>title</Inline> · <Inline>tags</Inline> · <Inline>level</Inline> 중 하나입니다.
           같은 type을 여러 개 선언할 수 있으며, key로 구분됩니다.
         </p>
@@ -508,7 +508,7 @@ function ServiceManualEn({ origin }) {
 }`}</Code>
         <p>
           <Inline>type</Inline> is one of{' '}
-          <Inline>number_entry</Inline>, <Inline>text</Inline>, <Inline>body</Inline>,{' '}
+          <Inline>number_entry</Inline>, <Inline>text</Inline>, <Inline>select</Inline>, <Inline>body</Inline>,{' '}
           <Inline>title</Inline>, <Inline>tags</Inline>, <Inline>level</Inline>.
           Multiple fields of the same type are allowed — distinguish them by <Inline>key</Inline>.
         </p>
@@ -1180,7 +1180,9 @@ POST <request_url>
 }
 \`\`\`
 
-\`log_fields\`의 \`type\`: \`number_entry\` | \`number\` | \`text\` | \`body\` | \`title\` | \`tags\` | \`level\`
+\`log_fields\`의 \`type\`: \`number_entry\` | \`number\` | \`text\` | \`select\` | \`body\` | \`title\` | \`tags\` | \`level\`
+
+\`select\` 필드는 \`"options": ["정상", "점검중"]\` 을 같이 선언하세요 — elog 작성 폼이 그 목록을 드롭다운으로 보여줍니다. push하는 값은 그냥 문자열입니다.
 같은 type을 여러 개 선언 가능 (key로 구분).
 
 **중요 — Infography(그래프/시트)에 쓸 값은 \`"metric": true\` 를 붙이세요.**
@@ -1526,7 +1528,9 @@ POST <request_url>
 }
 \`\`\`
 
-\`type\` values: \`number_entry\` | \`number\` | \`text\` | \`body\` | \`title\` | \`tags\` | \`level\`
+\`type\` values: \`number_entry\` | \`number\` | \`text\` | \`select\` | \`body\` | \`title\` | \`tags\` | \`level\`
+
+A \`select\` field should also declare \`"options": ["OK", "Checking"]\` — elog's compose form offers exactly those in a dropdown. The pushed value is a plain string.
 Multiple fields of the same type are allowed — differentiated by \`key\`.
 
 **Important — add \`"metric": true\` to values you want in Infography (graph / sheet).**

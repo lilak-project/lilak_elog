@@ -4,7 +4,7 @@
  * the notifications list. Composed from kit blocks + elog contexts (glue).
  */
 import { useEffect, useState } from 'react'
-import { Row, Stack, Button, useTaggables } from 'lilak-ui'
+import { Row, Stack, Button, useTaggables, formatLogStamp } from 'lilak-ui'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LangContext'
 import { useTheme } from '../context/ThemeContext'
@@ -89,7 +89,7 @@ function NotificationsView({ onClose }) {
               : <>{t('notif_commented_on') || 'commented on'} <span>#{n.log_id}</span> {n.log_title}</>}
           </div>
           {n.comment_excerpt && <div style={{ fontSize: 'var(--fs-small, 12px)', color: 'var(--nav-text-muted)', marginTop: 2 }}>"{n.comment_excerpt}"</div>}
-          <div style={{ fontSize: 'var(--fs-micro, 10px)', color: 'var(--nav-text-muted)', marginTop: 4 }}>{new Date(n.created_at).toLocaleString()}</div>
+          <div style={{ fontSize: 'var(--fs-micro, 10px)', color: 'var(--nav-text-muted)', marginTop: 4 }}>{formatLogStamp(n.created_at)}</div>
         </button>
       ))}
     </Stack>

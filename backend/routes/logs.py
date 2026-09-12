@@ -13,8 +13,8 @@ import urllib.request
 
 from sqlalchemy import func
 
-from utils_fields import normalize_format_fields, normalize_number_entry
-from utils_tasks  import spawn_task_logs, spawn_template_tasks, confirm_log_entry, add_confirmation_required, fire_webhook_fills
+from utils_fields import accumulate_number_entries, normalize_format_fields
+from utils_tasks  import spawn_task_logs, spawn_template_tasks, confirm_log_entry, add_confirmation_required, fire_webhook_fills, inherit_context
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -163,6 +163,44 @@ def _run_number_matches(entry: models.LogEntry, target: int) -> bool:
 
 # ── Serializers ───────────────────────────────────────────────────────────────
 
+SETTER_TITLE_PREFIXES = ("Beam setter", "Target setter")
+
+
+def applied_from(entry) -> int | None:
+    """The log number a setter was backdated to, or None if it was not."""
+    try:
+        meta = json.loads(entry.metadata_json or "{}")
+    except (ValueError, TypeError):
+        return None
+    rec = meta.get("context_applied") if isinstance(meta, dict) else None
+    return rec.get("from") if isinstance(rec, dict) else None
+
+
+def setter_title(fmt_fields: list, beam, target, from_index=None) -> str | None:
+    """The title for a beam/target SETTER log, or None if this is not one.
+
+    A setter format carries the `beam` or `target` builtin and no title field at
+    all — the whole content of the log IS the value it sets. So one was saved
+    with an empty title and read in the feed as a blank row: the only way to see
+    what it had done was to open the editor. Naming it after what it set is the
+    entire point of the entry.
+    """
+    builtins = {f.get("builtin_id") for f in (fmt_fields or []) if isinstance(f, dict)}
+    parts = []
+    if "beam" in builtins:
+        parts.append(f"Beam setter to {beam}" if beam else "Beam setter")
+    if "target" in builtins:
+        parts.append(f"Target setter to {target}" if target else "Target setter")
+    if not parts:
+        return None
+    title = " · ".join(parts)
+    # A setter that was backdated says so. Otherwise the logbook shows a value
+    # taking effect at a log nobody can connect to the entry that decided it.
+    if from_index is not None:
+        title += f" · _{from_index} 부터 적용"
+    return title
+
+
 def _entry_to_summary(entry: models.LogEntry) -> schemas.LogEntrySummary:
     return schemas.LogEntrySummary(
         id=entry.id,
@@ -184,6 +222,7 @@ def _entry_to_summary(entry: models.LogEntry) -> schemas.LogEntrySummary:
         task_module=entry.task_module,
         task_service_id=entry.task_service_id,
         task_interval_min=entry.task_interval_min,
+        task_due_at=entry.task_due_at,
         source=entry.source,
         is_auto=entry.is_auto,
         is_notice=entry.is_notice or False,
@@ -209,6 +248,11 @@ def _entry_to_detail(entry: models.LogEntry, db: Session = None) -> schemas.LogE
         child_ids = [r[0] for r in rows]
     return schemas.LogEntryDetail(
         id=entry.id,
+        # LogEntryDetail inherits log_index from LogEntrySummary but this never
+        # filled it, so every detail response said `null`. A client that merges a
+        # detail over its list row — which is how the feed refreshes one entry in
+        # place — lost the log number and fell back to showing the database id.
+        log_index=entry.log_index,
         title=entry.title,
         body=entry.body,
         author_id=entry.author_id,
@@ -227,6 +271,7 @@ def _entry_to_detail(entry: models.LogEntry, db: Session = None) -> schemas.LogE
         task_module=entry.task_module,
         task_service_id=entry.task_service_id,
         task_interval_min=entry.task_interval_min,
+        task_due_at=entry.task_due_at,
         source=entry.source,
         is_auto=entry.is_auto,
         is_notice=entry.is_notice or False,
@@ -684,18 +729,10 @@ def create_log(
         if existing:
             try: cur = json.loads(existing.format_fields_json or "{}")
             except Exception: cur = {}
-            for k, newval in normalized.items():
-                if k in multiple_keys:
-                    ex = cur.get(k) if isinstance(cur.get(k), dict) else {}
-                    ex_vals = list((ex.get("raw") or {}).get("values") or [])
-                    nv = (newval.get("raw") or {}) if isinstance(newval, dict) else {}
-                    add = nv.get("values")
-                    if add is None:
-                        add = [newval.get("value")] if isinstance(newval, dict) else [newval]
-                    ex_vals.extend(v for v in add if v is not None)
-                    cur[k] = normalize_number_entry({"values": ex_vals}, "multiple")
-                else:
-                    cur[k] = newval
+            # `multiple_keys` decides only WHETHER this push merges into the
+            # existing row instead of opening a new one; once it does, every
+            # number_entry accumulates by the one shared rule.
+            cur = accumulate_number_entries(cur, normalized, fmt_fields_def)
             existing.format_fields_json = json.dumps(cur)
             existing.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
             db.commit(); db.refresh(existing)
@@ -765,21 +802,20 @@ def create_log(
         next_run_log_index = prior + 1
 
     # Sticky beam/target: a non-empty value on this log sets a new one; else
-    # inherit the most recent prior log's value.
-    def _inherit(field):
-        prior = (db.query(getattr(models.LogEntry, field))
-                   .filter(getattr(models.LogEntry, field).isnot(None),
-                           getattr(models.LogEntry, field) != "",
-                           models.LogEntry.is_deleted == False)   # noqa: E712
-                   .order_by(models.LogEntry.id.desc()).first())
-        return prior[0] if prior else None
-    beam_val = (payload.beam or "").strip() or _inherit("beam")
-    target_val = (payload.target or "").strip() or _inherit("target")
+    # inherit the most recent prior log's value. One definition, shared with
+    # every other path that creates a log (utils_tasks.inherit_context).
+    sticky_beam, sticky_target = inherit_context(db)
+    beam_val = (payload.beam or "").strip() or sticky_beam
+    target_val = (payload.target or "").strip() or sticky_target
+
+    title_val = payload.title
+    if not (title_val or "").strip():
+        title_val = setter_title(fmt_fields_def, beam_val, target_val) or payload.title
 
     entry = models.LogEntry(
         log_index=next_log_index,
         run_log_index=next_run_log_index,
-        title=payload.title,
+        title=title_val,
         body=payload.body,
         author_id=author_id,
         author_name=author_name,
@@ -841,8 +877,17 @@ def create_log(
 
     # End-of-run: service tasks of this run that asked for an end reading
     # (on_end) get re-queued ('pending') so the refresh loop does a final fetch.
+    # Then the run's recurring tasks STOP.
+    #
+    # The refresh loop only ever asked "is this task due?", never "is its run
+    # still going", so every task ever spawned kept polling forever: a run that
+    # ended yesterday had its monitoring logs quietly rewritten with today's
+    # readings, and its record stopped being what that run measured. Clearing
+    # the interval here is what closes a run's books. The final on_end fetch
+    # still happens — the loop fills anything marked 'pending' regardless of
+    # interval — it is only the repetition that ends.
     if entry.run_type == "E" and entry.run_number is not None:
-        bumped = 0
+        touched = 0
         for t in (db.query(models.LogEntry)
                     .filter(models.LogEntry.run_number == entry.run_number,
                             models.LogEntry.task_service_id.isnot(None),
@@ -854,8 +899,11 @@ def create_log(
                 meta = {}
             if meta.get("on_end"):
                 t.task_status = "pending"
-                bumped += 1
-        if bumped:
+                touched += 1
+            if t.task_interval_min:
+                t.task_interval_min = 0
+                touched += 1
+        if touched:
             db.commit()
 
     return _entry_to_detail(entry, db)
@@ -913,6 +961,22 @@ def update_log(
     if payload.target is not None:
         entry.target = payload.target.strip() or None
 
+    # Keep a setter's name in step with the value it now sets. Only when the
+    # title is blank or is one this rule wrote — a title somebody typed is
+    # theirs, and re-deriving over it would quietly throw their words away.
+    cur_title = (entry.title or "").strip()
+    if not cur_title or cur_title.startswith(SETTER_TITLE_PREFIXES):
+        fmt = (db.query(models.LogFormat)
+                 .filter(models.LogFormat.id == entry.format_id).first()
+               if entry.format_id else None)
+        try:
+            fdef = json.loads(fmt.fields_json) if fmt and fmt.fields_json else []
+        except (ValueError, TypeError):
+            fdef = []
+        derived = setter_title(fdef, entry.beam, entry.target, applied_from(entry))
+        if derived:
+            entry.title = derived
+
     # A pending task log becomes 'filled' once a human edits & saves it ("Go").
     # Tag it #filled and #<username> so it's clear who completed it.
     if entry.task_status == "pending":
@@ -962,6 +1026,161 @@ def restore_log(log_id: int, current_user: models.User = Depends(require_manager
 
 
 # ── Log management (summary + bulk delete by range) ─────────────────────────
+
+class ApplyContextPayload(_PydanticBase):
+    beam:   Optional[str] = None
+    target: Optional[str] = None
+    # Start somewhere OTHER than this log — the point of the whole thing when the
+    # setter was typed late: the beam was already this one at _370, so say so,
+    # even though you are standing on _380.
+    from_log_index: Optional[int] = None
+    dry_run: bool = False
+
+
+@router.post("/logs/{log_id}/apply-context")
+def apply_context_forward(
+    log_id: int,
+    payload: ApplyContextPayload,
+    current_user: models.User = Depends(require_auth),
+    db: Session = Depends(get_db),
+):
+    """Set beam / target on this log and carry it forward, as if it had been set
+    at the time.
+
+    Beam and target are sticky, so a value typed late is right from that log on —
+    but only the logs that INHERITED the old value should move. Walking forward
+    and stopping at the first log holding something else is what separates "these
+    inherited a value nobody had corrected yet" from "here is where somebody
+    actually changed it". Without that rule this would flatten every later change
+    into one value.
+
+    `dry_run` reports the count without writing, so the UI can say how many logs
+    an edit is about to touch.
+    """
+    start = (db.query(models.LogEntry)
+               .filter(models.LogEntry.id == log_id,
+                       models.LogEntry.is_deleted == False)             # noqa: E712
+               .first())
+    if not start:
+        raise HTTPException(status_code=404, detail="Log entry not found")
+
+    acting = start          # the log the user is standing on — where the record goes
+    if payload.from_log_index is not None:
+        earlier = (db.query(models.LogEntry)
+                     .filter(models.LogEntry.log_index == payload.from_log_index,
+                             models.LogEntry.is_deleted == False)       # noqa: E712
+                     .first())
+        if not earlier:
+            raise HTTPException(status_code=404,
+                                detail=f"_{payload.from_log_index} 로그가 없습니다")
+        if earlier.id > start.id:
+            raise HTTPException(status_code=400,
+                                detail="시작 로그는 이 로그보다 앞이어야 합니다")
+        start = earlier
+
+    later = (db.query(models.LogEntry)
+               .filter(models.LogEntry.id >= start.id,
+                       models.LogEntry.is_deleted == False)             # noqa: E712
+               .order_by(models.LogEntry.id.asc())
+               .all())
+
+    result = {}
+    for field in ("beam", "target"):
+        new_val = getattr(payload, field)
+        if new_val is None:
+            continue
+        new_val = new_val.strip() or None
+        old_val = getattr(start, field)
+        touched, stopped_at = [], None
+        for e in later:
+            cur = getattr(e, field)
+            # Stop at a value that is neither the one being replaced NOR the one
+            # being written — that is somebody's real later change. Tolerating
+            # `new_val` matters when the start is an EARLIER log than this one:
+            # the log the user just edited already holds the new value, and
+            # treating that as a later change would stop the walk right there,
+            # one log short of every log it was meant to reach.
+            if e.id != start.id and cur != old_val and cur != new_val:
+                stopped_at = e.log_index if e.log_index is not None else e.id
+                break
+            if cur != new_val:
+                touched.append(e)
+        if not payload.dry_run:
+            for e in touched:
+                setattr(e, field, new_val)
+        result[field] = {
+            "updated": len(touched),
+            "from": start.log_index if start.log_index is not None else start.id,
+            "stopped_at": stopped_at,
+            "value": new_val,
+        }
+
+    if not result:
+        raise HTTPException(status_code=400, detail="Nothing to apply")
+    if not payload.dry_run:
+        # Record WHERE this setting was made to start, on the log that made it.
+        # Without it the value simply appears on earlier logs with nothing
+        # anywhere saying who backdated it or how far.
+        try:
+            meta = json.loads(acting.metadata_json or "{}")
+            if not isinstance(meta, dict):
+                meta = {}
+        except (ValueError, TypeError):
+            meta = {}
+        meta["context_applied"] = {
+            "from": result[next(iter(result))]["from"],
+            "fields": {f: r["value"] for f, r in result.items()},
+            "by": current_user.username,
+            "at": datetime.now(timezone.utc).replace(tzinfo=None).isoformat(),
+        }
+        acting.metadata_json = json.dumps(meta)
+
+        # …and say it in the name, where people actually read it.
+        cur_title = (acting.title or "").strip()
+        if not cur_title or cur_title.startswith(SETTER_TITLE_PREFIXES):
+            fmt = (db.query(models.LogFormat)
+                     .filter(models.LogFormat.id == acting.format_id).first()
+                   if acting.format_id else None)
+            try:
+                fdef = json.loads(fmt.fields_json) if fmt and fmt.fields_json else []
+            except (ValueError, TypeError):
+                fdef = []
+            derived = setter_title(fdef, acting.beam, acting.target, applied_from(acting))
+            if derived:
+                acting.title = derived
+
+        db.commit()
+        _audit(db, "apply-context", "log_entry", acting.id, current_user.username)
+    return {"dry_run": payload.dry_run, **result}
+
+
+@router.post("/logs/{log_id}/stop-polling", response_model=schemas.LogEntryDetail)
+def stop_polling(
+    log_id: int,
+    current_user: models.User = Depends(require_auth),
+    db: Session = Depends(get_db),
+):
+    """Stop the recurring refill on one task log; its values freeze as they are.
+
+    The end-of-run hook does this for a whole run. This is the manual escape for
+    the case in between — a service that has started answering with nonsense, or
+    a reading somebody wants held still — without having to end the run or
+    delete the log.
+    """
+    entry = (
+        db.query(models.LogEntry)
+          .filter(models.LogEntry.id == log_id,
+                  models.LogEntry.is_deleted == False)              # noqa: E712
+          .first()
+    )
+    if not entry:
+        raise HTTPException(status_code=404, detail="Log entry not found")
+    entry.task_interval_min = 0
+    db.commit()
+    db.refresh(entry)
+    _audit(db, "stop-polling", "log_entry", entry.id, current_user.username)
+    return _entry_to_detail(entry, db)
+
 
 @router.get("/logs/management/summary")
 def logs_summary(
@@ -1139,6 +1358,17 @@ SYSTEM_TAG_NAMES = ["pending", "auto", "task", "confirm",
                     "init", "start", "running", "end", "idle"]
 PROTECTED_TAGS = BUILTIN_TAGS | set(SYSTEM_TAG_NAMES)
 
+# `confirm` is not a tag of its own: the log card hides the real
+# "confirmation required" tag and draws the synthetic `#confirm` chip in its
+# place, looking the colour up under THAT name. So the admin page offered two
+# controls for one chip — the synthetic row wrote a `confirm` Tag row, the
+# built-in row (the one showing a live count, the obvious one to click) wrote
+# the real tag — and only the first was ever read. Colouring the real tag
+# therefore looked like it reset itself on the next reload, while the colour sat
+# in the database the whole time. One name in storage, both names on the wire:
+# writes to `confirm` land on the real tag, and the colour map answers to both.
+SYSTEM_TAG_ALIASES = {"confirm": "confirmation required"}
+
 
 @router.get("/tags", response_model=list[schemas.TagOut])
 def list_tags(db: Session = Depends(get_db)):
@@ -1178,7 +1408,15 @@ def tag_colors(db: Session = Depends(get_db)):
               .filter((models.Tag.color.isnot(None)) | (models.Tag.border_color.isnot(None))
                       | (models.Tag.text_color.isnot(None)))
               .all())
-    return {t.name: {"color": t.color, "border": t.border_color, "text": t.text_color} for t in rows}
+    out = {t.name: {"color": t.color, "border": t.border_color, "text": t.text_color} for t in rows}
+    # Publish the real tag's styling under its synthetic name too, so the chip
+    # the card actually draws is coloured by it. A legacy `confirm` row from
+    # before writes were redirected stays in effect only while the real tag has
+    # no styling of its own.
+    for synth, real in SYSTEM_TAG_ALIASES.items():
+        if real in out:
+            out[synth] = out[real]
+    return out
 
 
 @router.put("/tags/system/{name}")
@@ -1193,9 +1431,12 @@ def set_system_tag_color(
     name = name.strip().lower()
     if name not in SYSTEM_TAG_NAMES:
         raise HTTPException(status_code=400, detail="Not a system tag")
-    tag = db.query(models.Tag).filter(models.Tag.name == name).first()
+    # An aliased synthetic name stores on the real tag it stands for, so both
+    # admin controls edit one row and cannot drift apart again.
+    stored_name = SYSTEM_TAG_ALIASES.get(name, name)
+    tag = db.query(models.Tag).filter(models.Tag.name == stored_name).first()
     if tag is None:
-        tag = models.Tag(name=name)
+        tag = models.Tag(name=stored_name)
         db.add(tag)
         db.flush()
     if payload.color is not None:
@@ -1226,7 +1467,10 @@ def list_tags_manage(db: Session = Depends(get_db)):
             builtin=t.name in BUILTIN_TAGS,
         )
         for t in rows
-        if t.name not in SYSTEM_TAG_NAMES   # synthetic rows shown separately
+        # Synthetic rows are shown separately — and so is an aliased real tag,
+        # whose colour the synthetic row now edits. Listing it here too would put
+        # two controls for one chip back on the page.
+        if t.name not in SYSTEM_TAG_NAMES and t.name not in SYSTEM_TAG_ALIASES.values()
     ]
 
 
@@ -1445,7 +1689,16 @@ def _notify_community_chat(entry, db: Session) -> None:
         if not fmt or not fmt.notify_community:
             return
         title = (entry.title or "").strip() or "(제목 없음)"
-        body = f"새 로그 등록: #{entry.id} {title}"
+        num = entry.log_index if entry.log_index is not None else entry.id
+        # A run boundary is what a team actually wants pinged about, so say what
+        # happened rather than "a log was filed". `#id` was wrong here too — the
+        # number people use is log_index.
+        if entry.run_type == "S" and entry.run_number is not None:
+            body = f"▶ Run {entry.run_number} 시작 — _{num} {title}"
+        elif entry.run_type == "E" and entry.run_number is not None:
+            body = f"■ Run {entry.run_number} 종료 — _{num} {title}"
+        else:
+            body = f"새 로그 등록: _{num} {title}"
         msg = models.ChatMessage(
             author_id=None,
             author_name="system",

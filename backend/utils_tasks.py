@@ -22,6 +22,8 @@ Two responsibilities:
 
 from __future__ import annotations
 
+from datetime import datetime, timedelta, timezone
+
 import models
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -43,8 +45,34 @@ def _get_or_create_tag(name: str, db: Session) -> models.Tag:
     return tag
 
 
+def clear_confirmation(entry: models.LogEntry, db: Session) -> None:
+    """Drop a previous confirmation from `entry`. No-op if it has none.
+
+    confirm_log_entry writes a PAIR — 'confirmed' plus the reviewer's username —
+    so undoing it has to take both; leaving the bare username behind is only a
+    different kind of stale mark. The username is matched against the user table
+    so a tag that merely looks like one is left alone, and only ever when
+    'confirmed' is present, which is the one way that pair gets written.
+    """
+    names = {t.name for t in entry.tags}
+    if "confirmed" not in names:
+        return
+    reviewers = {r[0].lower() for r in db.query(models.User.username).all() if r[0]}
+    drop = {"confirmed"} | (names & reviewers)
+    entry.tags = [t for t in entry.tags if t.name not in drop]
+
+
 def add_confirmation_required(entry: models.LogEntry, db: Session) -> None:
-    """Attach the 'confirmation required' tag to a task log. Idempotent."""
+    """Mark a task log as awaiting review. Idempotent.
+
+    Also clears any previous confirmation. Every caller reaches here because the
+    log has just been (re-)filled with fresh machine values, and the review that
+    passed the OLD values says nothing about ones nobody has looked at. Without
+    this, a recurring service task — refilled on its interval hours after a
+    shifter confirmed it — ended up wearing '#confirm' and '#confirmed' at the
+    same time, each contradicting the other.
+    """
+    clear_confirmation(entry, db)
     tag = _get_or_create_tag(TAG_CONFIRMATION_REQUIRED, db)
     if tag not in entry.tags:
         entry.tags.append(tag)
@@ -199,9 +227,12 @@ def spawn_task_logs(parent: models.LogEntry,
             )
             next_run_idx = prior + 1
 
+        ctx_beam, ctx_target = context_from(parent, db)
         child = models.LogEntry(
             log_index=next_log_idx,
             run_log_index=next_run_idx,
+            beam=ctx_beam,
+            target=ctx_target,
             title=svc_name,
             body="",
             author_id=None,
@@ -231,6 +262,46 @@ def spawn_task_logs(parent: models.LogEntry,
     return spawned
 
 
+def inherit_context(db: Session) -> tuple:
+    """The beam and target in force right now — the latest non-empty value of each.
+
+    Both are STICKY by design: set once, and every log after them belongs to that
+    beam and target until somebody changes it. Only create_log knew that, so a log
+    typed by hand carried them while every task log spawned beside it came out
+    blank — the run's own monitoring readings did not record what beam they were
+    taken with, which is most of what makes them worth keeping.
+    """
+    def latest(field):
+        row = (db.query(getattr(models.LogEntry, field))
+                 .filter(getattr(models.LogEntry, field).isnot(None),
+                         getattr(models.LogEntry, field) != "",
+                         models.LogEntry.is_deleted == False)          # noqa: E712
+                 .order_by(models.LogEntry.id.desc()).first())
+        return row[0] if row else None
+    return latest("beam"), latest("target")
+
+
+def context_from(parent, db: Session) -> tuple:
+    """A child task's beam/target: its parent's, or the sticky value when the
+    parent predates this and has none of its own."""
+    beam, target = getattr(parent, "beam", None), getattr(parent, "target", None)
+    if beam and target:
+        return beam, target
+    sticky_beam, sticky_target = inherit_context(db)
+    return beam or sticky_beam, target or sticky_target
+
+
+def _due_at(item: dict):
+    """When a template item's first reading may be taken, or None for 'now'."""
+    try:
+        delay = int(item.get("delay_min") or 0)
+    except (TypeError, ValueError):
+        return None
+    if delay <= 0:
+        return None
+    return datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(minutes=delay)
+
+
 # ── Per-format task templates ─────────────────────────────────────────────────
 
 def spawn_template_tasks(parent: models.LogEntry,
@@ -245,6 +316,7 @@ def spawn_template_tasks(parent: models.LogEntry,
       • format  — a plain pending task log with just a title, to be filled by a
                   human via the "Go" button.
     """
+    _ctx = context_from(parent, db)   # every child of this log shares its beam/target
     import json
 
     if not parent_fmt or not parent_fmt.task_template_json:
@@ -277,12 +349,15 @@ def spawn_template_tasks(parent: models.LogEntry,
                 run_number_type=parent.run_number_type or "single",
                 run_number_text=parent.run_number_text,
                 level="info",
+                beam=_ctx[0],
+                target=_ctx[1],
                 source=f"module:{module_id}",
                 is_auto=True,
                 parent_log_id=parent.id,
                 task_status="pending",     # filled by the refresh loop's first tick
                 task_module=module_id,
                 task_interval_min=item.get("interval_min"),
+                task_due_at=_due_at(item),
             )
             db.add(child)
             db.flush()
@@ -308,6 +383,8 @@ def spawn_template_tasks(parent: models.LogEntry,
                 level="info",
                 run_type=fmt.run_type_lock if fmt else None,
                 format_id=fmt_id,
+                beam=_ctx[0],
+                target=_ctx[1],
                 source=parent.source,
                 is_auto=False,
                 parent_log_id=parent.id,
@@ -338,6 +415,8 @@ def spawn_template_tasks(parent: models.LogEntry,
                 run_number_text=parent.run_number_text,
                 level="info",
                 format_id=_pick_format_id(svc, None),
+                beam=_ctx[0],
+                target=_ctx[1],
                 source=f"service:{svc.name}",
                 is_auto=True,
                 parent_log_id=parent.id,
@@ -347,6 +426,7 @@ def spawn_template_tasks(parent: models.LogEntry,
                 task_status="pending" if on_start else "filled",
                 task_service_id=svc.id,
                 task_interval_min=item.get("interval_min"),
+                task_due_at=_due_at(item),
                 # remember the end-of-run trigger so create_log can re-fill it.
                 metadata_json=json.dumps({"on_end": True}) if on_end else None,
             )

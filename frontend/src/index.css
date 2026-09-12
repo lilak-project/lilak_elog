@@ -66,9 +66,9 @@
   --surface-3:              #e2e8f0;
   --overlay:                rgba(15,23,42,0.40);
   /* Border */
-  --border-default:         #e2e8f0;
-  --border-subtle:          #f1f5f9;
-  --border-strong:          #cbd5e1;
+  --border-default:         #d6dee8;
+  --border-subtle:          #e2e8f0;
+  --border-strong:          #b9c4d3;
   --border-focus:           #3b82f6;
   /* Text */
   --text-primary:           #1e293b;
@@ -81,6 +81,7 @@
   /* Status */
   --success-bg:             #d1fae5;
   --success-text:           #065f46;
+  --success-border:         #2f9e44;
   --warning-bg:             #fef3c7;
   --warning-text:           #92400e;
   --danger-bg:              #fee2e2;
@@ -166,9 +167,9 @@
   --surface-2:              #162032;
   --surface-3:              #334155;
   --overlay:                rgba(0,0,0,0.55);
-  --border-default:         #334155;
-  --border-subtle:          #243347;
-  --border-strong:          #475569;
+  --border-default:         #414f63;
+  --border-subtle:          #303f54;
+  --border-strong:          #556377;
   --border-focus:           #60a5fa;
   --text-primary:           #e2e8f0;
   --text-secondary:         #94a3b8;
@@ -179,6 +180,7 @@
   --text-link-hover:        #93c5fd;
   --success-bg:             rgba(16,185,129,0.18);
   --success-text:           #34d399;
+  --success-border:         #34d399;
   --warning-bg:             rgba(120,53,15,0.35);
   --warning-text:           #fcd34d;
   --danger-bg:              rgba(127,29,29,0.35);
@@ -237,9 +239,9 @@
   --surface-2:              #e8e0ce;
   --surface-3:              #dac9a0;
   --overlay:                rgba(60,40,20,0.40);
-  --border-default:         #cec5af;
-  --border-subtle:          #dfd8c8;
-  --border-strong:          #b9a98e;
+  --border-default:         #bfb6a0;
+  --border-subtle:          #d2cbbb;
+  --border-strong:          #aa9a7f;
   --border-focus:           #8a6040;
   --text-primary:           #2c2618;
   --text-secondary:         #5a5040;
@@ -250,6 +252,7 @@
   --text-link-hover:        #5a3810;
   --success-bg:             #cce0c0;
   --success-text:           #3a5028;
+  --success-border:         #5c7a3f;
   --warning-bg:             #e8d8a8;
   --warning-text:           #7a5a10;
   --danger-bg:              #e8c8c0;
@@ -829,3 +832,21 @@ html {
 }
 .scroll-soft:hover::-webkit-scrollbar-thumb,
 .scroll-soft.is-scrolling::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); background-clip: padding-box; }
+
+/* ── Number inputs: no spinners ──────────────────────────────────────────────
+   The up/down arrows are wrong for what this app asks people to type. A vacuum
+   reading of 1.49e-4 does not step by one, and the arrows sit exactly where the
+   value ends — a stray click or scroll over a focused field silently changes a
+   recorded measurement. Typing is the only sane way in, so the affordance that
+   suggests otherwise goes away. */
+input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+/* ── Keep the scrollbar's space, always ──────────────────────────────────────
+   Opening a log makes the page taller, and the vertical scrollbar that appears
+   takes ~15px out of the content width — every card in the feed shifts and
+   resizes at the moment of the click, which reads as the entry you just opened
+   changing size. Reserving the gutter whether or not it is occupied means the
+   layout no longer moves when content height crosses the viewport. */
+html { scrollbar-gutter: stable; }

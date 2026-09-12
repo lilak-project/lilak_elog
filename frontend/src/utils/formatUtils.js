@@ -3,7 +3,7 @@
  *
  * A "format" defines which fields appear in the LogForm and in what order.
  * Built-in fields correspond to standard LogEntry columns. Custom fields
- * (text / number / number_entry / attachment) store values inside
+ * (text / number / select / number_entry / attachment) store values inside
  * format_fields_json on the entry.
  */
 
@@ -43,15 +43,34 @@ export function normalizeBuiltinId(id) {
   return id
 }
 
-// ── Run-type letters (Phase 4 will compute defaults from flow) ──────────────
+// ── Run-type letters ────────────────────────────────────────────────────────
+// Every letter that can sit on a log, INCLUDING the ones nobody picks by hand:
+// `I` and `M` arrive from a system format's run_type_lock, and `A` is the
+// legacy "after the run" that now reads as IDLE. The picker looks names up in
+// here, so a locked Init format shows "Init of run" instead of `undefined`.
 export const RUN_TYPES = [
-  { id: 'S',    labelEn: 'Start of run',     labelKo: '런 시작',     prefix: 'S' },
-  { id: 'R',    labelEn: 'Running',          labelKo: '런 진행',     prefix: 'R' },
-  { id: 'E',    labelEn: 'End of run',       labelKo: '런 종료',     prefix: 'E' },
-  { id: 'M',    labelEn: 'Monitoring run',   labelKo: '런 모니터링', prefix: 'M' },
-  { id: 'IDLE', labelEn: 'IDLE',             labelKo: 'IDLE',        prefix: 'IDLE' },
+  { id: 'I',    labelEn: 'Init of run',   labelKo: '런 준비' },
+  { id: 'S',    labelEn: 'Start',         labelKo: '런 시작' },
+  { id: 'R',    labelEn: 'Running',       labelKo: '런 진행' },
+  { id: 'E',    labelEn: 'End',           labelKo: '런 종료' },
+  { id: 'M',    labelEn: 'Monitoring',    labelKo: '런 모니터링' },
+  { id: 'A',    labelEn: 'IDLE (legacy)', labelKo: 'IDLE (구)' },
+  { id: 'IDLE', labelEn: 'IDLE',          labelKo: 'IDLE' },
 ]
 export const RUN_TYPE_IDS = new Set(RUN_TYPES.map(t => t.id))
+
+/** The letters the compose form actually offers. Init and Monitoring belong to
+ *  system formats, which lock the value rather than let anyone choose it, and
+ *  `A` only exists to keep old rows readable — so a person picks among four. */
+export const PICKABLE_RUN_TYPES = ['S', 'R', 'E', 'IDLE']
+
+/** A run type's display name, falling back to the raw letter for anything the
+ *  catalogue does not know. */
+export function runTypeLabel(id, lang = 'ko') {
+  const spec = RUN_TYPES.find(r => r.id === id)
+  if (!spec) return id || ''
+  return lang === 'ko' ? spec.labelKo : spec.labelEn
+}
 
 // ── number_entry variants ────────────────────────────────────────────────────
 export const NUMBER_ENTRY_VARIANTS = [
@@ -65,7 +84,14 @@ export const MULTIPLE_SLOT_COUNT = 10
 export const CUSTOM_FIELD_TYPES = [
   { id: 'text',         labelEn: 'Text',         labelKo: '텍스트' },
   { id: 'number_entry', labelEn: 'Number entry', labelKo: '숫자 입력 (mean ± error)' },
+  { id: 'select',       labelEn: 'Dropdown',     labelKo: '선택 (드롭다운)' },
 ]
+
+/** The declared choices of a `select` field, always as a clean string array. */
+export function fieldOptions(field) {
+  return Array.isArray(field?.options) ? field.options.filter(o => o !== '' && o != null) : []
+}
+
 
 /**
  * Standard pseudo-format — every built-in field, in the canonical order.

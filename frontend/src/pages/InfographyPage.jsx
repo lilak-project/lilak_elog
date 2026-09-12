@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { confirm, alertDialog } from '../components/dialog'
-import { Icon, Modal, Button, Input, Badge, DataTable, Row, Stack, Menu, TimeRangePicker, rangeBounds, useTaggables, SubTabs, LogList, LogEntryCard, LogDetail, openBarInput, closeBarInput } from 'lilak-ui'
+import { Icon, Modal, Button, Input, Badge, DataTable, SheetGrid, formatSheetValue, Row, Stack, Menu, TimeRangePicker, rangeBounds, useTaggables, SubTabs, LogList, LogEntryCard, LogDetail, openBarInput, closeBarInput, formatLogStamp } from 'lilak-ui'
 import { jsPDF } from 'jspdf'
 import api from '../api'
 import { useAuth } from '../context/AuthContext'
@@ -533,7 +533,7 @@ function GSheetPanel() {
       {status?.connected && (
         <div style={{ fontSize: 'var(--fs-tiny, 11px)', color: 'var(--text-muted)' }}>
           {status.connected_email} · 시트 {status.spreadsheet_id?.slice(0, 10)}… / {status.worksheet}
-          {status.last_synced_at && ` · 최근 동기화 ${new Date(status.last_synced_at).toLocaleString()}`}
+          {status.last_synced_at && ` · 최근 동기화 ${formatLogStamp(status.last_synced_at)}`}
         </div>
       )}
       {msg && <div style={{ fontSize: 'var(--fs-small, 12px)', padding: '4px 8px', borderRadius: 6, backgroundColor: 'var(--success-bg)', color: 'var(--success-text)' }}>{msg}</div>}
@@ -557,25 +557,122 @@ function GSheetPanel() {
   )
 }
 
-// ── Sheet tab — kit DataTable ─────────────────────────────────────────────────
+// ── Sheet tab — kit SheetGrid ─────────────────────────────────────────────────
+const SHEET_LABELS = {
+  empty: '데이터 없음', count: '개수', sum: '합계', avg: '평균', min: '최소', max: '최대',
+  selected: '선택', copy: '복사', copied: '복사됨', sort: '정렬',
+  hint: '클릭 · Shift+클릭 · 드래그로 선택 · Ctrl+C 로 복사 (엑셀/구글시트에 그대로 붙습니다)',
+  autofit: '드래그로 폭 조절 · 더블클릭하면 내용에 맞춤', fitAll: '열 너비 맞춤',
+}
+
 function SheetTab() {
   const [data, setData] = useState({ columns: [], rows: [] })
+  const [q, setQ] = useState('')
+  const [hidden, setHidden] = useState(() => new Set())   // column keys switched off
+  const [hideEmpty, setHideEmpty] = useState(false)
+  const [colsOpen, setColsOpen] = useState(false)
+
   useEffect(() => { api.get('/infography/sheet').then(r => setData(r.data || { columns: [], rows: [] })).catch(() => {}) }, [])
-  const fmt = v => v == null ? '' : (typeof v === 'number' ? Number(v).toFixed(2).replace(/\.?0+$/, '') : v)
+
+  const allColumns = data.columns || []
+  // Every metric any format ever declared becomes a column, so a logbook of a
+  // few systems arrives ~38 columns wide with most of them empty for any given
+  // run. Knowing which ones carry nothing at all is what makes the width
+  // manageable — but nothing is hidden until asked, because a column that is
+  // empty today is a variable somebody is waiting on.
+  const emptyKeys = new Set(allColumns
+    .filter(c => c.key !== 'run_number' &&
+                 !(data.rows || []).some(r => r[c.key] != null && r[c.key] !== ''))
+    .map(c => c.key))
+
+  // `run_number` is the row's identity — frozen so it stays readable once the
+  // variable columns push the table past the viewport, and never hideable.
+  const columns = allColumns
+    .filter(c => !hidden.has(c.key) && !(hideEmpty && emptyKeys.has(c.key)))
+    .map(c => ({ key: c.key, label: c.label, unit: c.unit || '', frozen: c.key === 'run_number' }))
+
+  // Free-text filter over the visible columns only — hiding a column takes its
+  // values out of the search too, which is what "showing these columns" means.
+  const rows = (() => {
+    const needle = q.trim().toLowerCase()
+    if (!needle) return data.rows || []
+    return (data.rows || []).filter(r => columns.some(c => {
+      const v = r[c.key]
+      return v != null && v !== '' && String(formatSheetValue(v)).toLowerCase().includes(needle)
+    }))
+  })()
+
+  // Export what is on screen (filtered + visible columns), not the whole table —
+  // the server CSV is still one click away for the raw thing.
+  function exportCSV() {
+    const esc = v => {
+      const s = String(v ?? '')
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
+    }
+    const body = [columns.map(c => esc(c.unit ? `${c.label} (${c.unit})` : c.label)).join(',')]
+      .concat(rows.map(r => columns.map(c => esc(formatSheetValue(r[c.key]))).join(',')))
+      .join('\n')
+    // A BOM so Excel opens the Korean labels as UTF-8 instead of mojibake.
+    const url = URL.createObjectURL(new Blob(['\ufeff' + body], { type: 'text/csv;charset=utf-8' }))
+    const a = document.createElement('a')
+    a.href = url; a.download = 'elog_sheet.csv'; a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  function toggleCol(key) {
+    setHidden(prev => {
+      const next = new Set(prev)
+      next.has(key) ? next.delete(key) : next.add(key)
+      return next
+    })
+  }
+
   return (
     <Stack gap={12}>
       <GSheetPanel />
-      <Row>
-        <a href="/api/infography/sheet.csv" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 'var(--fs-small, 12px)', fontWeight: 500, padding: '5px 12px', borderRadius: 7, backgroundColor: 'var(--success-bg)', color: 'var(--success-text)', textDecoration: 'none' }}>
-          <Icon name="download" size={13} /> CSV 내보내기
-        </a>
-      </Row>
-      <div style={{ border: '1px solid var(--border-default)', borderRadius: 10, overflow: 'hidden' }}>
-        <div style={{ overflowX: 'auto' }}>
-          <DataTable density="comfortable" rows={data.rows} rowKey={(_r, i) => i} emptyText="데이터 없음"
-            columns={(data.columns || []).map(c => ({ key: c.key, header: c.label, mono: true, render: (row) => fmt(row[c.key]) }))} />
+      <Row gap={8} style={{ alignItems: 'center', flexWrap: 'wrap' }}>
+        <Input size="md" value={q} onChange={e => setQ(e.target.value)} placeholder="표 안에서 검색…" style={{ width: 200 }} />
+        <span style={{ fontSize: 'var(--fs-tiny, 11px)', color: 'var(--text-muted)' }}>
+          {rows.length}행 · {columns.length}열{q.trim() ? ` (전체 ${(data.rows || []).length}행 중)` : ''}
+        </span>
+        <span style={{ flex: 1 }} />
+        <div style={{ position: 'relative' }}>
+          <Button size="sm" variant="secondary" onClick={() => setColsOpen(o => !o)}>
+            <Icon name="table" size={13} /> 열 {allColumns.length - columns.length ? `(${allColumns.length - columns.length} 숨김)` : ''}
+          </Button>
+          {colsOpen && (
+            <div style={{ position: 'absolute', right: 0, top: '100%', marginTop: 4, zIndex: 20,
+                          minWidth: 190, maxHeight: 300, overflowY: 'auto', padding: 6,
+                          border: '1px solid var(--border-default)', borderRadius: 8,
+                          backgroundColor: 'var(--surface)', boxShadow: '0 6px 20px rgba(0,0,0,.18)' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 6px', marginBottom: 4,
+                              borderBottom: '1px solid var(--border-subtle)', cursor: 'pointer',
+                              fontSize: 'var(--fs-small, 12px)', color: 'var(--text-primary)' }}>
+                <input type="checkbox" checked={hideEmpty} onChange={e => setHideEmpty(e.target.checked)} />
+                값 없는 열 숨기기 <span style={{ color: 'var(--text-muted)' }}>({emptyKeys.size})</span>
+              </label>
+              {allColumns.map(c => (
+                <label key={c.key} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 6px',
+                                            fontSize: 'var(--fs-small, 12px)',
+                                            color: emptyKeys.has(c.key) ? 'var(--text-muted)' : 'var(--text-primary)',
+                                            cursor: c.key === 'run_number' ? 'not-allowed' : 'pointer',
+                                            opacity: c.key === 'run_number' ? 0.5 : 1 }}>
+                  <input type="checkbox"
+                         checked={!hidden.has(c.key) && !(hideEmpty && emptyKeys.has(c.key))}
+                         disabled={c.key === 'run_number'}
+                         onChange={() => toggleCol(c.key)} />
+                  {c.label}{emptyKeys.has(c.key) ? ' ·' : ''}
+                </label>
+              ))}
+            </div>
+          )}
         </div>
-      </div>
+        <Button size="sm" variant="success" onClick={exportCSV}>
+          <Icon name="download" size={13} /> CSV 내보내기
+        </Button>
+      </Row>
+      <SheetGrid columns={columns} rows={rows} height={560} labels={SHEET_LABELS}
+                 rowKey={(r, i) => r.run_number ?? i} />
     </Stack>
   )
 }

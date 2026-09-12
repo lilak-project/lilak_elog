@@ -7,7 +7,7 @@
  * badges, nav and space-toggle all match Normal mode for free.
  */
 import { useState, useEffect } from 'react'
-import { Markdown, LogDetail } from 'lilak-ui'
+import { Markdown, LogDetail, formatLogStamp } from 'lilak-ui'
 import api, { apiBaseFor, getExperiment } from '../api'
 import { formatNumberEntry } from '../utils/formatUtils'
 
@@ -60,7 +60,7 @@ function RunLogBlock({ entry, formats }) {
       <div className="flex items-center flex-wrap gap-x-2 gap-y-0.5 text-xs mb-0.5" style={{ color: 'var(--text-muted)' }}>
         <span className="font-mono">_{entry.log_index ?? entry.id}</span>
         {entry.run_type && <span className="font-mono">{entry.run_type}</span>}
-        <span>{entry.created_at ? new Date(entry.created_at).toLocaleString() : ''}</span>
+        <span>{entry.created_at ? formatLogStamp(entry.created_at) : ''}</span>
         <span>{entry.author_name}</span>
         {entry.title && <span style={{ color: 'var(--text-secondary)' }}>· {entry.title}</span>}
       </div>

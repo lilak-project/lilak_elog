@@ -28,7 +28,7 @@ from sqlalchemy.orm import Session
 
 import models
 import portal_peer
-from utils_fields import normalize_format_fields
+from utils_fields import accumulate_number_entries, normalize_format_fields
 from utils_tasks  import add_confirmation_required
 
 
@@ -117,7 +117,15 @@ def fetch_service(
 
 def apply_response_to_log(entry: models.LogEntry, response: dict, db: Session) -> None:
     """Mutate the entry in place using a webhook response. `fields` are
-    normalized so number_entry values come out canonical."""
+    normalized so number_entry values come out canonical.
+
+    Readings ACCUMULATE. A task log on an interval is refilled every few
+    minutes, and replacing its values each time threw away every earlier one —
+    the log ended up meaning "whatever this service happened to say the last
+    time anybody asked" rather than what it measured over the run. Each number
+    now joins the samples already in its own field, so the field count stays
+    exactly as the format declares it. Title, body and non-numeric fields still
+    take the latest value; there is no series in a label."""
     fields = dict(response.get("fields") or {})   # mutable copy
 
     # Title / body can come either as top-level keys or inside `fields`.
@@ -142,7 +150,12 @@ def apply_response_to_log(entry: models.LogEntry, response: dict, db: Session) -
                 except Exception:
                     pass
         normalized = normalize_format_fields(fields, fmt_fields_def)
-        entry.format_fields_json = json.dumps(normalized) if normalized else None
+        try:
+            previous = json.loads(entry.format_fields_json or "{}")
+        except (ValueError, TypeError):
+            previous = {}
+        merged = accumulate_number_entries(previous, normalized, fmt_fields_def)
+        entry.format_fields_json = json.dumps(merged) if merged else None
 
 
 # ── High-level: fill a task log via webhook (success → confirm-tag) ──────────

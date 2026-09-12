@@ -128,6 +128,15 @@ export default function Home() {
   const openOne = useCallback((id) => setOpenIds(p => { if (p.has(id)) return p; const n = new Set(p); n.add(id); return n }), [])
   const closeOne = useCallback((id) => setOpenIds(p => { if (!p.has(id)) return p; const n = new Set(p); n.delete(id); return n }), [])
   const toggleOpen = useCallback((id) => setOpenIds(p => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n }), [])
+  // ONE rule for opening an entry, whatever asked for it. In Close mode the feed
+  // holds a single open entry: opening another puts the previous one away. The
+  // mouse used to call toggleOpen directly, so clicking three cards left three
+  // of them open while Space left one — the same list behaving two different
+  // ways depending on which hand you used.
+  const openToggle = useCallback((id) => {
+    if (openAll) toggleOpen(id)
+    else setOpenIds(cur => (cur.has(id) ? new Set() : new Set([id])))
+  }, [openAll, toggleOpen])
 
   // ── Command mode ─────────────────────────────────────────────────────────────
   const [cmdMode, setCmdMode] = useState(true)
@@ -379,6 +388,20 @@ export default function Home() {
         return
       }
 
+      // Cmd/Ctrl+Enter — the focused log's primary action: [확인] on a log
+      // awaiting review, [Go] on an unfilled task. The editor's own handler
+      // owns the save, so an entry being edited is left to it rather than
+      // getting both.
+      if (!inInput && e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+        const f = feedEntries[focusedIdx]
+        if (f && typeof f.id === 'number' && openIds.has(f.id)
+            && logFormReq?.editId !== f.id && logFormReq?.fromId !== f.id) {
+          e.preventDefault()
+          window.dispatchEvent(new CustomEvent('lilak:cmd:primary-action', { detail: { id: f.id } }))
+        }
+        return
+      }
+
       if (!cmdMode || inInput) return
       // Cmd/Ctrl 조합(Cmd+R 새로고침 등)은 브라우저에 위임
       if (e.metaKey || e.ctrlKey) return
@@ -447,9 +470,7 @@ export default function Home() {
           e.preventDefault()
           const f = feedEntries[focusedIdx]
           if (!f) break
-          // Open mode → toggle this one (others stay). Close mode → single open.
-          if (openAll) toggleOpen(f.id)
-          else setOpenIds(cur => cur.has(f.id) ? new Set() : new Set([f.id]))
+          openToggle(f.id)
           break
         }
         case 'r':
@@ -477,14 +498,26 @@ export default function Home() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [cmdMode, focusedIdx, openIds, feedEntries, openAll, user, openNewLog, cycleTheme])
+  }, [cmdMode, focusedIdx, openIds, feedEntries, openAll, user, openNewLog, cycleTheme, logFormReq, openToggle])
 
   // New page / refetch / mode switch: reset focus + open state; the default-open
   // effect below repopulates per the (per-mode) master toggle.
   // New data → reset focus to the top. Open state persists across refetch; the
   // default-open effect adds any genuinely-new entry ids. Mode switches reset
   // open state in changeViewMode (so it doesn't clobber the default-open pass).
-  useEffect(() => { setFocusedIdx(0) }, [entries])
+  //
+  // Keyed on WHICH rows are listed, not on the array's identity. `refreshOne`
+  // rewrites a single row in place and necessarily hands back a new array, so an
+  // identity check fired here too and threw the cursor back to the top of the
+  // feed — confirming an entry moved the focus to the newest log, which is the
+  // one thing refreshOne exists to avoid.
+  const listSigRef = useRef('')
+  useEffect(() => {
+    const sig = entries.map(e => e.id).join(',')
+    if (sig === listSigRef.current) return
+    listSigRef.current = sig
+    setFocusedIdx(0)
+  }, [entries])
 
   // The comment bar belongs to an open log — if nothing is open, close it so it
   // can't get stuck after the entry is collapsed/closed. Also close on unmount
@@ -763,6 +796,20 @@ export default function Home() {
       }
     } catch { /* the list is still right enough; the next load will settle it */ }
   }, [])
+
+  // Confirming finishes an entry: collapse it, but leave the cursor on it so the
+  // next keystroke still acts on the log just confirmed rather than on whatever
+  // moved into its place. Refresh first — the collapsed row has to show the new
+  // #confirmed tag, and reordering `close` before it makes the row flash the
+  // stale one.
+  // `refreshOne` rewrites one row in place and never reorders, so the index
+  // captured here still points at the same entry once it resolves.
+  const confirmedOne = useCallback(async (id) => {
+    await refreshOne(id)
+    closeOne(id)
+    const idx = feedEntries.findIndex(e => e.id === id)
+    if (idx >= 0) setFocusedIdx(idx)
+  }, [refreshOne, closeOne, feedEntries])
 
   useEffect(() => { fetchEntries(1); setPage(1) }, [activeTag, activeCategory, activeSource, serverSearchQuery, cmdFilter, pageSize, viewMode])
   // Page change refetches only in Normal view; Run group paginates runs client-side.
@@ -1086,7 +1133,7 @@ export default function Home() {
             // Run-group synthetic entry — same kit, merged content.
             inner = isOpen(e.id)
               ? <RunGroupExpanded entry={e} formats={formats} focused={focused} onClose={() => closeOne(e.id)} />
-              : <LogCard entry={e} viewMode="brief" showIndex={false} focused={focused} onToggle={() => { setFocusedIdx(idx); toggleOpen(e.id) }} />
+              : <LogCard entry={e} viewMode="brief" showIndex={false} focused={focused} onToggle={() => { setFocusedIdx(idx); openToggle(e.id) }} />
           } else if (logFormReq?.editId === e.id) {
             // Inline edit — ONE box: the form renders flat (no inner box), with the
             // log # in its top action bar and Cancel/Save in both the top and footer.
@@ -1108,6 +1155,7 @@ export default function Home() {
                   onNoticeToggled={() => { fetchEntries(page); fetchNotices() }}
                   onDeleted={() => { closeOne(e.id); fetchEntries(page) }}
                   onChanged={refreshOne}
+                  onConfirmed={confirmedOne}
                   onComment={(logId) => commentLog(logId)}
                 />
               </ErrorBoundary>
@@ -1118,7 +1166,7 @@ export default function Home() {
                 entry={e}
                 viewMode="brief"
                 focused={focused}
-                onToggle={() => { setFocusedIdx(idx); toggleOpen(e.id) }}
+                onToggle={() => { setFocusedIdx(idx); openToggle(e.id) }}
               />
             )
           }

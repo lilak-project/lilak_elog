@@ -23,6 +23,7 @@ const SHORTCUT_GROUPS = (t) => [
       { keys: ['o', 'Space'],         desc: t('shortcuts_log_open') },
       { keys: ['r', 'Tab'],           desc: t('shortcuts_log_comment') },
       { keys: ['n', '+'],             desc: t('shortcuts_log_new') },
+      { keys: ['⌘/Ctrl + Enter'],     desc: t('shortcuts_log_primary') },
       { keys: ['t'],                  desc: t('shortcuts_log_theme') },
     ],
   },

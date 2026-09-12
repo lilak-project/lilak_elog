@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Input, Button, Chip, ChipGroup, Lightbox, Row, Grid } from 'lilak-ui'
+import { Input, Button, Chip, ChipGroup, Lightbox, Row, Grid, formatLogStamp } from 'lilak-ui'
 import api, { apiBaseFor, getExperiment } from '../api'
 import AttachmentComments from '../components/AttachmentComments'
 import { useLang } from '../context/LangContext'
@@ -232,7 +232,7 @@ export default function Gallery() {
                     #{selectedImg.log_id} {selectedImg.log_title}
                   </button>
                   <p style={{ margin: '2px 0 0', fontSize: 'var(--fs-small, 12px)', color: 'var(--text-secondary)' }}>{selectedImg.log_author}</p>
-                  <p style={{ margin: 0, fontSize: 'var(--fs-small, 12px)', color: 'var(--text-muted)' }}>{new Date(selectedImg.log_created_at).toLocaleString()}</p>
+                  <p style={{ margin: 0, fontSize: 'var(--fs-small, 12px)', color: 'var(--text-muted)' }}>{formatLogStamp(selectedImg.log_created_at)}</p>
                 </div>
                 {(selectedImg.log_run_number != null || selectedImg.log_run_number_text) && (
                   <p style={{ margin: 0 }}>

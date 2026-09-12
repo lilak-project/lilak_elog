@@ -20,6 +20,7 @@ in the log list.
 from __future__ import annotations
 
 import json
+from datetime import timedelta
 from typing import Optional, Literal
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -28,6 +29,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 import models
+from utils_tasks import context_from, inherit_context
 import schemas
 from auth import require_manager
 from database import get_db
@@ -52,6 +54,20 @@ class TaskItem(BaseModel):
     service_id: Optional[int] = None
     on_start: bool = True
     on_end: bool = False
+    # Wait this many minutes before the FIRST reading. The task log still appears
+    # under the run right away — it is the collection that is postponed, so a
+    # "5 minutes into the run" measurement is a schedule rather than something
+    # somebody has to remember to press.
+    delay_min: Optional[int] = None
+
+
+def _due_at(delay_min):
+    """`delay_min` minutes from now, or None when there is no delay."""
+    try:
+        d = int(delay_min or 0)
+    except (TypeError, ValueError):
+        return None
+    return _now() + timedelta(minutes=d) if d > 0 else None
 
 
 class RegisterTasksPayload(BaseModel):
@@ -103,6 +119,7 @@ async def register_tasks(
         )
         if not mother_fmt:
             raise HTTPException(status_code=404, detail="Mother format not found")
+        _mother_ctx = inherit_context(db)
         mother_title = payload.mother_title or f"{svc.name} — {mother_fmt.name}"
         mother = models.LogEntry(
             log_index=_next_log_index(db),
@@ -115,6 +132,8 @@ async def register_tasks(
             format_id=mother_fmt.id,
             source=svc.name,
             is_auto=False,
+            beam=_mother_ctx[0],
+            target=_mother_ctx[1],
             created_at=_now(),
             updated_at=_now(),
         )
@@ -123,6 +142,9 @@ async def register_tasks(
     # Name used as the source/author for plain task children.
     src_name = svc.name if svc else (mother.source or "system")
     db.flush()   # need mother.id
+    # Every log this call creates belongs to the same beam/target as everything
+    # else on the run.
+    _ctx = context_from(mother, db)
 
     created_children: list[models.LogEntry] = []
 
@@ -157,12 +179,15 @@ async def register_tasks(
                 author_id=None,
                 author_name=f"<module:{item.module_id}>",
                 level="info",
+                beam=_ctx[0],
+                target=_ctx[1],
                 source=f"module:{item.module_id}",
                 is_auto=True,
                 parent_log_id=mother.id,
-                task_status="filled",
+                task_status="pending" if item.delay_min else "filled",
                 task_module=item.module_id,
                 task_interval_min=item.interval_min,
+                task_due_at=_due_at(item.delay_min),
                 # Modules carry no run of their own → inherit the mother's run.
                 run_number=mother.run_number,
                 run_number_type=mother.run_number_type or "single",
@@ -199,6 +224,8 @@ async def register_tasks(
                 run_number=None if own_run else mother.run_number,
                 run_number_type=(mother.run_number_type or "single") if not own_run else "single",
                 run_number_text=None if own_run else mother.run_number_text,
+                beam=_ctx[0],
+                target=_ctx[1],
                 source=src_name,
                 is_auto=False,
                 parent_log_id=mother.id,
@@ -235,25 +262,31 @@ async def register_tasks(
                 run_number=mother.run_number,
                 run_number_type=mother.run_number_type or "single",
                 run_number_text=mother.run_number_text,
+                beam=_ctx[0],
+                target=_ctx[1],
                 source=f"service:{svc_t.name}",
                 is_auto=True,
                 parent_log_id=mother.id,
                 task_status="pending",
                 task_service_id=svc_t.id,
                 task_interval_min=item.interval_min,
+                task_due_at=_due_at(item.delay_min),
                 created_at=_now(),
                 updated_at=_now(),
             )
             db.add(child)
             db.flush()
             # Fill immediately from the service (best-effort; failure leaves it
-            # pending for the refresh loop / manual fill).
-            try:
-                ok, _msg = fill_task_via_webhook(child, svc_t, db)
-                if ok:
-                    child.task_status = "filled"
-            except Exception:
-                db.rollback()
+            # pending for the refresh loop / manual fill). A delayed task is the
+            # exception: reading it now is exactly what the delay says not to do,
+            # so it waits for the loop to reach its due time.
+            if child.task_due_at is None:
+                try:
+                    ok, _msg = fill_task_via_webhook(child, svc_t, db)
+                    if ok:
+                        child.task_status = "filled"
+                except Exception:
+                    db.rollback()
             created_children.append(child)
 
     db.commit()

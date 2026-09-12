@@ -16,12 +16,15 @@ export const DEFAULT_TAG_COLORS = {
   init:    '#ffe375',   // yellow
   start:   '#ffe375',
   running: '#ffe375',
-  end:     '#ffe375',
+  // Black: the run lifecycle runs yellow, and its end is a full stop.
+  end:     '#111827',
   idle:    '#e5e7eb',   // very light gray
 }
 
-// Default border colors for synthetic tags (none by default).
-export const BORDER_TAGS = {}
+// Default border colors for synthetic tags.
+// `end` needs one: a near-black chip vanishes against the dark theme's
+// surface-2 (#162032), and outlining it beats lightening the fill.
+export const BORDER_TAGS = { end: '#64748b' }
 
 // Run-type letter → status tag name.
 export const RUN_STATUS_TAG = { I: 'init', S: 'start', R: 'running', E: 'end', IDLE: 'idle', A: 'idle' }

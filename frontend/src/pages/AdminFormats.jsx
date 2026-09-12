@@ -4,7 +4,7 @@ import { Icon, Button } from 'lilak-ui'
 import api from '../api'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LangContext'
-import { BUILTIN_FIELDS, CUSTOM_FIELD_TYPES, NUMBER_ENTRY_VARIANTS } from '../utils/formatUtils'
+import { BUILTIN_FIELDS, CUSTOM_FIELD_TYPES, NUMBER_ENTRY_VARIANTS, fieldOptions } from '../utils/formatUtils'
 import {
   btnPrimary, btnPrimaryHover,
   modalFrame, modalOverlay,
@@ -22,6 +22,45 @@ const AUTO_BUILTINS = new Set(['log_index', 'run', 'title'])
 const MANDATORY_BUILTINS = new Set([...AUTO_BUILTINS, 'tags'])
 // The fields every new/cleared format starts with.
 const DEFAULT_BUILTIN_IDS = ['log_index', 'run', 'title', 'tags']
+
+// ── Dropdown options input ────────────────────────────────────────────────────
+//
+// One option per Enter. The draft text lives here and only committed options
+// travel upward, so the option list is never a re-parse of what is half-typed.
+// Nothing is split on any separator, which is what lets an option contain a
+// comma — "Target A, thin" is one choice, not two.
+function AddOptionInput({ options, onChange, className, style, placeholder }) {
+  const [draft, setDraft] = useState('')
+  const list = Array.isArray(options) ? options : []
+
+  function commit() {
+    const value = draft.trim()
+    setDraft('')
+    if (!value || list.includes(value)) return   // silently ignore blanks + repeats
+    onChange([...list, value])
+  }
+
+  return (
+    <input
+      type="text"
+      value={draft}
+      onChange={e => setDraft(e.target.value)}
+      onKeyDown={e => {
+        if (e.key !== 'Enter') return
+        // A Hangul-composing Enter both commits the syllable AND fires keydown,
+        // so without this guard the last jamo is swallowed and a half-finished
+        // option gets added.
+        if (e.nativeEvent.isComposing || e.keyCode === 229) return
+        e.preventDefault()      // never let it submit or close the modal
+        commit()
+      }}
+      onBlur={commit}           // clicking away keeps what was typed
+      placeholder={placeholder}
+      className={className}
+      style={style}
+    />
+  )
+}
 
 // ── Field editor ──────────────────────────────────────────────────────────────
 
@@ -52,8 +91,9 @@ function FieldEditor({ fields, onChange, t, lang }) {
     <div className="space-y-1.5">
       {fields.map((field, idx) => (
         <div key={field.key}
-          className="flex items-center gap-2 border rounded-lg px-3 py-2"
+          className="border rounded-lg px-3 py-2"
           style={{ backgroundColor: 'var(--surface-2)', borderColor: 'var(--border-default)' }}>
+         <div className="flex items-center gap-2">
           {/* Order controls */}
           <div className="flex flex-col gap-0.5 shrink-0">
             <button type="button" onClick={() => moveUp(idx)}
@@ -125,6 +165,10 @@ function FieldEditor({ fields, onChange, t, lang }) {
                   const next = { field_type: e.target.value }
                   // Logs unify every number_entry to the `multiple` variant.
                   next.variant = e.target.value === 'number_entry' ? 'multiple' : null
+                  // Options belong to `select` alone — carried in on the way to it
+                  // so an earlier draft survives a round trip, cleared on the way
+                  // out so a text field never ships a dropdown's leftovers.
+                  next.options = e.target.value === 'select' ? (field.options || []) : null
                   setField(idx, next)
                 }}
                 className={fieldInputCls}
@@ -136,7 +180,16 @@ function FieldEditor({ fields, onChange, t, lang }) {
                   </option>
                 ))}
               </select>
-              {field.field_type !== 'number_entry' && (
+              {field.field_type === 'select' ? (
+                <AddOptionInput
+                  key={field.key}
+                  options={field.options}
+                  onChange={opts => setField(idx, { options: opts })}
+                  placeholder={t('admin_fmt_field_options')}
+                  className={fieldInputCls}
+                  style={inputBase}
+                />
+              ) : field.field_type !== 'number_entry' && (
                 <input
                   type="text"
                   value={field.placeholder || ''}
@@ -150,19 +203,59 @@ function FieldEditor({ fields, onChange, t, lang }) {
           )}
 
           {field.field_type === 'number_entry' && (
-            <label className="flex items-center gap-1 text-xs shrink-0"
-                   title="Infography 그래프 변수로 사용"
-                   style={{ color: field.metric ? 'var(--text-link)' : 'var(--text-muted)' }}>
-              <input type="checkbox" checked={!!field.metric}
-                     onChange={e => setField(idx, { metric: e.target.checked })} />
-              metric
-            </label>
+            <>
+              {/* Keep the series, or just the latest reading. On by default —
+                  a monitored quantity wants its history — but a constant like
+                  "channels total" averaged over a run says nothing. */}
+              <label className="flex items-center gap-1 text-xs shrink-0"
+                     title="서비스가 값을 보낼 때마다 이 필드에 쌓습니다 (평균 ± 표준편차). 끄면 최신값만 남습니다."
+                     style={{ color: field.accumulate !== false ? 'var(--text-link)' : 'var(--text-muted)' }}>
+                <input type="checkbox" checked={field.accumulate !== false}
+                       onChange={e => setField(idx, { accumulate: e.target.checked })} />
+                누적
+              </label>
+              <label className="flex items-center gap-1 text-xs shrink-0"
+                     title="Infography 그래프 변수로 사용"
+                     style={{ color: field.metric ? 'var(--text-link)' : 'var(--text-muted)' }}>
+                <input type="checkbox" checked={!!field.metric}
+                       onChange={e => setField(idx, { metric: e.target.checked })} />
+                metric
+              </label>
+            </>
           )}
 
           {!(field.field_type === 'builtin' && MANDATORY_BUILTINS.has(normBuiltin(field.builtin_id))) && (
             <button type="button" onClick={() => removeField(idx)}
               className="text-sm shrink-0 ml-1" style={{ color: 'var(--danger-text)' }}><Icon name="close" size={13} /></button>
           )}
+         </div>
+         {/* The committed options, in the order the dropdown will offer them.
+             Each carries its own remove button — the list IS the editor, so
+             there is never a second place where the same choices are written. */}
+         {field.field_type === 'select' && (
+           <div className="flex flex-wrap items-center gap-1 mt-1.5 pl-7">
+             {fieldOptions(field).length === 0 ? (
+               <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                 {t('admin_fmt_field_options_hint')}
+               </span>
+             ) : fieldOptions(field).map((opt, i) => (
+               <span key={`${opt}-${i}`}
+                     className="inline-flex items-center gap-1 text-[11px] pl-2 pr-1 py-0.5 rounded-full"
+                     style={{ backgroundColor: 'var(--info-bg)', color: 'var(--info-text)' }}>
+                 {opt}
+                 <button type="button"
+                   title={t('admin_fmt_field_option_remove')}
+                   onClick={() => setField(idx, { options: fieldOptions(field).filter((_, j) => j !== i) })}
+                   className="inline-flex items-center rounded-full transition-opacity"
+                   style={{ opacity: 0.55, lineHeight: 0, padding: 1 }}
+                   onMouseEnter={e => { e.currentTarget.style.opacity = 1 }}
+                   onMouseLeave={e => { e.currentTarget.style.opacity = 0.55 }}>
+                   <Icon name="close" size={10} />
+                 </button>
+               </span>
+             ))}
+           </div>
+         )}
         </div>
       ))}
     </div>
@@ -172,7 +265,10 @@ function FieldEditor({ fields, onChange, t, lang }) {
 // ── Format modal (create / edit) ──────────────────────────────────────────────
 
 function FormatModal({ initial, onSave, onClose, t, lang }) {
-  const isNew = !initial
+  // Keyed on the ID, not on `initial` existing: a COPY arrives pre-filled from
+  // another format but has no id, and must be saved as a new one rather than
+  // written back over the format it was copied from.
+  const isNew = !initial?.id
 
   // Close on Esc
   useEffect(() => {
@@ -234,7 +330,7 @@ function FormatModal({ initial, onSave, onClose, t, lang }) {
     const key = `custom_${Date.now()}`
     setFields(prev => normalize([...prev, {
       key, label: '', field_type: 'text', placeholder: '',
-      required: false, metric: false, order: prev.length,
+      required: false, metric: false, accumulate: true, order: prev.length,
     }]))
   }
 
@@ -395,7 +491,7 @@ function FormatModal({ initial, onSave, onClose, t, lang }) {
 
 // ── Format row ────────────────────────────────────────────────────────────────
 
-function FormatRow({ fmt, onEdit, onDelete, t }) {
+function FormatRow({ fmt, onEdit, onCopy, onDelete, t }) {
   return (
     <div
       className="border rounded-lg px-4 py-2.5 flex items-center gap-3"
@@ -444,6 +540,15 @@ function FormatRow({ fmt, onEdit, onDelete, t }) {
           style={{ color: 'var(--text-secondary)', borderColor: 'var(--border-default)' }}>
           {t('admin_edit')}
         </button>
+        {/* Start a new format from this one. The usual way a format is born is
+            "the same as that one, with two fields changed" — which otherwise
+            meant rebuilding every field by hand. */}
+        <button onClick={() => onCopy(fmt)}
+          title={t('admin_fmt_copy_hint')}
+          className="text-xs border px-2.5 py-1 rounded transition-colors"
+          style={{ color: 'var(--text-secondary)', borderColor: 'var(--border-default)' }}>
+          {t('admin_fmt_copy')}
+        </button>
         {!fmt.is_default && !['system', 'service', 'module'].includes(fmt.owner_kind) && (
           <button onClick={() => onDelete(fmt)}
             className="text-xs border px-2.5 py-1 rounded transition-colors"
@@ -456,9 +561,22 @@ function FormatRow({ fmt, onEdit, onDelete, t }) {
   )
 }
 
+/** A format pre-filled from another one, ready to edit and save as new.
+ *  No `id` — that is what makes the modal create instead of update. Ownership
+ *  and the default flag are deliberately dropped: a copy belongs to nobody, and
+ *  only one format can be the default. */
+function copyOfFormat(fmt) {
+  return {
+    name: `${fmt.name} 복사`,
+    fields: (fmt.fields || []).map(f => ({ ...f })),
+    is_default: false,
+    notify_community: !!fmt.notify_community,
+  }
+}
+
 // ── Collapsible group ─────────────────────────────────────────────────────────
 
-function FormatGroup({ label, sublabel, formats, defaultOpen = true, onEdit, onDelete, t }) {
+function FormatGroup({ label, sublabel, formats, defaultOpen = true, onEdit, onCopy, onDelete, t }) {
   const [open, setOpen] = useState(defaultOpen)
   return (
     <div className="rounded-xl border overflow-hidden"
@@ -485,7 +603,7 @@ function FormatGroup({ label, sublabel, formats, defaultOpen = true, onEdit, onD
         <div className="p-2 space-y-1.5"
              style={{ backgroundColor: 'var(--surface)' }}>
           {formats.map(fmt => (
-            <FormatRow key={fmt.id} fmt={fmt} onEdit={onEdit} onDelete={onDelete} t={t} />
+            <FormatRow key={fmt.id} fmt={fmt} onEdit={onEdit} onCopy={onCopy} onDelete={onDelete} t={t} />
           ))}
         </div>
       )}
@@ -581,6 +699,7 @@ export default function AdminFormats() {
               formats={g.fmts}
               defaultOpen={true}
               onEdit={fmt => setModal({ format: fmt })}
+              onCopy={fmt => setModal({ format: copyOfFormat(fmt) })}
               onDelete={handleDelete}
               t={t}
             />

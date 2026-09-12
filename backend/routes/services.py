@@ -33,7 +33,7 @@ from seed_formats import (
     unlink_named_system_formats,
 )
 from utils_webhook import fetch_service, apply_response_to_log, WebhookError
-from utils_tasks   import add_confirmation_required
+from utils_tasks   import add_confirmation_required, inherit_context
 from sqlalchemy import func
 import json
 
@@ -252,6 +252,10 @@ def _auto_create_log_format(
                 "unit":       getattr(lf, "unit", None),
                 # number / number_entry fields can be flagged as Infography metrics
                 "metric":     bool(getattr(lf, "metric", False)) and lf.type in ("number", "number_entry"),
+                # A service may declare a `select` too, so a handshake-registered
+                # format offers the same dropdown a hand-made one does.
+                "options":    list(getattr(lf, "options", None) or []) if lf.type == "select" else None,
+                "accumulate": bool(getattr(lf, "accumulate", True)),
                 "required":   False,
                 "order":      i,
             })
@@ -292,6 +296,70 @@ def _auto_create_log_format(
 
 class _CredsReq(_BaseModel):
     pass
+
+
+@router.post("/services/{svc_id}/rehandshake")
+def rehandshake(
+    svc_id: int,
+    current_user: models.User = Depends(require_manager),
+    db: Session = Depends(get_db),
+):
+    """Ask a registered service to describe itself again, and adopt the answer.
+
+    A service's field list is not frozen. MTE declares the channels its CURRENT
+    profile reads, so choosing a different profile changes what it has to say
+    about itself. Registration used to be the only moment elog ever asked, which
+    left deleting the service and adding it back as the only way to pick a
+    change up — taking its task template, its schedule and its history of
+    settings with it.
+
+    The superseded format is unlinked, not deleted: logs already written against
+    it still need their field definitions to render their own labels.
+    """
+    svc = db.query(models.Service).filter(models.Service.id == svc_id).first()
+    if not svc:
+        raise HTTPException(status_code=404, detail="Service not found")
+    if not svc.request_url:
+        raise HTTPException(status_code=400, detail="This service has no request URL")
+
+    try:
+        data = _do_handshake(svc.request_url, portal_peer.self_url(""))
+    except WebhookError as we:
+        return {"ok": False, "error": str(we)}
+
+    raw_fields = data.get("log_fields") or []
+    if not raw_fields:
+        return {"ok": True, "changed": False, "fields": 0,
+                "detail": "이 서비스는 log_fields 를 선언하지 않습니다."}
+
+    try:
+        parsed = [schemas.DiscoverField.model_validate(f) for f in raw_fields]
+    except Exception as err:                                   # noqa: BLE001
+        return {"ok": False, "error": f"log_fields 를 읽을 수 없습니다: {err}"}
+
+    linked_before = {f.id for f in svc.log_formats}
+    fmt = _auto_create_log_format(svc, parsed, db)
+    if fmt is None:
+        return {"ok": True, "changed": False, "fields": len(parsed)}
+
+    # One service holding two formats of the same name makes _pick_format_id a
+    # coin toss, and the loser is whichever one the next push happens to land in.
+    superseded = [f for f in svc.log_formats if f.id != fmt.id and f.name == fmt.name]
+    for old in superseded:
+        svc.log_formats.remove(old)
+
+    db.commit()
+    db.refresh(svc)
+    _audit(db, "rehandshake", "service", svc.id, current_user.username, svc.name)
+    return {
+        "ok": True,
+        "changed": fmt.id not in linked_before or bool(superseded),
+        "format_id": fmt.id,
+        "format_name": fmt.name,
+        "fields": len(parsed),
+        "reused": fmt.id in linked_before,
+        "superseded": [{"id": f.id, "name": f.name} for f in superseded],
+    }
 
 
 @router.post("/services/{svc_id}/send-credentials")
@@ -534,6 +602,38 @@ def update_service(
             unlink_main_system_formats(svc, db)
         detach_system_formats(svc, db)
 
+    # ── The token has to follow the service ──────────────────────────────────
+    # An API token carries a COPY of the service name (create_log resolves a
+    # pusher by api_token.source_name), and one was only ever minted at
+    # registration. Two ways that broke, both silent:
+    #
+    #   • a rename left the token pointing at a name no service has any more, so
+    #     send-credentials found nothing and a push resolved to no service;
+    #   • a service PROMOTED to system here never got a token at all — a system
+    #     that can never be handed credentials, and therefore never pushes a
+    #     single run boundary. It just quietly says nothing forever.
+    if svc.is_system:
+        if old_name != svc.name:
+            db.query(models.ApiToken).filter(
+                models.ApiToken.source_name == old_name
+            ).update({"source_name": svc.name, "name": svc.name},
+                     synchronize_session=False)
+        has_token = (db.query(models.ApiToken)
+                       .filter(models.ApiToken.source_name == svc.name,
+                               models.ApiToken.is_active == True)          # noqa: E712
+                       .first())
+        if not has_token:
+            token_str = "elog_" + _secrets.token_urlsafe(32)
+            db.add(models.ApiToken(name=svc.name, token=token_str, source_name=svc.name))
+            db.commit()
+            if svc.request_url:
+                # A stopped system is the ordinary case, not an error — the
+                # credentials can be resent from the connector tab.
+                try:
+                    _send_credentials(svc.request_url, portal_peer.self_url(""), token_str)
+                except WebhookError:
+                    pass
+
     db.commit()
     db.refresh(svc)
     return _to_out(svc)
@@ -648,10 +748,13 @@ def request_log(
     fmt_obj = db.query(models.LogFormat).filter(models.LogFormat.id == fid).first() if fid else None
     own_run = bool(fmt_obj and (fmt_obj.system_id is not None or fmt_obj.subsystem_id is not None))
     run_no = system_run_number(fmt_obj, db) if own_run else _current_run_number(db)
+    ctx_beam, ctx_target = inherit_context(db)
     entry = models.LogEntry(
         log_index=next_log_idx,
         title=svc.name,
         body="",
+        beam=ctx_beam,
+        target=ctx_target,
         author_id=None,
         author_name=f"<service:{svc.name}>",
         level="info",

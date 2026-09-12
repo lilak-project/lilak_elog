@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { CrudTable } from 'lilak-ui'
+import { CrudTable, formatLogStamp } from 'lilak-ui'
 import api from '../api'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LangContext'
@@ -72,7 +72,7 @@ export default function AdminTokens() {
           { key: 'name', header: t('tokens_col_name') },
           { key: 'source_name', header: t('tokens_col_source'), mono: true, render: (r) => r.source_name || '—' },
           { key: 'status', header: t('tokens_col_status'), render: (r) => statusBadge(r.is_active) },
-          { key: 'last', header: t('tokens_col_last'), render: (r) => r.last_used_at ? new Date(r.last_used_at).toLocaleString() : t('tokens_never') },
+          { key: 'last', header: t('tokens_col_last'), render: (r) => r.last_used_at ? formatLogStamp(r.last_used_at) : t('tokens_never') },
         ]}
         formFields={[
           { key: 'name', label: t('tokens_form_name'), required: true, placeholder: 'e.g. DAQ System' },

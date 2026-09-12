@@ -27,6 +27,8 @@ export default function ManageTasksModal({ motherId, formatId, formatName, onClo
   const [serviceTitle, setServiceTitle] = useState('')
   const [serviceOnStart, setServiceOnStart] = useState(true)   // request at run start
   const [serviceOnEnd, setServiceOnEnd] = useState(false)      // request at run end
+  const [serviceDelay, setServiceDelay] = useState('')         // wait N min before the first read
+  const [moduleDelay, setModuleDelay] = useState('')
 
   const load = useCallback(() => {
     if (isTemplate) {
@@ -77,8 +79,10 @@ export default function ManageTasksModal({ motherId, formatId, formatName, onClo
 
   function addModule() {
     if (!moduleSel) return
-    addItem({ kind: 'module', module_id: moduleSel, interval_min: moduleInterval === '' ? null : Number(moduleInterval) })
-    setModuleSel(''); setModuleInterval('')
+    addItem({ kind: 'module', module_id: moduleSel,
+              interval_min: moduleInterval === '' ? null : Number(moduleInterval),
+              delay_min: moduleDelay === '' ? null : Number(moduleDelay) })
+    setModuleSel(''); setModuleInterval(''); setModuleDelay('')
   }
   function addFormat() {
     if (!formatSel) return
@@ -93,8 +97,10 @@ export default function ManageTasksModal({ motherId, formatId, formatName, onClo
               title: serviceTitle.trim() || (svc?.name ?? ''),
               on_start: serviceOnStart,
               interval_min: serviceInterval === '' ? null : Number(serviceInterval),
+              delay_min: serviceDelay === '' ? null : Number(serviceDelay),
               on_end: serviceOnEnd })
-    setServiceSel(''); setServiceTitle(''); setServiceInterval(''); setServiceOnStart(true); setServiceOnEnd(false)
+    setServiceSel(''); setServiceTitle(''); setServiceInterval(''); setServiceDelay('')
+    setServiceOnStart(true); setServiceOnEnd(false)
   }
 
   async function removeAt(idx, child) {
@@ -126,11 +132,12 @@ export default function ManageTasksModal({ motherId, formatId, formatName, onClo
         <div key={idx} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, paddingLeft:10, paddingRight:10, paddingTop:6, paddingBottom:6, borderRadius:8, fontSize: 'var(--fs-body, 13px)', backgroundColor: 'var(--surface-2)', color: 'var(--text-primary)' }}>
           <span style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
             {it.kind === 'module'
-              ? <span style={{ display:'inline-flex', alignItems:'center', gap:4 }}><Icon name="refresh" size={12} /> {modMap[it.module_id]?.name || it.module_id}{it.interval_min ? ` · ${it.interval_min}분마다` : ' · 1회'}</span>
+              ? <span style={{ display:'inline-flex', alignItems:'center', gap:4 }}><Icon name="refresh" size={12} /> {modMap[it.module_id]?.name || it.module_id}{it.delay_min ? ` · ${it.delay_min}분 뒤` : ''}{it.interval_min ? ` · ${it.interval_min}분마다` : ' · 1회'}</span>
               : it.kind === 'service'
               ? (() => {
                   const parts = []
-                  if (it.on_start !== false) parts.push('시작')
+                  if (it.delay_min) parts.push(`${it.delay_min}분 뒤`)
+                  else if (it.on_start !== false) parts.push('시작')
                   if (it.interval_min) parts.push(`${it.interval_min}분마다`)
                   if (it.on_end) parts.push('끝')
                   return <>🌐 {it.title}{' '}<span style={{ fontSize: 'var(--fs-small, 12px)', color: 'var(--text-muted)' }}>({svcMap[it.service_id]?.name || `service#${it.service_id}`} · {parts.length ? parts.join(' · ') : '수동'})</span></>
@@ -188,6 +195,8 @@ export default function ManageTasksModal({ motherId, formatId, formatName, onClo
               <option value="">모듈 선택…</option>
               {modules.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
             </select>
+            <input type="number" min="0" value={moduleDelay} onChange={e => setModuleDelay(e.target.value)}
+                   placeholder="N분 뒤" title="N분 뒤에 첫 수집" style={{ ...inputStyle, width: 74 }} />
             <input type="number" min="0" value={moduleInterval} onChange={e => setModuleInterval(e.target.value)}
                    placeholder="자동요청(분)" style={{ ...inputStyle, width: 110 }} />
             <button onClick={addModule} disabled={!moduleSel || busy}
@@ -227,6 +236,14 @@ export default function ManageTasksModal({ motherId, formatId, formatName, onClo
           <div style={{ display:'flex', flexWrap:'wrap', gap:'4px 14px', alignItems:'center', fontSize: 'var(--fs-small, 12px)', color: 'var(--text-secondary)' }}>
             <label style={{ display:'inline-flex', alignItems:'center', gap:5, cursor:'pointer' }}>
               <input type="checkbox" checked={serviceOnStart} onChange={e => setServiceOnStart(e.target.checked)} /> 시작할때
+            </label>
+            {/* Delay — the task log still appears at once; only the reading waits. */}
+            <label style={{ display:'inline-flex', alignItems:'center', gap:5 }}
+                   title="런 시작 N분 뒤에 첫 수집을 합니다. 로그 자체는 바로 생깁니다.">
+              <input type="checkbox" checked={serviceDelay !== '' && Number(serviceDelay) > 0}
+                     onChange={e => setServiceDelay(e.target.checked ? '5' : '')} />
+              <input type="number" min="1" value={serviceDelay} onChange={e => setServiceDelay(e.target.value)}
+                     placeholder="N" style={{ ...inputStyle, width: 56, padding: '4px 6px' }} /> 분 뒤에
             </label>
             <label style={{ display:'inline-flex', alignItems:'center', gap:5 }}>
               <input type="checkbox" checked={serviceInterval !== '' && Number(serviceInterval) > 0}

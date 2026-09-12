@@ -131,10 +131,14 @@ async def _run_module_loop(module_id: str) -> None:
                     fields_json = None
                     body = "\n".join(f"{k}: {v}" for k, v in data.items())
 
+                from utils_tasks import inherit_context
+                ctx_beam, ctx_target = inherit_context(db)
                 entry = models.LogEntry(
                     log_index=next_idx,
                     title=title,
                     body=body,
+                    beam=ctx_beam,
+                    target=ctx_target,
                     format_id=fmt_id,
                     format_fields_json=fields_json,
                     author_id=None,
@@ -190,11 +194,18 @@ async def _run_task_refresh_loop() -> None:
                               models.LogEntry.task_service_id.isnot(None)),
                           models.LogEntry.is_deleted == False,   # noqa: E712
                           or_(models.LogEntry.task_status == "pending",
-                              models.LogEntry.task_interval_min > 0),
+                              models.LogEntry.task_interval_min > 0,
+                              models.LogEntry.task_due_at.isnot(None)),
                       )
                       .all()
                 )
                 for t in due_tasks:
+                    # A delayed task is not collectable yet, whatever its status:
+                    # `delay_min` on a template item means "N minutes into the
+                    # run", and a 'pending' one would otherwise be filled on the
+                    # very first tick, which is the opposite of the request.
+                    if t.task_due_at and t.task_due_at > now:
+                        continue
                     # A template-spawned module task starts 'pending' — fill it
                     # immediately on first sight. Otherwise it must carry an
                     # interval and be past due to be re-filled.
@@ -217,6 +228,7 @@ async def _run_task_refresh_loop() -> None:
                             ok, msg = fill_task_via_webhook(t, svc, db)
                             if ok:
                                 t.task_status = "filled"
+                                t.task_due_at = None      # the wait is spent
                                 t.updated_at = _now()
                                 logger.debug(f"[task_refresh] filled task #{t.id} via service {svc.name}")
                             else:
@@ -244,6 +256,7 @@ async def _run_task_refresh_loop() -> None:
                     t.title = f"[{mod.name}] " + ", ".join(f"{k}={v}" for k, v in data.items())
                     t.metadata_json = json.dumps({"module_id": t.task_module, "data": data})
                     t.task_status = "filled"
+                    t.task_due_at = None                  # the wait is spent
                     t.updated_at = _now()
                     logger.debug(f"[task_refresh] refreshed task log #{t.id} via {t.task_module}")
                 db.commit()

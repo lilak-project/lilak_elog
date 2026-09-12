@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { confirm } from '../components/dialog'
-import { Icon, remarkSoftBreaks } from 'lilak-ui'
+import { Icon, remarkSoftBreaks, formatLogStamp } from 'lilak-ui'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -79,7 +79,7 @@ export default function LogDetail() {
         {entry.is_deleted && (
           <div className="border-b px-6 py-2 text-sm rounded-t-xl"
                style={{ backgroundColor: 'var(--danger-bg)', borderColor: 'var(--danger-text)', color: 'var(--danger-text)' }}>
-            {t('detail_deleted_banner', entry.deleted_by, new Date(entry.deleted_at).toLocaleString())}
+            {t('detail_deleted_banner', entry.deleted_by, formatLogStamp(entry.deleted_at))}
           </div>
         )}
         {entry.is_auto && (
@@ -119,10 +119,10 @@ export default function LogDetail() {
           <div className="flex flex-wrap gap-x-5 gap-y-1 text-xs mb-4 pb-3 border-b"
                style={{ color: 'var(--text-secondary)', borderColor: 'var(--border-subtle)' }}>
             <span>{entry.author_name}</span>
-            <span>{new Date(entry.created_at).toLocaleString()}</span>
+            <span>{formatLogStamp(entry.created_at)}</span>
             {entry.updated_by && (
               <span style={{ color: 'var(--text-muted)' }}>
-                {t('detail_edited_by', entry.updated_by, new Date(entry.updated_at).toLocaleString())}
+                {t('detail_edited_by', entry.updated_by, formatLogStamp(entry.updated_at))}
               </span>
             )}
           </div>

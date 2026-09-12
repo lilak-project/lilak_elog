@@ -189,7 +189,7 @@ class FormatField(BaseModel):
     """A single field definition within a log format."""
     key: str                          # unique key within format
     label: str                        # display label (locked for builtins)
-    field_type: str                   # "builtin" | "text" | "number" | "attachment" | "number_entry"
+    field_type: str                   # "builtin" | "text" | "number" | "select" | "attachment" | "number_entry"
     builtin_id: Optional[str] = None  # if field_type == "builtin"
     # number_entry sub-shape: 'single' | 'range' | 'multiple'
     variant: Optional[str] = None
@@ -199,6 +199,17 @@ class FormatField(BaseModel):
     unit: Optional[str] = None         # display unit (e.g. "ms")
     metric: bool = False               # plottable in Infography (number/number_entry)
     auto_title: bool = False           # (title builtin) use the format name as the title
+    # `number_entry` — keep every reading a service sends (mean ± stddev over the
+    # samples), or hold only the latest. Defaults to keeping them, which is what
+    # a monitored quantity wants; a constant like "channels total" or a stamp
+    # like "age of this reading" has no series worth averaging and turns it off.
+    accumulate: bool = True
+    # `select` — the choices its dropdown offers. The stored value is the plain
+    # chosen string, so a select reads and searches exactly like a text field.
+    # Only the compose form is constrained by this list: a value pushed by a
+    # service is recorded as sent, because a log that quietly dropped a reading
+    # it did not recognise would be worse than one showing an unexpected value.
+    options: Optional[list[str]] = None
 
 class LogFormatCreate(BaseModel):
     name: str
@@ -312,6 +323,7 @@ class LogEntrySummary(BaseModel):
     task_module: Optional[str] = None
     task_service_id: Optional[int] = None
     task_interval_min: Optional[int] = None
+    task_due_at: Optional[datetime] = None
     source: str
     is_auto: bool
     is_notice: bool = False
@@ -779,9 +791,12 @@ class DiscoverField(BaseModel):
     """A log field declared by a service during handshake."""
     key:   str
     label: str
-    type:  str   # number_entry | number | text | body | title | tags | level
+    type:  str   # number_entry | number | text | select | body | title | tags | level
     unit:   Optional[str] = None     # display unit, e.g. "V", "uA"
     metric: bool = False             # expose in Infography (number / number_entry)
+    accumulate: bool = True          # number_entry: keep every reading, or only the latest
+    options: Optional[list[str]] = None   # `select` only — the dropdown choices
+    accumulate: bool = True               # number_entry: keep every reading, or only the latest
 
 class ServiceCreate(ServiceBase):
     format_ids: list[int] = []          # link these formats to the new service

@@ -4,6 +4,7 @@ import api from '../api'
 import { useLang } from '../context/LangContext'
 import { useTab } from '../context/TabContext'
 import { combo } from '../theme/textCombos'
+import { formatLogStamp } from 'lilak-ui'
 
 export default function NotificationBell() {
   const { t } = useLang()
@@ -163,7 +164,7 @@ export default function NotificationBell() {
                       </p>
                     )}
                     <p className="text-[10px] mt-1" style={{ color: 'var(--text-muted)' }}>
-                      {new Date(n.created_at).toLocaleString()}
+                      {formatLogStamp(n.created_at)}
                     </p>
                   </div>
                 </div>

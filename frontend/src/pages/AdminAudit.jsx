@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import api from '../api'
 import { useLang } from '../context/LangContext'
+import { formatLogStamp } from 'lilak-ui'
 
 // Friendly labels for the recorded actions.
 const ACTION_LABELS = {
@@ -42,7 +43,7 @@ export default function AdminAudit() {
   const actionLabel = (a) => (ACTION_LABELS[lang] || ACTION_LABELS.en)[a] || a
   const entityLabel = (e) => (ENTITY_LABELS[lang] || ENTITY_LABELS.en)[e] || e
   const tone = (a) => DANGER.has(a) ? 'var(--danger-text)' : GOOD.has(a) ? 'var(--success-text)' : 'var(--text-secondary)'
-  const fmtTime = (iso) => { try { return new Date(iso).toLocaleString() } catch { return iso || '' } }
+  const fmtTime = (iso) => { try { return formatLogStamp(iso) } catch { return iso || '' } }
 
   const th = { textAlign: 'left', padding: '6px 10px', fontSize: 'var(--fs-tiny, 11px)', textTransform: 'uppercase', letterSpacing: '.04em', color: 'var(--text-muted)', borderBottom: '1px solid var(--border-default)', whiteSpace: 'nowrap' }
   const td = { padding: '6px 10px', fontSize: 'var(--fs-small, 12px)', borderBottom: '1px solid var(--border-subtle)', whiteSpace: 'nowrap' }

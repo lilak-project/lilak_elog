@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { promptDialog } from '../components/dialog'
-import { Icon, DataCard, DataGrid, Pagination, Input, Button, Row, ChipGroup } from 'lilak-ui'
+import { Icon, DataCard, DataGrid, Pagination, Input, Button, Row, ChipGroup, formatLogStamp } from 'lilak-ui'
 import { useTaggables, useBookmarks } from 'lilak-ui'
 import api, { apiBaseFor, getExperiment } from '../api'
 import AttachmentComments from '../components/AttachmentComments'
@@ -121,7 +121,7 @@ export default function Files() {
         <Row gap={16} wrap>
           <span>{fileTypeLabel(it.content_type).toUpperCase()}</span>
           <span>{formatSize(it.size)}</span>
-          <span>{new Date(it.created_at).toLocaleDateString()}</span>
+          <span>{formatLogStamp(it.created_at, { time: false })}</span>
         </Row>
         <a href={attUrl(it.id)} download={it.original_filename}
           style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--text-link)', textDecoration: 'none' }}>

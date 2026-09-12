@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { confirm } from './dialog'
-import { LogDetail, Icon } from 'lilak-ui'
+import { LogDetail, Icon, isPolling } from 'lilak-ui'
 import api, { apiBaseFor, getExperiment } from '../api'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LangContext'
@@ -17,7 +17,7 @@ const CONFIRMED_BY_PREFIX       = 'confirmed by '
 /* Banner shown at the top of a task log's tag row.
    When the entry carries `confirmation required` → big warning + Confirm btn.
    When it carries `confirmed by X` → small green check + reviewer name. */
-function ConfirmationBanner({ entry, onChanged }) {
+function ConfirmationBanner({ entry, onChanged, onConfirmed }) {
   const { user } = useAuth()
   const { t, lang } = useLang()
   const [busy, setBusy] = useState(false)
@@ -31,7 +31,11 @@ function ConfirmationBanner({ entry, onChanged }) {
     setBusy(true)
     try {
       await api.post(`/logs/${entry.id}/confirm`)
-      if (onChanged) onChanged()
+      // Confirming is the last thing anyone does to an entry, so the host closes
+      // it and keeps the cursor there — reloading this card's detail first would
+      // be a request for a view that is about to unmount.
+      if (onConfirmed) onConfirmed()
+      else if (onChanged) onChanged()
     } catch (e) {
       alert((lang === 'ko' ? '확인 실패: ' : 'Confirm failed: ')
             + (e?.response?.data?.detail || e?.message || e))
@@ -39,6 +43,16 @@ function ConfirmationBanner({ entry, onChanged }) {
       setBusy(false)
     }
   }
+
+  // Cmd/Ctrl+Enter confirms, from Home's key handler. The banner listens rather
+  // than the card, because the banner is what knows a confirmation is pending
+  // and owns the request that performs it.
+  useEffect(() => {
+    if (!needsConfirm || !user) return
+    function onPrimary(e) { if (e.detail?.id === entry?.id) confirm() }
+    window.addEventListener('lilak:cmd:primary-action', onPrimary)
+    return () => window.removeEventListener('lilak:cmd:primary-action', onPrimary)
+  }, [needsConfirm, user, entry?.id, busy])   // eslint-disable-line react-hooks/exhaustive-deps
 
   if (needsConfirm) {
     return (
@@ -204,24 +218,51 @@ function CustomFieldsBlock({ detail }) {
         const label = spec?.label || key
         // number_entry — stored as { value, error, variant, raw }
         if (val && typeof val === 'object' && 'value' in val && 'error' in val) {
+          // Every reading collected so far, not just what they average to. A
+          // task that refills on an interval is confirmed by a person reading
+          // the numbers, and a mean cannot be checked — the only way to see the
+          // readings was to open the editor, which is a strange thing to have
+          // to do before agreeing that a value looks right.
+          const samples = Array.isArray(val.raw?.values) ? val.raw.values : []
           return (
-            <div key={key} className="flex items-baseline gap-2 text-sm">
-              <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{label}</span>
-              <span className="font-mono" style={{ color: 'var(--text-primary)' }}>
-                {formatNumberEntry(val)}
-              </span>
-              {val.variant && val.variant !== 'single' && (
-                <span className="text-[10px] font-mono"
-                      style={{ color: 'var(--text-muted)' }}>({val.variant})</span>
+            <div key={key} className="text-sm">
+              <div className="flex items-baseline gap-2">
+                <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{label}</span>
+                <span className="font-mono" style={{ color: 'var(--text-primary)' }}>
+                  {formatNumberEntry(val)}
+                </span>
+                {samples.length > 1 && (
+                  <span className="text-[10px] font-mono"
+                        style={{ color: 'var(--text-muted)' }}>({samples.length}회)</span>
+                )}
+              </div>
+              {samples.length > 1 && (
+                <div className="flex flex-wrap gap-x-2 gap-y-0.5 mt-0.5 text-[11px] font-mono"
+                     style={{ color: 'var(--text-secondary)' }}>
+                  {samples.map((s, i) => (
+                    <span key={i} title={`${i + 1}번째 수집`}>
+                      {formatNumberEntry({ value: s, error: 0 })}
+                    </span>
+                  ))}
+                </div>
               )}
             </div>
           )
         }
-        // Plain text / number
+        // Plain text / number. An object that reached here is one nothing
+        // canonicalised — a service sending a field its format never declared,
+        // say. `String()` renders that as "[object Object]", which tells the
+        // reader nothing at all; the JSON at least shows what arrived.
+        // A bare `{values: [...]}` from a field the format never declared is a
+        // LIST — MTE's active channels, say — so print the list. Anything else
+        // unrecognised falls back to its JSON, which at least says what arrived.
+        const plain = (val !== null && typeof val === 'object')
+          ? (Array.isArray(val.values) ? val.values.join(', ') : JSON.stringify(val))
+          : String(val ?? '')
         return (
           <div key={key} className="flex items-baseline gap-2 text-sm">
             <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{label}</span>
-            <span style={{ color: 'var(--text-primary)' }}>{String(val ?? '')}</span>
+            <span style={{ color: 'var(--text-primary)' }}>{plain}</span>
           </div>
         )
       })}
@@ -247,9 +288,13 @@ export default function LogCardExpanded({
   onClose,
   onNoticeToggled,      // called after notice state changes (re-fetches parent list)
   onDeleted,            // called after soft-delete so parent can refresh
-  onChanged,            // called after this entry's TAGS change (confirm/report),
-                        // so the collapsed row in the parent list stops showing
-                        // the old ones — reloadDetail only refreshes this card
+  onChanged,            // called after this entry's TAGS change (report), so the
+                        // collapsed row in the parent list stops showing the old
+                        // ones — reloadDetail only refreshes this card
+  onConfirmed,          // called with the entry id after a successful [확인].
+                        // When given it REPLACES onChanged for that path: the
+                        // host is expected to refresh the row, collapse it, and
+                        // leave the focus on it.
   onComment,            // if provided, 댓글 버튼이 이 콜백을 호출 (Home bottom bar); 없으면 인라인 폼
 }) {
   const { user } = useAuth()
@@ -260,6 +305,7 @@ export default function LogCardExpanded({
   const [comments, setComments] = useState([])
   const [isNotice, setIsNotice] = useState(entry.is_notice ?? false)
   const [togglingNotice, setTogglingNotice] = useState(false)
+  const [stoppingPoll, setStoppingPoll] = useState(false)
   const [showCommentBox, setShowCommentBox] = useState(false)
   const [commentText, setCommentText] = useState('')
   const [commentSubmitting, setCommentSubmitting] = useState(false)
@@ -279,6 +325,19 @@ export default function LogCardExpanded({
     window.addEventListener('lilak:cmd:report', onReportEvt)
     return () => { window.removeEventListener('lilak:cmd:focus-comment', onFocus); window.removeEventListener('lilak:cmd:report', onReportEvt) }
   }, [entry.id, onComment])
+
+  // Cmd/Ctrl+Enter on an unfilled task opens its editor — what [Go] does. A log
+  // that ALSO needs confirming belongs to the banner, which listens for the same
+  // key, so this one stands aside rather than both firing.
+  useEffect(() => {
+    const src = detail || entry
+    const isPending = src?.task_status === 'pending' && !src?.task_service_id && !src?.task_module
+    const needsConfirm = !!src?.tags?.some(tg => tg.name === CONFIRMATION_REQUIRED_TAG)
+    if (!isPending || needsConfirm || !user) return
+    function onPrimary(ev) { if (ev.detail?.id === entry.id) openNewLog({ editId: entry.id }) }
+    window.addEventListener('lilak:cmd:primary-action', onPrimary)
+    return () => window.removeEventListener('lilak:cmd:primary-action', onPrimary)
+  }, [detail, entry, user, openNewLog])
 
   const focusRing = focused ? 'ring-2 ring-blue-500 ring-offset-1' : ''
 
@@ -318,6 +377,18 @@ export default function LogCardExpanded({
       if (mountedRef.current)
         setComments(prev => prev.filter(c => c.id !== commentId))
     } catch { /* silent */ }
+  }
+
+  // Freeze this log's values where they are. The run's End does this for every
+  // task at once; this is the one-off for a service that has gone bad mid-run.
+  async function stopPolling() {
+    setStoppingPoll(true)
+    try {
+      await api.post(`/logs/${entry.id}/stop-polling`)
+      reloadDetail()
+      onChanged?.(entry.id)      // the collapsed row loses its green edge too
+    } catch { /* silent — the banner stays, so it can be retried */ }
+    finally { if (mountedRef.current) setStoppingPoll(false) }
   }
 
   async function toggleNotice() {
@@ -372,6 +443,7 @@ export default function LogCardExpanded({
 
   const e = detail || entry
   const pending = e.task_status === 'pending' && !e.task_service_id && !e.task_module
+  const polling = isPolling(e)
 
   const noticeBadge = isNotice
     ? <span style={{ fontSize: 'var(--fs-tiny, 11px)', padding: '2px 8px', borderRadius: 999, backgroundColor: 'var(--warning-bg)', color: 'var(--warning-text)' }}>{t('notice_badge')}</span>
@@ -388,7 +460,31 @@ export default function LogCardExpanded({
 
   const banner = (
     <>
-      <ConfirmationBanner entry={detail || entry} onChanged={() => { reloadDetail(); onChanged?.(entry.id) }} />
+      <ConfirmationBanner entry={detail || entry}
+        onChanged={() => { reloadDetail(); onChanged?.(entry.id) }}
+        onConfirmed={onConfirmed ? () => onConfirmed(entry.id) : undefined} />
+      {polling && (
+        <div className="flex items-center justify-between gap-3 mb-3 px-3 py-2 rounded-lg border"
+             style={{ backgroundColor: 'var(--success-bg)',
+                      borderColor:     'var(--success-border)',
+                      color:           'var(--success-text)' }}>
+          <div className="text-sm flex items-center gap-1.5">
+            <Icon name="refresh" size={14} />
+            <span>{lang === 'ko'
+              ? `${e.task_interval_min}분마다 값을 받아 이 필드에 추가하는 중입니다. 런이 끝나면 자동으로 멈춥니다.`
+              : `Reading every ${e.task_interval_min} min and adding to these fields. Stops on its own when the run ends.`}</span>
+          </div>
+          {user && (
+            <button onClick={stopPolling} disabled={stoppingPoll}
+                    className="shrink-0 text-xs font-semibold px-3 py-1.5 rounded-md disabled:opacity-60"
+                    style={{ backgroundColor: 'var(--success-text)', color: 'var(--btn-primary-text)' }}>
+              {stoppingPoll
+                ? (lang === 'ko' ? '중지 중…' : 'Stopping…')
+                : (lang === 'ko' ? '수집 중지' : 'Stop')}
+            </button>
+          )}
+        </div>
+      )}
       {pending && (
         <div className="flex items-center justify-between gap-3 mb-3 px-3 py-2 rounded-lg border"
              style={{ backgroundColor: 'var(--info-bg)', borderColor: '#2563eb', color: 'var(--info-text)' }}>

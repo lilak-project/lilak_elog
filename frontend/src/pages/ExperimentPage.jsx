@@ -12,7 +12,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Icon, Button, Input, Badge, Row, Stack, Callout, CopyField, Modal, useTaggables } from 'lilak-ui'
+import { Icon, Button, Input, Badge, Row, Stack, Callout, CopyField, Modal, useTaggables, formatLogStamp } from 'lilak-ui'
 import api from '../api'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LangContext'
@@ -231,6 +231,35 @@ function ServiceForm({ initial, formats, onSave, onCancel, busy, t, isManager, h
     setTimeout(() => setTokenState(s => ({ ...s, copiedConfig: false })), 2000)
   }
 
+  // Ask a registered service to describe itself again. Its field list is not
+  // frozen — MTE declares the channels its current profile reads — and until
+  // now the only way to pick a change up was to delete the service and add it
+  // back, which threw away its task template and settings with it.
+  const [rehandshake, setRehandshake] = useState({ busy: false, result: null })
+  async function doRehandshake() {
+    if (!initial?.id) return
+    setRehandshake({ busy: true, result: null })
+    try {
+      const res = await api.post(`/services/${initial.id}/rehandshake`)
+      setRehandshake({ busy: false, result: res.data })
+      // Pull the server's new linkage into this form. It still holds the
+      // format_ids it loaded, and submitting those would hand the superseded
+      // format straight back — the save would quietly undo the re-handshake.
+      if (res.data?.ok && res.data?.format_id) {
+        const dropped = new Set((res.data.superseded || []).map(f => f.id))
+        setForm(p => ({
+          ...p,
+          format_ids: [...new Set([
+            ...p.format_ids.filter(id => !dropped.has(id)),
+            res.data.format_id,
+          ])],
+        }))
+      }
+    } catch (e) {
+      setRehandshake({ busy: false, result: { ok: false, error: e.response?.data?.detail || e.message } })
+    }
+  }
+
   async function sendCredentials() {
     if (!form.request_url) return
     setTokenState(s => ({ ...s, sending: true, sendResult: null }))
@@ -423,6 +452,15 @@ function ServiceForm({ initial, formats, onSave, onCancel, busy, t, isManager, h
               opacity: (!form.request_url.trim() || testState.status === 'loading') ? 0.5 : 1, color: 'var(--text-secondary)' }}>
             {testState.status === 'loading' ? '테스트 중…' : '연결 테스트'}
           </button>
+          {initial?.id && (
+            <button type="button" onClick={doRehandshake} disabled={rehandshake.busy || !form.request_url.trim()}
+              title="서비스에 다시 물어보고, 바뀐 필드 목록을 포맷에 반영합니다"
+              style={{ fontSize: 'var(--fs-small, 12px)', padding: '5px 12px', borderRadius: 6, fontWeight: 500,
+                border: '1px solid var(--border-default)', background: 'var(--surface-2)', cursor: 'pointer',
+                opacity: (rehandshake.busy || !form.request_url.trim()) ? 0.5 : 1, color: 'var(--text-secondary)' }}>
+              {rehandshake.busy ? '확인 중…' : '핸드셰이크 다시'}
+            </button>
+          )}
           {testState.status === 'ok' && (
             <span style={{ fontSize: 'var(--fs-small, 12px)', color: 'var(--success-text)' }}>
               <Icon name="check" size={12} weight="bold" style={{ verticalAlign: -2 }} /> 연결됨
@@ -437,6 +475,20 @@ function ServiceForm({ initial, formats, onSave, onCancel, busy, t, isManager, h
             </span>
           )}
         </Row>
+        {rehandshake.result && (
+          <p style={{ margin: '6px 0 0', fontSize: 'var(--fs-small, 12px)',
+                      color: rehandshake.result.ok ? 'var(--text-secondary)' : 'var(--danger-text)' }}>
+            {!rehandshake.result.ok
+              ? <><Icon name="close" size={12} weight="bold" style={{ verticalAlign: -2 }} /> {rehandshake.result.error}</>
+              : rehandshake.result.changed
+                ? <><Icon name="check" size={12} weight="bold" style={{ verticalAlign: -2 }} />{' '}
+                    필드 {rehandshake.result.fields}개로 <b>{rehandshake.result.format_name}</b> 적용
+                    {rehandshake.result.superseded?.length
+                      ? ` · 이전 포맷은 연결 해제 (기존 로그는 그대로)`
+                      : ''}</>
+                : <>필드 {rehandshake.result.fields}개 — 바뀐 것 없음</>}
+          </p>
+        )}
       </div>
 
       {/* 신규 시스템: 등록 시 token 자동발급 + credentials 자동전송 안내 */}
@@ -658,8 +710,8 @@ function ModuleRow({ mod, busy, intervalVal, onIntervalChange, onIntervalSave, o
                   style={{ width: 80, border: '1px solid var(--border-default)', borderRadius: 6, padding: '2px 8px', fontSize: 'var(--fs-small, 12px)', backgroundColor: 'var(--surface-2)', color: 'var(--text-primary)', outline: 'none' }} />
               ) : <span>{mod.interval_sec} s</span>}
             </dd>
-            <dt>Last request</dt><dd style={{ margin: 0 }}>{mod.last_run_at ? new Date(mod.last_run_at).toLocaleString() : '—'}</dd>
-            <dt>Next scheduled</dt><dd style={{ margin: 0 }}>{mod.next_run_at ? new Date(mod.next_run_at).toLocaleString() : '—'}</dd>
+            <dt>Last request</dt><dd style={{ margin: 0 }}>{mod.last_run_at ? formatLogStamp(mod.last_run_at) : '—'}</dd>
+            <dt>Next scheduled</dt><dd style={{ margin: 0 }}>{mod.next_run_at ? formatLogStamp(mod.next_run_at) : '—'}</dd>
           </dl>
 
           {/* Live value + graph */}
@@ -867,8 +919,8 @@ function ServiceDetail({ svc, formats, modules, onEdit, onDelete, onClose, onCha
         {dtdd(t('exp_field_request_url').split(' ')[0], svc.request_url || '—', true)}
         {dtdd(t('exp_detail_max_interval'), svc.max_interval_sec ? `${svc.max_interval_sec} ${t('exp_detail_sec')}` : '—')}
         {dtdd(t('exp_detail_realtime_interval'), svc.realtime_interval_sec ? `${svc.realtime_interval_sec} ${t('exp_detail_sec')}` : '—')}
-        {dtdd(t('exp_detail_last_request'), svc.last_request_at ? new Date(svc.last_request_at).toLocaleString() : '—')}
-        {dtdd(t('exp_detail_next_request'), svc.next_request_at ? new Date(svc.next_request_at).toLocaleString() : '—')}
+        {dtdd(t('exp_detail_last_request'), svc.last_request_at ? formatLogStamp(svc.last_request_at) : '—')}
+        {dtdd(t('exp_detail_next_request'), svc.next_request_at ? formatLogStamp(svc.next_request_at) : '—')}
       </dl>
 
       <div>

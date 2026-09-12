@@ -19,6 +19,10 @@ from module_runner import start_module_runner
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
+    # Say which key this process is signing with. A silent disagreement with the
+    # portal is indistinguishable from a wrong password from the outside.
+    from auth import SECRET_KEY_SOURCE
+    print(f"[SECURITY] JWT signing key source: {SECRET_KEY_SOURCE}", flush=True)
     init_db()
     await start_module_runner()
     yield
