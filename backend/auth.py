@@ -37,11 +37,61 @@ from database import get_db
 # service — without this, a deployment that sets only PORTAL_SECRET_KEY would leave
 # elog verifying portal tokens against the PUBLIC dev default (forgeable manager
 # tokens). Keep both in sync; they must resolve to the same value in production.
-SECRET_KEY: str = (
-    os.environ.get("PORTAL_SECRET_KEY")
-    or os.environ.get("ELOG_SECRET_KEY")
-    or "lilak-dev-secret-CHANGE-in-production"
-)
+def _resolve_secret_key() -> tuple:
+    """The JWT signing key, and where it came from.
+
+    This must resolve to the SAME value the portal reaches, or a portal token is
+    rejected here and one password stops working in two places. It used to fall
+    back to a constant printed in the source, which made that failure invisible:
+    started without the variable, this service ran a whole day on the public dev
+    key while the portal signed with the real one — the log said only
+    "token=yes, claims=no". Worse, had the portal lost the variable too they
+    would have AGREED, on a key anyone can read.
+
+    Delivery by environment inheritance was the root of it: whoever spawned the
+    process decided whether auth worked. So the key is a property of the shared
+    data root instead, in the same order service_manager/app/config.py uses:
+    an explicit variable, else `<PORTAL_DATA_ROOT>/_portal/secret.key`, else that
+    file is created. Keep the two in step.
+
+    Standalone (no portal data root) falls back to this experiment's own data
+    directory: there is no portal to agree with, so a private persistent key is
+    right — and portal tokens then simply do not verify, which is the truth.
+    """
+    for var in ("PORTAL_SECRET_KEY", "ELOG_SECRET_KEY"):
+        val = os.environ.get(var)
+        if val:
+            return val, f"env:{var}"
+
+    root = os.environ.get("PORTAL_DATA_ROOT")
+    if root:
+        path = os.path.join(root, "_portal", "secret.key")
+    else:
+        from database import DATA_DIR
+        path = os.path.join(DATA_DIR, "secret.key")
+    try:
+        if os.path.exists(path):
+            with open(path) as fh:
+                val = fh.read().strip()
+            if val:
+                return val, f"file:{path}"
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        val = secrets.token_urlsafe(48)
+        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        with os.fdopen(fd, "w") as fh:
+            fh.write(val + "\n")
+        return val, f"generated:{path}"
+    except FileExistsError:
+        with open(path) as fh:
+            return fh.read().strip(), f"file:{path}"
+    except OSError as err:
+        raise RuntimeError(
+            f"cannot read or create the JWT signing key at {path}: {err}. "
+            f"Set ELOG_SECRET_KEY, or make the data directory writable."
+        ) from err
+
+
+SECRET_KEY, SECRET_KEY_SOURCE = _resolve_secret_key()
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_HOURS: int = int(os.environ.get("ELOG_TOKEN_EXPIRE_HOURS", "24"))
 
