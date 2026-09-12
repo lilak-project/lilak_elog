@@ -5,11 +5,13 @@ Files are stored under UPLOAD_DIR/{log_id}/{safe_filename}.
 
 import mimetypes
 import os
+import shutil
 import uuid
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from fastapi.responses import FileResponse
+from pydantic import BaseModel
 from sqlalchemy.orm import Session, joinedload
 from typing import Optional
 
@@ -168,6 +170,77 @@ async def upload_attachments(
             content_type=a.content_type,
             size=a.size,
             created_at=a.created_at,
+        )
+        for a in saved
+    ]
+
+
+class _LinkReq(BaseModel):
+    attachment_ids: list[int]
+
+
+@router.post("/logs/{log_id}/attachments/link", response_model=list[schemas.AttachmentOut],
+             status_code=status.HTTP_201_CREATED)
+def link_existing_attachments(
+    log_id: int,
+    payload: _LinkReq,
+    current_user: models.User = Depends(require_auth),
+    db: Session = Depends(get_db),
+):
+    """Attach files that are already in this logbook to another log.
+
+    The bytes are COPIED into the target log's folder rather than shared. Files
+    live at `<uploads>/<log_id>/<name>`, so a shared row would depend on the
+    other log's directory surviving — and deleting either attachment would take
+    the file out from under the other. A copy keeps delete meaning exactly what
+    it means today, at the cost of the disk a deliberately-picked file uses.
+    """
+    entry = db.query(models.LogEntry).filter(
+        models.LogEntry.id == log_id,
+        models.LogEntry.is_deleted == False,                      # noqa: E712
+    ).first()
+    if not entry:
+        raise HTTPException(status_code=404, detail="Log entry not found")
+    if current_user.role != "manager" and entry.author_id is not None \
+            and entry.author_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Cannot attach to another user's entry")
+
+    sources = (db.query(models.Attachment)
+                 .filter(models.Attachment.id.in_(payload.attachment_ids or []))
+                 .all())
+    if not sources:
+        raise HTTPException(status_code=404, detail="No such attachments")
+
+    dest_dir = _attachment_dir(log_id)
+    saved = []
+    for src in sources:
+        src_path = Path(UPLOAD_DIR) / str(src.log_id) / src.filename
+        if not src_path.exists():
+            continue                       # the row outlived its file; skip it
+        stem, ext = os.path.splitext(_safe_filename(src.original_filename or src.filename))
+        stored_name = f"{stem}_{uuid.uuid4().hex[:8]}{ext}"
+        shutil.copyfile(src_path, dest_dir / stored_name)
+        att = models.Attachment(
+            log_id=log_id,
+            filename=stored_name,
+            original_filename=src.original_filename,
+            content_type=src.content_type,
+            size=src.size,
+        )
+        db.add(att)
+        db.flush()
+        saved.append(att)
+
+    if not saved:
+        raise HTTPException(status_code=404, detail="None of those files are on disk any more")
+    db.commit()
+    for a in saved:
+        db.refresh(a)
+    return [
+        schemas.AttachmentOut(
+            id=a.id, log_id=a.log_id, filename=a.filename,
+            original_filename=a.original_filename, content_type=a.content_type,
+            size=a.size, created_at=a.created_at,
         )
         for a in saved
     ]

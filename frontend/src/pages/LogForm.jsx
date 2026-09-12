@@ -1,13 +1,14 @@
 import { useState, useEffect, useRef } from 'react'
 import { confirm } from '../components/dialog'
-import { Icon, Button, CameraCapture } from 'lilak-ui'
+import AttachmentPicker from '../components/AttachmentPicker'
+import { Icon, Button, CameraCapture, formatLogStamp } from 'lilak-ui'
 import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import api, { getExperiment } from '../api'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LangContext'
-import { getFields, formatLogTitle } from '../utils/formatUtils'
+import { getFields, formatLogTitle, fieldOptions, runTypeLabel } from '../utils/formatUtils'
 import NumberEntryField from '../components/fields/NumberEntryField'
 import RunTypePicker from '../components/fields/RunTypePicker'
 
@@ -254,6 +255,16 @@ export default function LogForm({
 
   // ── Files / attachments ──────────────────────────────────────────────────
   const [fileItems, setFileItems] = useState([])
+  // Files already in this logbook, chosen from the picker. Kept apart from
+  // fileItems because these never travel as bytes — the server copies them.
+  const [pickedAtts, setPickedAtts] = useState([])
+  const [pickerOpen, setPickerOpen] = useState(false)
+  // Beam/target typed late: carry it forward over the logs that inherited the
+  // old value, as if it had been set at the time.
+  const [applyFwd, setApplyFwd] = useState(false)
+  const [applyPreview, setApplyPreview] = useState(null)
+  const [applyFrom, setApplyFrom] = useState('')   // starting log number (_N)
+  const [myIndex, setMyIndex] = useState(null)     // this log's own number
   const [dragOver, setDragOver] = useState(false)
 
   // ── UI ───────────────────────────────────────────────────────────────────
@@ -317,7 +328,7 @@ export default function LogForm({
       const e = r.data
       setFromEntry(e)
       setFromAttachments(e.attachments || [])
-      const date = new Date(e.created_at).toLocaleString()
+      const date = formatLogStamp(e.created_at)
       const header = `> [#${e.id}] **${e.title}** (${e.author_name}, ${date}) 에서 이어 씀\n\n`
       setForm({
         title: e.title || '',
@@ -360,6 +371,7 @@ export default function LogForm({
         setRunTypeUserEdited(true)   // editing an existing log → respect stored choice
       }
       setTagList(e.tags.map(tg => tg.name))
+      setMyIndex(e.log_index ?? null)
       setExistingAttachments(e.attachments || [])
       // Restore custom fields if the entry had a format
       if (e.format_fields_json) {
@@ -482,6 +494,53 @@ export default function LogForm({
   }
 
   // ── Submit ───────────────────────────────────────────────────────────────
+  // Cmd/Ctrl+Enter saves. Bound on the document, not the form, because after
+  // [Go] opens an editor the focus is nowhere in particular — a form-scoped
+  // handler would only fire once the user had clicked into a field first.
+  const submitRef = useRef({ submit: null, saving: false })
+  useEffect(() => { submitRef.current = { submit: handleSubmit, saving } })
+  useEffect(() => {
+    function onKey(e) {
+      if (e.key !== 'Enter' || !(e.metaKey || e.ctrlKey)) return
+      if (e.isComposing || e.keyCode === 229) return
+      const { submit, saving: busy } = submitRef.current
+      if (!submit || busy) return
+      e.preventDefault()
+      submit(e)
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [])
+
+  /** The apply-context request body, or null when there is nothing to apply. */
+  function applyBody() {
+    const body = {}
+    if (fieldVisible('beam'))   body.beam   = form.beam.trim()
+    if (fieldVisible('target')) body.target = form.target.trim()
+    if (!Object.keys(body).length) return null
+    const from = parseInt(applyFrom, 10)
+    // Blank means "from this log". A number reaches BACK to it, which is the
+    // case this exists for: the setter typed late, minutes after it was true.
+    if (Number.isFinite(from) && from !== myIndex) body.from_log_index = from
+    return body
+  }
+
+  // How many logs the carry-forward would touch, asked before it happens — the
+  // count is the whole basis for deciding whether to tick the box.
+  useEffect(() => {
+    if (!applyFwd || !isEdit || !id) { setApplyPreview(null); return }
+    const body = applyBody()
+    if (!body) { setApplyPreview(null); return }
+    const ctrl = new AbortController()
+    const timer = setTimeout(() => {
+      api.post(`/logs/${id}/apply-context`, { ...body, dry_run: true }, { signal: ctrl.signal })
+         .then(r => setApplyPreview(r.data))
+         .catch(err => setApplyPreview(err?.response?.data?.detail
+           ? { error: err.response.data.detail } : null))
+    }, 300)
+    return () => { clearTimeout(timer); ctrl.abort() }
+  }, [applyFwd, applyFrom, form.beam, form.target, isEdit, id])   // eslint-disable-line react-hooks/exhaustive-deps
+
   async function handleSubmit(e) {
     e.preventDefault()
     if (!checkRun()) return
@@ -528,6 +587,14 @@ export default function LogForm({
         if (payload.title) localStorage.setItem(lastTitleKey(), payload.title)
       }
 
+      // Carry the beam/target forward, after this log holds the new value.
+      if (applyFwd && isEdit) {
+        const ctx = applyBody()
+        if (ctx) {
+          try { await api.post(`/logs/${entryId}/apply-context`, ctx) } catch { /* the log is saved either way */ }
+        }
+      }
+
       // Attachments
       const fd = new FormData()
       for (const att of fromAttachments) {
@@ -542,6 +609,12 @@ export default function LogForm({
         await api.post(`/logs/${entryId}/attachments`, fd, {
           headers: { 'Content-Type': 'multipart/form-data' },
         })
+      }
+      // Files picked out of the logbook are copied server-side — no round trip
+      // through the browser just to hand the bytes back.
+      if (pickedAtts.length > 0) {
+        await api.post(`/logs/${entryId}/attachments/link`,
+                       { attachment_ids: pickedAtts.map(a => a.id) })
       }
 
       if (onSaved) onSaved(entryId)
@@ -600,6 +673,16 @@ export default function LogForm({
       <CameraCapture open={cameraOpen} onClose={() => setCameraOpen(false)}
         onCapture={addCapturedFile} title={t('form_camera') || '카메라 / 사진'} />
 
+      {pickerOpen && (
+        <AttachmentPicker
+          onClose={() => setPickerOpen(false)}
+          onPick={(chosen) => setPickedAtts(prev => {
+            const seen = new Set(prev.map(a => a.id))
+            return [...prev, ...chosen.filter(a => !seen.has(a.id))]
+          })}
+        />
+      )}
+
       {/* Header — format badge (new log only); Cancel/Save live in the form actions */}
       {!isEdit && !fromId && formats.length > 0 && (
         <div className="flex items-center gap-3 mb-3">
@@ -650,17 +733,21 @@ export default function LogForm({
             </div>
           )}
           {fieldVisible('title') && !autoTitle && (
-            <div className="flex items-center gap-3">
-              <label className={labelCls} style={labelStyle}>
+            <div className="flex items-start gap-3">
+              <label className={`${labelCls} pt-1.5`} style={labelStyle}>
                 {t('form_title')}
               </label>
-              <div className="flex-1 flex items-center gap-2">
+              <div className="flex-1">
+                {/* The input gets the whole row. The "reuse the last title"
+                    shortcut used to sit beside it, so the longer the previous
+                    title the less room there was to type the next one — the
+                    field shrank exactly when there was most to say. */}
                 <input
                   name="title"
                   value={form.title}
                   onChange={e => setForm(prev => ({ ...prev, title: e.target.value }))}
                   placeholder={t('form_title_placeholder')}
-                  className={`flex-1 ${inputCls}`}
+                  className={`w-full ${inputCls}`}
                   style={inputStyle}
                 />
                 {lastTitle && !isEdit && !fromId && (
@@ -668,12 +755,12 @@ export default function LogForm({
                     type="button"
                     title={lastTitle}
                     onClick={() => { setForm(prev => ({ ...prev, title: lastTitle })); setLastTitle('') }}
-                    className="shrink-0 text-xs border rounded px-2 py-1.5 whitespace-nowrap transition-colors"
+                    className="mt-1 max-w-full text-xs border rounded px-2 py-0.5 truncate transition-colors"
                     style={{ color: 'var(--text-muted)', borderColor: 'var(--border-default)' }}
                     onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-link)'; e.currentTarget.style.borderColor = 'var(--border-focus)' }}
                     onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.borderColor = 'var(--border-default)' }}
                   >
-                    ↩ {lastTitle.length > 18 ? lastTitle.slice(0, 18) + '…' : lastTitle}
+                    ↩ {lastTitle}
                   </button>
                 )}
               </div>
@@ -791,7 +878,7 @@ export default function LogForm({
                     lockedTo={runTypeLock}
                     lang={lang}
                     hint={!runTypeLock && autoRunTypeLetter && !runTypeUserEdited
-                      ? `auto: ${autoRunTypeLetter}`
+                      ? `auto: ${runTypeLabel(autoRunTypeLetter, lang)}`
                       : null}
                   />
                 </div>
@@ -814,6 +901,75 @@ export default function LogForm({
               <input value={form.target}
                 onChange={e => setForm(prev => ({ ...prev, target: e.target.value }))}
                 placeholder="예: CD2" className={`flex-1 ${inputCls}`} style={inputStyle} />
+            </div>
+          )}
+          {/* Beam/target are sticky FORWARD: whatever is set here describes every
+              log after it until somebody changes it. Typed late, that start
+              point is wrong, so this moves it back. */}
+          {isEdit && (fieldVisible('beam') || fieldVisible('target')) && (
+            <div className="flex items-start gap-3">
+              <span className={labelCls} />
+              <div className="flex-1">
+                <label className="flex items-center gap-1.5 text-xs cursor-pointer"
+                       style={{ color: applyFwd ? 'var(--text-link)' : 'var(--text-secondary)' }}>
+                  <input type="checkbox" checked={applyFwd}
+                         onChange={e => {
+                           setApplyFwd(e.target.checked)
+                           if (e.target.checked && applyFrom === '' && myIndex != null) {
+                             setApplyFrom(String(myIndex))
+                           }
+                         }} />
+                  이 Beam / Target 을 다른 로그에도 채우기
+                </label>
+                {!applyFwd && (
+                  <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>
+                    Beam / Target 은 설정한 로그부터 뒤로 계속 이어집니다.
+                    늦게 입력했다면 켜서 시작 번호를 앞으로 당기세요.
+                  </p>
+                )}
+                {applyFwd && (
+                  <div className="mt-1.5">
+                    <div className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--text-secondary)' }}>
+                      <span style={{ fontFamily: 'var(--font-mono)' }}>_</span>
+                      <input type="number" value={applyFrom}
+                             onChange={e => setApplyFrom(e.target.value)}
+                             placeholder={myIndex != null ? String(myIndex) : 'N'}
+                             className="border rounded px-2 py-1 text-xs"
+                             style={{ ...inputStyle, width: 84 }} />
+                      번 로그부터 적용
+                      {myIndex != null && (
+                        <span style={{ color: 'var(--text-muted)' }}>(이 로그: _{myIndex})</span>
+                      )}
+                    </div>
+                    {applyPreview?.error && (
+                      <p className="text-[11px] mt-1" style={{ color: 'var(--danger-text)' }}>
+                        {applyPreview.error}
+                      </p>
+                    )}
+                    {applyPreview && !applyPreview.error && (
+                      <div className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>
+                        {['beam', 'target'].map(f => {
+                          const r = applyPreview[f]
+                          if (!r) return null
+                          const label = f === 'beam' ? 'Beam' : 'Target'
+                          return (
+                            <span key={f} style={{ display: 'block' }}>
+                              {label} <b style={{ color: 'var(--text-primary)' }}>{r.value || '(비움)'}</b>
+                              {' → '}_{r.from} 부터 <b style={{ color: 'var(--text-primary)' }}>{r.updated}개</b> 로그에 채워집니다
+                              {r.stopped_at != null
+                                ? ` · _${r.stopped_at} 에서 다른 값이라 멈춤`
+                                : ' · 마지막 로그까지'}
+                            </span>
+                          )
+                        })}
+                        <span style={{ display: 'block', marginTop: 2 }}>
+                          이미 다른 값이 설정된 로그는 건드리지 않습니다.
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
@@ -894,6 +1050,13 @@ export default function LogForm({
           {/* ── Custom fields ─────────────────────────────────────────── */}
           {customFields.map(field => {
             const isNumberEntry = field.field_type === 'number_entry'
+            const isSelect      = field.field_type === 'select'
+            // A value saved before an option was renamed or dropped is still what
+            // this log recorded. Keep it in the list (marked) rather than letting
+            // the <select> fall back to blank and rewrite history on the next save.
+            const selectValue   = customValues[field.key] ?? ''
+            const opts          = fieldOptions(field)
+            const staleValue    = isSelect && selectValue !== '' && !opts.includes(selectValue)
             return (
               <div key={field.key} className="flex items-center gap-3">
                 <label className={labelCls} style={labelStyle}>
@@ -908,6 +1071,18 @@ export default function LogForm({
                       value={toMultipleRaw(customValues[field.key])}
                       onChange={raw => setCustomValues(prev => ({ ...prev, [field.key]: raw }))}
                     />
+                  ) : isSelect ? (
+                    <select
+                      value={selectValue}
+                      onChange={e => setCustomValues(prev => ({ ...prev, [field.key]: e.target.value }))}
+                      required={field.required}
+                      className={inputCls}
+                      style={inputStyle}
+                    >
+                      <option value="">{field.placeholder || '—'}</option>
+                      {opts.map(o => <option key={o} value={o}>{o}</option>)}
+                      {staleValue && <option value={selectValue}>{selectValue} (목록에 없음)</option>}
+                    </select>
                   ) : (
                     <input
                       type={field.field_type === 'number' ? 'number' : 'text'}
@@ -1005,8 +1180,13 @@ export default function LogForm({
                   </div>
                 )}
                 <div
-                  className="border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors"
+                  className="border-2 border-dashed rounded-lg text-center cursor-pointer transition-colors flex items-center justify-center"
                   style={{
+                    // Twice the old p-4 box. A drop target has to be an easy
+                    // thing to aim a dragged file at, and the one-line version
+                    // was barely taller than the text inside it.
+                    minHeight: 96,
+                    padding: '16px',
                     borderColor:     dragOver ? 'var(--border-focus)' : 'var(--border-default)',
                     backgroundColor: dragOver ? 'var(--info-bg)'      : 'transparent',
                   }}
@@ -1031,6 +1211,11 @@ export default function LogForm({
                 {/* Camera — mobile uses the native capture input; desktop opens the
                     getUserMedia modal (the webcam isn't reachable via <input capture>). */}
                 <div className="mt-2 flex items-center gap-2">
+                  <Button variant="secondary" type="button" onClick={() => setPickerOpen(true)}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                      <Icon name="folder" size={14} />파일에서 선택
+                    </span>
+                  </Button>
                   <Button variant="secondary" type="button"
                     onClick={() => { if (isMobile) cameraInputRef.current?.click(); else setCameraOpen(true) }}>
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><Icon name="camera" size={14} />{t('form_camera') || '카메라 / 사진'}</span>
@@ -1042,6 +1227,25 @@ export default function LogForm({
                     ])}
                   />
                 </div>
+                {pickedAtts.length > 0 && (
+                  <div className="mt-2">
+                    <p className="text-xs mb-1" style={{ color: 'var(--text-link)' }}>
+                      파일에서 선택 ({pickedAtts.length})
+                    </p>
+                    <ul className="space-y-1">
+                      {pickedAtts.map(a => (
+                        <li key={a.id} className="flex items-center gap-1.5 text-xs"
+                            style={{ color: 'var(--text-secondary)' }}>
+                          <Icon name="folder" size={12} />
+                          <span className="flex-1 truncate">{a.original_filename}</span>
+                          <button type="button" title="빼기"
+                            onClick={() => setPickedAtts(prev => prev.filter(x => x.id !== a.id))}
+                            style={{ color: 'var(--text-muted)' }}><Icon name="close" size={12} /></button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
                 {fileItems.length > 0 && (
                   <ul className="mt-2 space-y-1.5">
                     {fileItems.map((item, i) => (

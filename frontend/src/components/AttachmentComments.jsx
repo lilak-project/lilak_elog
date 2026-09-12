@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Input, Button } from 'lilak-ui'
+import { Input, Button, formatLogStamp } from 'lilak-ui'
 import api from '../api'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LangContext'
@@ -45,7 +45,7 @@ export default function AttachmentComments({ logId, onOpenLog, compact = false }
               onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-subtle)' }}>
               <div style={{ fontSize: 'var(--fs-small, 12px)', color: 'var(--text-primary)', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{c.body}</div>
               <div style={{ fontSize: 'var(--fs-micro, 10px)', color: 'var(--text-muted)', marginTop: 2 }}>
-                {c.author_name} · {c.created_at ? new Date(c.created_at).toLocaleString() : ''}
+                {c.author_name} · {c.created_at ? formatLogStamp(c.created_at) : ''}
               </div>
             </button>
           ))}
