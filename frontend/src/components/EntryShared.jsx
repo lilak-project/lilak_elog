@@ -14,10 +14,10 @@ const COMMENTS_PREVIEW = 1
  *  detail page and inline-editor header. */
 export function severityStyle(sev, { withBorder = false } = {}) {
   const map = {
-    warning:  ['var(--warning-bg)',    'var(--warning-text)',    'var(--warning-text)'],
-    error:    ['var(--danger-bg)',     'var(--danger-text)',     'var(--danger-text)'],
-    critical: ['var(--btn-danger-bg)', 'var(--btn-danger-text)', 'var(--btn-danger-bg)'],
-    info:     ['var(--info-bg)',       'var(--info-text)',       'var(--info-text)'],
+    warning:  ['var(--dock-warning-bg)',    'var(--dock-warning-text)',    'var(--dock-warning-text)'],
+    error:    ['var(--dock-danger-bg)',     'var(--dock-danger-text)',     'var(--dock-danger-text)'],
+    critical: ['var(--dock-btn-danger-bg)', 'var(--dock-btn-danger-text)', 'var(--dock-btn-danger-bg)'],
+    info:     ['var(--dock-info-bg)',       'var(--dock-info-text)',       'var(--dock-info-text)'],
   }
   const [backgroundColor, color, borderColor] = map[sev] || map.info
   return withBorder ? { backgroundColor, color, borderColor } : { backgroundColor, color }
@@ -54,7 +54,7 @@ export function RunBadges({ entry, size = 'md' }) {
 export function NumberBadge({ children }) {
   return (
     <span className="text-xs font-mono px-2 py-0.5 rounded border"
-          style={{ color: 'var(--text-muted)', backgroundColor: 'var(--surface)', borderColor: 'var(--border-default)' }}>
+          style={{ color: 'var(--dock-text-muted)', backgroundColor: 'var(--dock-surface)', borderColor: 'var(--dock-border-default)' }}>
       {children}
     </span>
   )
@@ -62,10 +62,10 @@ export function NumberBadge({ children }) {
 
 // hoverFg → kit Button variant (the kit Button now IS this soft-pill look).
 const VARIANT_BY_FG = {
-  'var(--success-text)': 'success',
-  'var(--warning-text)': 'warning',
-  'var(--danger-text)': 'danger',
-  'var(--text-link)': 'info',
+  'var(--dock-success-text)': 'success',
+  'var(--dock-warning-text)': 'warning',
+  'var(--dock-danger-text)': 'danger',
+  'var(--dock-text-link)': 'info',
 }
 
 /** Card action button (Edit / Comment / Delete …) — now the kit Button. */
@@ -88,14 +88,14 @@ export function CommentsSection({ comments, user, onDelete }) {
   if (comments.length === 0) return null
 
   return (
-    <div className="border-t pt-3 mt-3" style={{ borderColor: 'var(--border-subtle)' }}>
+    <div className="border-t pt-3 mt-3" style={{ borderColor: 'var(--dock-border-subtle)' }}>
       <div className="flex items-center justify-between mb-2">
-        <p className="text-xs uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
+        <p className="text-xs uppercase tracking-wide" style={{ color: 'var(--dock-text-muted)' }}>
           {t('comments_title')} ({comments.length})
         </p>
         {comments.length > COMMENTS_PREVIEW && (
           <button onClick={() => setExpanded(v => !v)}
-            className="text-xs transition-colors hover:underline" style={{ color: 'var(--text-link)' }}>
+            className="text-xs transition-colors hover:underline" style={{ color: 'var(--dock-text-link)' }}>
             {expanded ? '▲ 접기' : `▼ ${hidden}개 더 보기`}
           </button>
         )}
@@ -104,15 +104,15 @@ export function CommentsSection({ comments, user, onDelete }) {
         {visible.map(c => (
           <div key={c.id} className="text-xs group flex items-start gap-1.5">
             <span className="flex-1 min-w-0">
-              <span className="font-medium" style={{ color: 'var(--text-secondary)' }}>{c.author_name}</span>{' '}
-              <span className="whitespace-pre-wrap" style={{ color: 'var(--text-primary)' }}>{c.body}</span>
+              <span className="font-medium" style={{ color: 'var(--dock-text-secondary)' }}>{c.author_name}</span>{' '}
+              <span className="whitespace-pre-wrap" style={{ color: 'var(--dock-text-primary)' }}>{c.body}</span>
             </span>
             {user && onDelete && (user.username === c.author_name || user.role === 'manager') && (
               <button onClick={() => onDelete(c.id)}
                 className="shrink-0 opacity-0 group-hover:opacity-100 transition-colors"
-                style={{ color: 'var(--text-muted)' }}
-                onMouseEnter={e => e.currentTarget.style.color = 'var(--danger-text)'}
-                onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
+                style={{ color: 'var(--dock-text-muted)' }}
+                onMouseEnter={e => e.currentTarget.style.color = 'var(--dock-danger-text)'}
+                onMouseLeave={e => e.currentTarget.style.color = 'var(--dock-text-muted)'}
               ><Icon name="close" size={13} /></button>
             )}
           </div>

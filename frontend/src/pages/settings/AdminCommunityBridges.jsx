@@ -12,8 +12,8 @@ const SOURCE_TYPES = [
     incoming_hint: 'Use this as the Request URL in your Slack App → Event Subscriptions (or legacy Outgoing Webhook)' },
 ]
 
-const label = { fontSize: 'var(--fs-tiny, 11px)', color: 'var(--text-secondary)' }
-const card = { border: '1px solid var(--border-default)', backgroundColor: 'var(--surface)', borderRadius: 12, padding: 16 }
+const label = { fontSize: 'var(--fs-tiny, 11px)', color: 'var(--dock-text-secondary)' }
+const card = { border: '1px solid var(--dock-border-default)', backgroundColor: 'var(--dock-surface)', borderRadius: 12, padding: 16 }
 
 export default function AdminCommunityBridges() {
   const [bridges, setBridges] = useState([])
@@ -113,9 +113,9 @@ export default function AdminCommunityBridges() {
 
       {/* List */}
       {loading ? (
-        <p style={{ textAlign: 'center', padding: '32px 0', fontSize: 'var(--fs-small, 12px)', color: 'var(--text-muted)' }}>로딩 중…</p>
+        <p style={{ textAlign: 'center', padding: '32px 0', fontSize: 'var(--fs-small, 12px)', color: 'var(--dock-text-muted)' }}>로딩 중…</p>
       ) : bridges.length === 0 ? (
-        <div style={{ ...card, textAlign: 'center', padding: '40px 0', fontSize: 'var(--fs-small, 12px)', color: 'var(--text-muted)' }}>등록된 브리지가 없습니다.</div>
+        <div style={{ ...card, textAlign: 'center', padding: '40px 0', fontSize: 'var(--fs-small, 12px)', color: 'var(--dock-text-muted)' }}>등록된 브리지가 없습니다.</div>
       ) : (
         <Stack gap={12}>
           {bridges.map(b => {
@@ -124,7 +124,7 @@ export default function AdminCommunityBridges() {
               <Stack key={b.id} gap={12} style={card}>
                 {/* Header */}
                 <Row gap={8} align="center">
-                  <span style={{ fontSize: 'var(--fs-medium, 14px)', fontWeight: 600, color: 'var(--text-primary)' }}>{b.name}</span>
+                  <span style={{ fontSize: 'var(--fs-medium, 14px)', fontWeight: 600, color: 'var(--dock-text-primary)' }}>{b.name}</span>
                   <Badge tone="info" mono>{(meta?.label || b.source_type).toUpperCase()}</Badge>
                   {!b.enabled && <Badge tone="neutral">비활성</Badge>}
                   <span style={{ flex: 1 }} />
@@ -153,35 +153,35 @@ export default function AdminCommunityBridges() {
                     {b.incoming_token ? (
                       <>
                         <button onClick={async () => { if (await confirm('Incoming 토큰을 재생성하시겠습니까? 기존 URL은 동작하지 않게 됩니다.')) handleUpdate(b, { rotate_token: true }) }}
-                          style={{ fontSize: 'var(--fs-micro, 10px)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-link)', textDecoration: 'underline' }}>토큰 재생성</button>
+                          style={{ fontSize: 'var(--fs-micro, 10px)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--dock-text-link)', textDecoration: 'underline' }}>토큰 재생성</button>
                         <button onClick={() => handleUpdate(b, { enable_incoming: false })}
-                          style={{ fontSize: 'var(--fs-micro, 10px)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', textDecoration: 'underline' }}>끄기</button>
+                          style={{ fontSize: 'var(--fs-micro, 10px)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--dock-text-muted)', textDecoration: 'underline' }}>끄기</button>
                       </>
                     ) : (
                       <button onClick={() => handleUpdate(b, { enable_incoming: true })}
-                        style={{ fontSize: 'var(--fs-micro, 10px)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-link)', textDecoration: 'underline' }}>+ 토큰 생성</button>
+                        style={{ fontSize: 'var(--fs-micro, 10px)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--dock-text-link)', textDecoration: 'underline' }}>+ 토큰 생성</button>
                     )}
                   </Row>
                   {b.incoming_token ? (
                     <>
                       <CopyField value={b.incoming_url} labels={{ copy: 'copy', copied: 'copied' }} />
-                      <p style={{ fontSize: 'var(--fs-micro, 10px)', margin: '4px 0 0', color: 'var(--text-muted)' }}>{meta?.incoming_hint}</p>
+                      <p style={{ fontSize: 'var(--fs-micro, 10px)', margin: '4px 0 0', color: 'var(--dock-text-muted)' }}>{meta?.incoming_hint}</p>
                       {b.source_type === 'discord' && (
                         <div style={{ marginTop: 8, padding: '6px 8px', borderRadius: 6, fontSize: 'var(--fs-micro, 10px)', lineHeight: 1.6,
-                          backgroundColor: 'var(--warning-bg)', border: '1px solid var(--warning-text)', color: 'var(--warning-text)' }}>
+                          backgroundColor: 'var(--dock-warning-bg)', border: '1px solid var(--dock-warning-text)', color: 'var(--dock-warning-text)' }}>
                           <Icon name="warning" weight="fill" size={11} style={{ verticalAlign: -1 }} /> Discord 는 기본 웹훅이 <strong>outbound 전용</strong>이라 채널 메시지를 자동으로 이 URL로 보내지 않습니다.
                           아래 <strong>Discord Bot Relay</strong> 를 설정하면 lilak 이 직접 봇 프로세스를 띄워 양방향 연결을 만들어줍니다.
                         </div>
                       )}
                     </>
                   ) : (
-                    <p style={{ fontSize: 'var(--fs-tiny, 11px)', margin: 0, color: 'var(--text-muted)' }}>(비활성 — 외부에서 들어오는 메시지를 받지 않습니다)</p>
+                    <p style={{ fontSize: 'var(--fs-tiny, 11px)', margin: 0, color: 'var(--dock-text-muted)' }}>(비활성 — 외부에서 들어오는 메시지를 받지 않습니다)</p>
                   )}
                 </div>
 
                 {/* Discord-only: managed bot relay subprocess */}
                 {b.source_type === 'discord' && (
-                  <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 12 }}>
+                  <div style={{ borderTop: '1px solid var(--dock-border-subtle)', paddingTop: 12 }}>
                     <Row gap={8} align="center" style={{ marginBottom: 8 }}>
                       <p style={{ ...label, margin: 0, flex: 1 }}>Discord Bot Relay (관리되는 봇 프로세스):</p>
                       {b.relay_status === 'running'
@@ -190,8 +190,8 @@ export default function AdminCommunityBridges() {
                     </Row>
 
                     <Row gap={6} align="center" style={{ marginBottom: 8 }}>
-                      <span style={{ fontSize: 'var(--fs-tiny, 11px)', color: 'var(--text-secondary)' }}>Bot Token:</span>
-                      <span style={{ flex: 1, fontSize: 'var(--fs-tiny, 11px)', color: b.has_bot_token ? 'var(--success-text)' : 'var(--text-muted)' }}>
+                      <span style={{ fontSize: 'var(--fs-tiny, 11px)', color: 'var(--dock-text-secondary)' }}>Bot Token:</span>
+                      <span style={{ flex: 1, fontSize: 'var(--fs-tiny, 11px)', color: b.has_bot_token ? 'var(--dock-success-text)' : 'var(--dock-text-muted)' }}>
                         {b.has_bot_token ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Icon name="check" size={12} weight="bold" /> 저장됨</span> : '미설정'}
                       </span>
                       <Button variant="info" onClick={() => handleSetBotToken(b)}>{b.has_bot_token ? '토큰 변경' : '토큰 입력'}</Button>
@@ -202,15 +202,15 @@ export default function AdminCommunityBridges() {
                         ? <Button variant="danger" onClick={() => handleStopRelay(b)}>■ 중지</Button>
                         : <Button variant="success" disabled={!b.has_bot_token || !b.incoming_token} onClick={() => handleStartRelay(b)}>▶ 시작</Button>}
                       <Button variant="ghost" onClick={load} title="상태 다시 확인" icon><Icon name="refresh" size={13} /></Button>
-                      {!b.has_bot_token && <span style={{ fontSize: 'var(--fs-micro, 10px)', color: 'var(--text-muted)' }}>(Bot Token 먼저 입력)</span>}
-                      {!b.incoming_token && b.has_bot_token && <span style={{ fontSize: 'var(--fs-micro, 10px)', color: 'var(--text-muted)' }}>(Incoming 토큰 먼저 생성)</span>}
+                      {!b.has_bot_token && <span style={{ fontSize: 'var(--fs-micro, 10px)', color: 'var(--dock-text-muted)' }}>(Bot Token 먼저 입력)</span>}
+                      {!b.incoming_token && b.has_bot_token && <span style={{ fontSize: 'var(--fs-micro, 10px)', color: 'var(--dock-text-muted)' }}>(Incoming 토큰 먼저 생성)</span>}
                     </Row>
 
                     {b.relay_log_tail && (
                       <details style={{ marginTop: 8 }}>
-                        <summary style={{ fontSize: 'var(--fs-micro, 10px)', cursor: 'pointer', color: 'var(--text-muted)' }}>로그 보기</summary>
+                        <summary style={{ fontSize: 'var(--fs-micro, 10px)', cursor: 'pointer', color: 'var(--dock-text-muted)' }}>로그 보기</summary>
                         <pre style={{ marginTop: 4, fontSize: 'var(--fs-micro, 10px)', fontFamily: 'var(--font-mono)', padding: 8, borderRadius: 6,
-                          backgroundColor: 'var(--surface-2)', color: 'var(--text-secondary)', maxHeight: '12rem', overflowX: 'auto', whiteSpace: 'pre-wrap' }}>
+                          backgroundColor: 'var(--dock-surface-2)', color: 'var(--dock-text-secondary)', maxHeight: '12rem', overflowX: 'auto', whiteSpace: 'pre-wrap' }}>
                           {b.relay_log_tail}
                         </pre>
                       </details>

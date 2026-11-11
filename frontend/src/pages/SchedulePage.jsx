@@ -167,20 +167,20 @@ export default function SchedulePage() {
         <div className="flex items-center gap-1">
           <button onClick={() => shiftAnchor(-1)}
             className="h-8 w-8 rounded transition-colors"
-            style={{ color: 'var(--text-secondary)' }}
-            onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'var(--surface-2)'; e.currentTarget.style.color = 'var(--text-primary)' }}
-            onMouseLeave={e => { e.currentTarget.style.backgroundColor = ''; e.currentTarget.style.color = 'var(--text-secondary)' }}>←</button>
+            style={{ color: 'var(--dock-text-secondary)' }}
+            onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'var(--dock-surface-2)'; e.currentTarget.style.color = 'var(--dock-text-primary)' }}
+            onMouseLeave={e => { e.currentTarget.style.backgroundColor = ''; e.currentTarget.style.color = 'var(--dock-text-secondary)' }}>←</button>
           <button onClick={todayAnchor}
             className="h-8 px-3 text-xs rounded transition-colors"
-            style={{ color: 'var(--text-secondary)' }}
-            onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--surface-2)'}
+            style={{ color: 'var(--dock-text-secondary)' }}
+            onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--dock-surface-2)'}
             onMouseLeave={e => e.currentTarget.style.backgroundColor = ''}>{t('sched_today')}</button>
           <button onClick={() => shiftAnchor(1)}
             className="h-8 w-8 rounded transition-colors"
-            style={{ color: 'var(--text-secondary)' }}
-            onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'var(--surface-2)'; e.currentTarget.style.color = 'var(--text-primary)' }}
-            onMouseLeave={e => { e.currentTarget.style.backgroundColor = ''; e.currentTarget.style.color = 'var(--text-secondary)' }}>→</button>
-          <span className="ml-3 text-sm" style={{ color: 'var(--text-primary)' }}>
+            style={{ color: 'var(--dock-text-secondary)' }}
+            onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'var(--dock-surface-2)'; e.currentTarget.style.color = 'var(--dock-text-primary)' }}
+            onMouseLeave={e => { e.currentTarget.style.backgroundColor = ''; e.currentTarget.style.color = 'var(--dock-text-secondary)' }}>→</button>
+          <span className="ml-3 text-sm" style={{ color: 'var(--dock-text-primary)' }}>
             {mode === 'month'
               ? t('sched_year_month', { year: anchor.getFullYear(), month: anchor.getMonth() + 1 })
               : t('sched_year_month_day', { year: anchor.getFullYear(), month: anchor.getMonth() + 1, day: anchor.getDate() })}
@@ -197,9 +197,9 @@ export default function SchedulePage() {
             <button key={f.id} onClick={() => setFilter(f.id)}
               className="h-8 px-2.5 text-xs rounded transition-colors"
               style={filter === f.id
-                ? { backgroundColor: 'var(--surface-3)', color: 'var(--text-primary)' }
-                : { color: 'var(--text-secondary)' }}
-              onMouseEnter={e => { if (filter !== f.id) e.currentTarget.style.backgroundColor = 'var(--surface-2)' }}
+                ? { backgroundColor: 'var(--dock-surface-3)', color: 'var(--dock-text-primary)' }
+                : { color: 'var(--dock-text-secondary)' }}
+              onMouseEnter={e => { if (filter !== f.id) e.currentTarget.style.backgroundColor = 'var(--dock-surface-2)' }}
               onMouseLeave={e => { if (filter !== f.id) e.currentTarget.style.backgroundColor = '' }}
             >{f.label}</button>
           ))}
@@ -231,7 +231,7 @@ export default function SchedulePage() {
       </div>
 
       {loading ? (
-        <div className="text-center py-16 text-xs" style={{ color: 'var(--text-muted)' }}>{t('sched_loading')}</div>
+        <div className="text-center py-16 text-xs" style={{ color: 'var(--dock-text-muted)' }}>{t('sched_loading')}</div>
       ) : mode === 'month' ? (
         <MonthView
           anchor={anchor} events={filtered} runs={filteredRuns}
@@ -323,29 +323,29 @@ function ManageMenu({ onPatterns, onUsers, onClearAll, label }) {
     <div ref={ref} className="relative">
       <button onClick={() => setOpen(o => !o)}
         className="h-8 px-3 text-xs border rounded inline-flex items-center gap-1 transition-colors"
-        style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
-        onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--surface-2)'}
+        style={{ borderColor: 'var(--dock-border-default)', color: 'var(--dock-text-primary)' }}
+        onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--dock-surface-2)'}
         onMouseLeave={e => e.currentTarget.style.backgroundColor = ''}>
-        {label} <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>▾</span>
+        {label} <span className="text-[9px]" style={{ color: 'var(--dock-text-muted)' }}>▾</span>
       </button>
       {open && (
         <div className="absolute right-0 mt-1 w-48 border rounded-lg shadow-lg z-30 py-1"
-             style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border-default)' }}>
+             style={{ backgroundColor: 'var(--dock-surface)', borderColor: 'var(--dock-border-default)' }}>
           <button onClick={() => { setOpen(false); onPatterns() }}
             className="w-full text-left px-3 py-1.5 text-xs transition-colors"
-            style={{ color: 'var(--text-primary)' }}
-            onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--surface-2)'}
+            style={{ color: 'var(--dock-text-primary)' }}
+            onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--dock-surface-2)'}
             onMouseLeave={e => e.currentTarget.style.backgroundColor = ''}>Patterns</button>
           <button onClick={() => { setOpen(false); onUsers() }}
             className="w-full text-left px-3 py-1.5 text-xs transition-colors"
-            style={{ color: 'var(--text-primary)' }}
-            onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--surface-2)'}
+            style={{ color: 'var(--dock-text-primary)' }}
+            onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--dock-surface-2)'}
             onMouseLeave={e => e.currentTarget.style.backgroundColor = ''}>Users</button>
-          <div className="h-px my-1" style={{ backgroundColor: 'var(--border-subtle)' }} />
+          <div className="h-px my-1" style={{ backgroundColor: 'var(--dock-border-subtle)' }} />
           <button onClick={() => { setOpen(false); onClearAll() }}
             className="w-full text-left px-3 py-1.5 text-xs transition-colors"
-            style={{ color: 'var(--danger-text)' }}
-            onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--danger-bg)'}
+            style={{ color: 'var(--dock-danger-text)' }}
+            onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--dock-danger-bg)'}
             onMouseLeave={e => e.currentTarget.style.backgroundColor = ''}>Clear all shift registrations</button>
         </div>
       )}
@@ -363,16 +363,16 @@ function DaySummaryModal({ date, onClose }) {
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center p-4" style={modalOverlay} onClick={onClose}>
       <div className="rounded-2xl shadow-2xl w-full max-w-md mt-20 border" style={modalFrame} onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: 'var(--border-subtle)' }}>
-          <h2 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>날짜 써머리</h2>
+        <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: 'var(--dock-border-subtle)' }}>
+          <h2 className="text-sm font-semibold" style={{ color: 'var(--dock-text-primary)' }}>날짜 써머리</h2>
           <button onClick={onClose} className="text-xl transition-colors"
-                  style={{ color: 'var(--text-muted)' }}
-                  onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
-                  onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}>×</button>
+                  style={{ color: 'var(--dock-text-muted)' }}
+                  onMouseEnter={e => e.currentTarget.style.color = 'var(--dock-text-primary)'}
+                  onMouseLeave={e => e.currentTarget.style.color = 'var(--dock-text-muted)'}>×</button>
         </div>
         <div className="p-6 space-y-3">
-          <div className="text-3xl font-mono" style={{ color: 'var(--text-primary)' }}>{ds}</div>
-          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>(써머리 내용은 추후 채워질 예정)</p>
+          <div className="text-3xl font-mono" style={{ color: 'var(--dock-text-primary)' }}>{ds}</div>
+          <p className="text-xs" style={{ color: 'var(--dock-text-muted)' }}>(써머리 내용은 추후 채워질 예정)</p>
         </div>
       </div>
     </div>

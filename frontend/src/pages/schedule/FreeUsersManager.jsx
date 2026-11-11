@@ -67,22 +67,22 @@ export default function FreeUsersManager({ freeUsers: initial, onClose }) {
         style={modalFrame}
         onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between px-6 py-4 border-b"
-             style={{ borderColor: 'var(--border-subtle)' }}>
-          <h2 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{t('sched_fu_title')}</h2>
+             style={{ borderColor: 'var(--dock-border-subtle)' }}>
+          <h2 className="text-sm font-semibold" style={{ color: 'var(--dock-text-primary)' }}>{t('sched_fu_title')}</h2>
           <button onClick={onClose} className="text-xl transition-colors"
-                  style={{ color: 'var(--text-muted)' }}
-                  onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
-                  onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}>×</button>
+                  style={{ color: 'var(--dock-text-muted)' }}
+                  onMouseEnter={e => e.currentTarget.style.color = 'var(--dock-text-primary)'}
+                  onMouseLeave={e => e.currentTarget.style.color = 'var(--dock-text-muted)'}>×</button>
         </div>
 
         <div className="p-6 space-y-4">
-          <p className="text-[11px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+          <p className="text-[11px] leading-relaxed" style={{ color: 'var(--dock-text-secondary)' }}>
             {t('sched_fu_blurb')}
           </p>
 
           {err && (
             <div className="border text-xs px-3 py-2 rounded"
-                 style={{ backgroundColor: 'var(--danger-bg)', borderColor: 'var(--danger-text)', color: 'var(--danger-text)' }}>
+                 style={{ backgroundColor: 'var(--dock-danger-bg)', borderColor: 'var(--dock-danger-text)', color: 'var(--dock-danger-text)' }}>
               {err}
             </div>
           )}
@@ -94,7 +94,7 @@ export default function FreeUsersManager({ freeUsers: initial, onClose }) {
                 onChange={e => setName(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleAdd()}
                 placeholder={t('sched_fu_name_ph')}
-                className="flex-1 border rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-[var(--input-focus-border)]"
+                className="flex-1 border rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-[var(--dock-input-focus-border)]"
                 style={inputBase}
               />
               <button onClick={handleAdd}
@@ -106,20 +106,20 @@ export default function FreeUsersManager({ freeUsers: initial, onClose }) {
 
           <div className="space-y-1.5">
             {items.length === 0 && (
-              <div className="text-center text-xs py-6" style={{ color: 'var(--text-muted)' }}>{t('sched_fu_empty')}</div>
+              <div className="text-center text-xs py-6" style={{ color: 'var(--dock-text-muted)' }}>{t('sched_fu_empty')}</div>
             )}
             {items.map(f => {
               const isClaimedByMe = f.claimed_by_id === user?.user_id
               return (
                 <div key={f.id} className="border rounded-lg px-3 py-2 flex items-center gap-2"
-                     style={{ borderColor: 'var(--border-default)' }}>
+                     style={{ borderColor: 'var(--dock-border-default)' }}>
                   <span className={`text-sm flex-1 ${f.claimed_by_id ? 'line-through' : ''}`}
-                        style={{ color: f.claimed_by_id ? 'var(--text-muted)' : 'var(--text-primary)' }}>
+                        style={{ color: f.claimed_by_id ? 'var(--dock-text-muted)' : 'var(--dock-text-primary)' }}>
                     {f.name}
                   </span>
                   {f.claimed_by_id && (
                     <span className="text-[10px] px-1.5 py-0.5 rounded"
-                          style={{ backgroundColor: 'var(--success-bg)', color: 'var(--success-text)' }}>
+                          style={{ backgroundColor: 'var(--dock-success-bg)', color: 'var(--dock-success-text)' }}>
                       {t('sched_fu_claimed')}
                       {isClaimedByMe ? ' ' + t('sched_fu_self') : ''}
                     </span>
@@ -127,21 +127,21 @@ export default function FreeUsersManager({ freeUsers: initial, onClose }) {
                   {user && !f.claimed_by_id && (
                     <button onClick={() => handleClaim(f)}
                       className="text-[11px] px-2 py-1 border rounded transition-colors"
-                      style={{ color: 'var(--info-text)', borderColor: 'var(--border-focus)' }}>
+                      style={{ color: 'var(--dock-info-text)', borderColor: 'var(--dock-border-focus)' }}>
                       {t('sched_fu_claim')}
                     </button>
                   )}
                   {isClaimedByMe && (
                     <button onClick={() => handleUnclaim(f)}
                       className="text-[11px] px-2 py-1 border rounded transition-colors"
-                      style={{ color: 'var(--text-secondary)', borderColor: 'var(--border-default)' }}>
+                      style={{ color: 'var(--dock-text-secondary)', borderColor: 'var(--dock-border-default)' }}>
                       {t('sched_fu_unclaim')}
                     </button>
                   )}
                   {isManager && (
                     <button onClick={() => handleDelete(f)}
                       className="text-[11px] px-2 py-1 border rounded transition-colors"
-                      style={{ color: 'var(--danger-text)', borderColor: 'var(--border-default)' }}>
+                      style={{ color: 'var(--dock-danger-text)', borderColor: 'var(--dock-border-default)' }}>
                       {t('sched_fu_delete')}
                     </button>
                   )}
@@ -152,9 +152,9 @@ export default function FreeUsersManager({ freeUsers: initial, onClose }) {
         </div>
 
         <div className="px-6 py-4 border-t flex justify-end"
-             style={{ borderColor: 'var(--border-subtle)', backgroundColor: 'var(--surface-2)' }}>
+             style={{ borderColor: 'var(--dock-border-subtle)', backgroundColor: 'var(--dock-surface-2)' }}>
           <button onClick={onClose} className="text-xs px-4 py-2 hover:underline"
-                  style={{ color: 'var(--text-secondary)' }}>{t('sched_fu_close')}</button>
+                  style={{ color: 'var(--dock-text-secondary)' }}>{t('sched_fu_close')}</button>
         </div>
       </div>
     </div>

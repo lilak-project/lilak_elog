@@ -57,9 +57,9 @@ function ConfirmationBanner({ entry, onChanged, onConfirmed }) {
   if (needsConfirm) {
     return (
       <div className="flex items-center justify-between gap-3 mb-3 px-3 py-2 rounded-lg border"
-           style={{ backgroundColor: 'var(--warning-bg)',
-                    borderColor:     'var(--warning-text)',
-                    color:           'var(--warning-text)' }}>
+           style={{ backgroundColor: 'var(--dock-warning-bg)',
+                    borderColor:     'var(--dock-warning-text)',
+                    color:           'var(--dock-warning-text)' }}>
         <div className="text-sm flex items-center gap-1.5">
           <Icon name="warning" weight="fill" size={14} />
           <span>{lang === 'ko'
@@ -70,12 +70,12 @@ function ConfirmationBanner({ entry, onChanged, onConfirmed }) {
           <div className="flex items-center gap-1.5 shrink-0">
             <button onClick={() => window.dispatchEvent(new CustomEvent('lilak:cmd:report', { detail: { id: entry.id } }))}
                     className="text-xs font-semibold px-3 py-1.5 rounded-md transition-colors"
-                    style={{ backgroundColor: 'var(--danger-bg)', color: 'var(--danger-text)', border: '1px solid var(--danger-text)' }}>
+                    style={{ backgroundColor: 'var(--dock-danger-bg)', color: 'var(--dock-danger-text)', border: '1px solid var(--dock-danger-text)' }}>
               {lang === 'ko' ? '리포트' : 'Report'}
             </button>
             <button onClick={confirm} disabled={busy}
                     className="text-xs font-semibold px-3 py-1.5 rounded-md transition-colors disabled:opacity-60"
-                    style={{ backgroundColor: 'var(--warning-text)', color: 'var(--btn-primary-text)' }}>
+                    style={{ backgroundColor: 'var(--dock-warning-text)', color: 'var(--dock-btn-primary-text)' }}>
               {busy
                 ? (lang === 'ko' ? '확인 중…' : 'Confirming…')
                 : (lang === 'ko' ? '확인' : 'Confirm')}
@@ -88,7 +88,7 @@ function ConfirmationBanner({ entry, onChanged, onConfirmed }) {
 
   if (isReported) {
     return (
-      <div className="mb-3 text-xs flex items-center gap-2" style={{ color: 'var(--danger-text)' }}>
+      <div className="mb-3 text-xs flex items-center gap-2" style={{ color: 'var(--dock-danger-text)' }}>
         <Icon name="warning" weight="fill" size={13} />
         <span>{lang === 'ko' ? '리포트됨' : 'Reported'}</span>
       </div>
@@ -97,7 +97,7 @@ function ConfirmationBanner({ entry, onChanged, onConfirmed }) {
 
   if (isConfirmed) {
     return (
-      <div className="mb-3 text-xs flex items-center gap-2" style={{ color: 'var(--success-text)' }}>
+      <div className="mb-3 text-xs flex items-center gap-2" style={{ color: 'var(--dock-success-text)' }}>
         <Icon name="check" weight="bold" size={13} />
         <span>{lang === 'ko' ? '확인됨' : 'Confirmed'}</span>
       </div>
@@ -139,9 +139,9 @@ function ChildTasksBlock({ detail }) {
 
   return (
     <div className="border-t pt-3 mb-3 space-y-1"
-         style={{ borderColor: 'var(--border-subtle)' }}>
+         style={{ borderColor: 'var(--dock-border-subtle)' }}>
       <p className="text-xs uppercase tracking-wide mb-1"
-         style={{ color: 'var(--text-muted)' }}>
+         style={{ color: 'var(--dock-text-muted)' }}>
         {lang === 'ko' ? `자식 태스크 (${ids.length})` : `Child tasks (${ids.length})`}
       </p>
       {children.map(c => {
@@ -152,32 +152,32 @@ function ChildTasksBlock({ detail }) {
         return (
           <button key={c.id} type="button" onClick={() => openChild(c.id)}
             className="w-full flex items-center gap-2 text-left text-xs px-2 py-1.5 rounded border transition-colors"
-            style={{ borderColor: 'var(--border-default)' }}
-            onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--surface-2)'}
+            style={{ borderColor: 'var(--dock-border-default)' }}
+            onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--dock-surface-2)'}
             onMouseLeave={e => e.currentTarget.style.backgroundColor = ''}>
-            <span className="font-mono shrink-0" style={{ color: 'var(--text-muted)' }}>
+            <span className="font-mono shrink-0" style={{ color: 'var(--dock-text-muted)' }}>
               #{c.log_index ?? c.id}
             </span>
-            <span className="truncate flex-1" style={{ color: 'var(--text-primary)' }}>
+            <span className="truncate flex-1" style={{ color: 'var(--dock-text-primary)' }}>
               {c.title || c.author_name}
             </span>
             {empty && !needsConfirm && (
               <span className="text-[10px] px-1.5 py-0.5 rounded shrink-0"
-                    style={{ backgroundColor: 'var(--surface-2)', color: 'var(--text-muted)' }}>
+                    style={{ backgroundColor: 'var(--dock-surface-2)', color: 'var(--dock-text-muted)' }}>
                 {lang === 'ko' ? '미입력' : 'pending'}
               </span>
             )}
             {needsConfirm && (
               <span className="text-[10px] px-1.5 py-0.5 rounded shrink-0 inline-flex items-center gap-1"
-                    style={{ backgroundColor: 'var(--warning-bg)', color: 'var(--warning-text)' }}>
+                    style={{ backgroundColor: 'var(--dock-warning-bg)', color: 'var(--dock-warning-text)' }}>
                 <Icon name="warning" weight="fill" size={11} /> {lang === 'ko' ? '확인 필요' : 'confirm'}
               </span>
             )}
             {isReported && (
-              <span className="text-[10px] shrink-0 inline-flex items-center gap-1" style={{ color: 'var(--danger-text)' }}><Icon name="warning" weight="fill" size={11} /> reported</span>
+              <span className="text-[10px] shrink-0 inline-flex items-center gap-1" style={{ color: 'var(--dock-danger-text)' }}><Icon name="warning" weight="fill" size={11} /> reported</span>
             )}
             {isConfirmed && !isReported && (
-              <span className="text-[10px] shrink-0 inline-flex items-center" style={{ color: 'var(--success-text)' }}><Icon name="check" weight="bold" size={12} /></span>
+              <span className="text-[10px] shrink-0 inline-flex items-center" style={{ color: 'var(--dock-success-text)' }}><Icon name="check" weight="bold" size={12} /></span>
             )}
           </button>
         )
@@ -212,7 +212,7 @@ function CustomFieldsBlock({ detail }) {
 
   return (
     <div className="border-t pt-3 mb-3 space-y-1.5"
-         style={{ borderColor: 'var(--border-subtle)' }}>
+         style={{ borderColor: 'var(--dock-border-subtle)' }}>
       {Object.entries(values).map(([key, val]) => {
         const spec = fieldByKey[key]
         const label = spec?.label || key
@@ -227,18 +227,18 @@ function CustomFieldsBlock({ detail }) {
           return (
             <div key={key} className="text-sm">
               <div className="flex items-baseline gap-2">
-                <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{label}</span>
-                <span className="font-mono" style={{ color: 'var(--text-primary)' }}>
+                <span className="text-xs" style={{ color: 'var(--dock-text-muted)' }}>{label}</span>
+                <span className="font-mono" style={{ color: 'var(--dock-text-primary)' }}>
                   {formatNumberEntry(val)}
                 </span>
                 {samples.length > 1 && (
                   <span className="text-[10px] font-mono"
-                        style={{ color: 'var(--text-muted)' }}>({samples.length}회)</span>
+                        style={{ color: 'var(--dock-text-muted)' }}>({samples.length}회)</span>
                 )}
               </div>
               {samples.length > 1 && (
                 <div className="flex flex-wrap gap-x-2 gap-y-0.5 mt-0.5 text-[11px] font-mono"
-                     style={{ color: 'var(--text-secondary)' }}>
+                     style={{ color: 'var(--dock-text-secondary)' }}>
                   {samples.map((s, i) => (
                     <span key={i} title={`${i + 1}번째 수집`}>
                       {formatNumberEntry({ value: s, error: 0 })}
@@ -261,8 +261,8 @@ function CustomFieldsBlock({ detail }) {
           : String(val ?? '')
         return (
           <div key={key} className="flex items-baseline gap-2 text-sm">
-            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{label}</span>
-            <span style={{ color: 'var(--text-primary)' }}>{plain}</span>
+            <span className="text-xs" style={{ color: 'var(--dock-text-muted)' }}>{label}</span>
+            <span style={{ color: 'var(--dock-text-primary)' }}>{plain}</span>
           </div>
         )
       })}
@@ -446,13 +446,13 @@ export default function LogCardExpanded({
   const polling = isPolling(e)
 
   const noticeBadge = isNotice
-    ? <span style={{ fontSize: 'var(--fs-tiny, 11px)', padding: '2px 8px', borderRadius: 999, backgroundColor: 'var(--warning-bg)', color: 'var(--warning-text)' }}>{t('notice_badge')}</span>
+    ? <span style={{ fontSize: 'var(--fs-tiny, 11px)', padding: '2px 8px', borderRadius: 999, backgroundColor: 'var(--dock-warning-bg)', color: 'var(--dock-warning-text)' }}>{t('notice_badge')}</span>
     : null
 
   const headerRight = user?.role === 'manager'
     ? <button onClick={toggleNotice} disabled={togglingNotice}
         className="text-xs px-2 py-0.5 rounded transition-colors disabled:opacity-50"
-        style={isNotice ? { backgroundColor: 'var(--warning-bg)', color: 'var(--warning-text)' } : { color: 'var(--text-muted)' }}
+        style={isNotice ? { backgroundColor: 'var(--dock-warning-bg)', color: 'var(--dock-warning-text)' } : { color: 'var(--dock-text-muted)' }}
         title={isNotice ? t('notice_unmark') : t('notice_mark')}>
         {isNotice ? t('notice_unmark') : t('notice_mark')}
       </button>
@@ -465,9 +465,9 @@ export default function LogCardExpanded({
         onConfirmed={onConfirmed ? () => onConfirmed(entry.id) : undefined} />
       {polling && (
         <div className="flex items-center justify-between gap-3 mb-3 px-3 py-2 rounded-lg border"
-             style={{ backgroundColor: 'var(--success-bg)',
-                      borderColor:     'var(--success-border)',
-                      color:           'var(--success-text)' }}>
+             style={{ backgroundColor: 'var(--dock-success-bg)',
+                      borderColor:     'var(--dock-success-border)',
+                      color:           'var(--dock-success-text)' }}>
           <div className="text-sm flex items-center gap-1.5">
             <Icon name="refresh" size={14} />
             <span>{lang === 'ko'
@@ -477,7 +477,7 @@ export default function LogCardExpanded({
           {user && (
             <button onClick={stopPolling} disabled={stoppingPoll}
                     className="shrink-0 text-xs font-semibold px-3 py-1.5 rounded-md disabled:opacity-60"
-                    style={{ backgroundColor: 'var(--success-text)', color: 'var(--btn-primary-text)' }}>
+                    style={{ backgroundColor: 'var(--dock-success-text)', color: 'var(--dock-btn-primary-text)' }}>
               {stoppingPoll
                 ? (lang === 'ko' ? '중지 중…' : 'Stopping…')
                 : (lang === 'ko' ? '수집 중지' : 'Stop')}
@@ -487,7 +487,7 @@ export default function LogCardExpanded({
       )}
       {pending && (
         <div className="flex items-center justify-between gap-3 mb-3 px-3 py-2 rounded-lg border"
-             style={{ backgroundColor: 'var(--info-bg)', borderColor: '#2563eb', color: 'var(--info-text)' }}>
+             style={{ backgroundColor: 'var(--dock-info-bg)', borderColor: '#2563eb', color: 'var(--dock-info-text)' }}>
           <div className="text-sm flex items-center gap-1.5">
             <Icon name="warning" weight="fill" size={14} />
             <span>{lang === 'ko' ? '아직 입력되지 않은 task 입니다. [Go] 를 눌러 작성하세요.'
@@ -514,14 +514,14 @@ export default function LogCardExpanded({
 
   const actions = user && (
     <div className="border-t pt-3 mt-1 flex items-center gap-1.5 flex-wrap"
-         style={{ borderColor: 'var(--border-subtle)' }}>
-      <ActionBtn onClick={onComment ?? openCommentBox} hoverFg="var(--text-link)" hoverBg="var(--info-bg)">{t('cmd_hint_reply')}</ActionBtn>
-      <ActionBtn onClick={() => openNewLog({ fromId: entry.id })} hoverFg="var(--success-text)" hoverBg="var(--success-bg)">{t('detail_continue')}</ActionBtn>
+         style={{ borderColor: 'var(--dock-border-subtle)' }}>
+      <ActionBtn onClick={onComment ?? openCommentBox} hoverFg="var(--dock-text-link)" hoverBg="var(--dock-info-bg)">{t('cmd_hint_reply')}</ActionBtn>
+      <ActionBtn onClick={() => openNewLog({ fromId: entry.id })} hoverFg="var(--dock-success-text)" hoverBg="var(--dock-success-bg)">{t('detail_continue')}</ActionBtn>
       {canEdit && (
-        <ActionBtn onClick={() => openNewLog({ editId: entry.id })} hoverFg="var(--warning-text)" hoverBg="var(--warning-bg)">{t('detail_edit')}</ActionBtn>
+        <ActionBtn onClick={() => openNewLog({ editId: entry.id })} hoverFg="var(--dock-warning-text)" hoverBg="var(--dock-warning-bg)">{t('detail_edit')}</ActionBtn>
       )}
       {canDelete && (
-        <ActionBtn onClick={handleDelete} disabled={deleting} hoverFg="var(--danger-text)" hoverBg="var(--danger-bg)" extraClass="ml-auto"><span className="inline-flex items-center gap-1"><Icon name="trash" size={13} /> {t('detail_delete')}</span></ActionBtn>
+        <ActionBtn onClick={handleDelete} disabled={deleting} hoverFg="var(--dock-danger-text)" hoverBg="var(--dock-danger-bg)" extraClass="ml-auto"><span className="inline-flex items-center gap-1"><Icon name="trash" size={13} /> {t('detail_delete')}</span></ActionBtn>
       )}
     </div>
   )
@@ -531,7 +531,7 @@ export default function LogCardExpanded({
       {!onComment && showCommentBox && (
         <form onSubmit={handleSubmitComment} className="mt-2 flex gap-2 items-start">
           {reportMode && (
-            <span className="shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded text-xs" style={{ backgroundColor: 'var(--danger-bg)', color: 'var(--danger-text)' }}>
+            <span className="shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded text-xs" style={{ backgroundColor: 'var(--dock-danger-bg)', color: 'var(--dock-danger-text)' }}>
               <Icon name="warning" weight="fill" size={12} /> {lang === 'ko' ? '리포트' : 'Report'}
             </span>
           )}
@@ -546,17 +546,17 @@ export default function LogCardExpanded({
             placeholder={reportMode ? (lang === 'ko' ? '리포트 사유를 입력하세요…' : 'Reason for report…') : t('comments_placeholder_short')}
             rows={2}
             className="flex-1 text-sm border rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-2"
-            style={{ backgroundColor: 'var(--input-bg)', borderColor: reportMode ? 'var(--danger-text)' : 'var(--input-border)', color: 'var(--text-primary)' }}
+            style={{ backgroundColor: 'var(--dock-input-bg)', borderColor: reportMode ? 'var(--dock-danger-text)' : 'var(--dock-input-border)', color: 'var(--dock-text-primary)' }}
             disabled={commentSubmitting}
           />
           <div className="flex flex-col gap-1 shrink-0">
             <button type="submit" disabled={!commentText.trim() || commentSubmitting}
               className="text-xs disabled:opacity-40 px-3 py-1.5 rounded-lg transition-colors"
-              style={{ backgroundColor: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)' }}>
+              style={{ backgroundColor: 'var(--dock-btn-primary-bg)', color: 'var(--dock-btn-primary-text)' }}>
               {commentSubmitting ? '…' : t('community_send')}
             </button>
             <button type="button" onClick={() => { setShowCommentBox(false); setCommentText('') }}
-              className="text-xs px-3 py-1.5 rounded-lg transition-colors" style={{ color: 'var(--text-muted)' }}>취소</button>
+              className="text-xs px-3 py-1.5 rounded-lg transition-colors" style={{ color: 'var(--dock-text-muted)' }}>취소</button>
           </div>
         </form>
       )}

@@ -30,9 +30,9 @@ export default function RunTypePicker({
       <div className="flex items-center gap-2">
         <span className="text-xs px-2 py-1 rounded border"
               style={{
-                backgroundColor: 'var(--warning-bg)',
-                borderColor:     'var(--warning-text)',
-                color:           'var(--warning-text)',
+                backgroundColor: 'var(--dock-warning-bg)',
+                borderColor:     'var(--dock-warning-text)',
+                color:           'var(--dock-warning-text)',
               }}
               title={lang === 'ko' ? '시스템 포멧으로 고정됨' : 'Locked by system format'}>
               {runTypeLabel(lockedTo, lang)}
@@ -60,19 +60,19 @@ export default function RunTypePicker({
             onClick={() => onChange(id)}
             className="text-xs px-2.5 py-1 rounded border transition-colors"
             style={{
-              backgroundColor: active ? 'var(--info-bg)'   : 'var(--surface-2)',
-              borderColor:     active ? 'var(--info-text)' : 'var(--border-default)',
-              color:           active ? 'var(--info-text)' : 'var(--text-secondary)',
+              backgroundColor: active ? 'var(--dock-info-bg)'   : 'var(--dock-surface-2)',
+              borderColor:     active ? 'var(--dock-info-text)' : 'var(--dock-border-default)',
+              color:           active ? 'var(--dock-info-text)' : 'var(--dock-text-secondary)',
             }}
-            onMouseEnter={e => { if (!active) e.currentTarget.style.backgroundColor = 'var(--surface-3)' }}
-            onMouseLeave={e => { if (!active) e.currentTarget.style.backgroundColor = 'var(--surface-2)' }}
+            onMouseEnter={e => { if (!active) e.currentTarget.style.backgroundColor = 'var(--dock-surface-3)' }}
+            onMouseLeave={e => { if (!active) e.currentTarget.style.backgroundColor = 'var(--dock-surface-2)' }}
           >
             {runTypeLabel(id, lang)}
           </button>
         )
       })}
       {hint && (
-        <span className="text-[10px] ml-1" style={{ color: 'var(--text-muted)' }}>
+        <span className="text-[10px] ml-1" style={{ color: 'var(--dock-text-muted)' }}>
           {hint}
         </span>
       )}

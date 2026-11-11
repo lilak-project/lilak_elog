@@ -1,3 +1,4 @@
+import Select from 'lilak-ui/components/Select.jsx'
 import { useState, useEffect, useRef } from 'react'
 import { confirm } from '../components/dialog'
 import AttachmentPicker from '../components/AttachmentPicker'
@@ -115,41 +116,41 @@ export function FormatPicker({ formats, onPick, onClose, t }) {
          style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}
          onClick={onClose}>
       <div className="w-full max-w-lg rounded-xl border shadow-xl p-5 max-h-[85vh] overflow-y-auto"
-           style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border-default)' }}
+           style={{ backgroundColor: 'var(--dock-surface)', borderColor: 'var(--dock-border-default)' }}
            onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-3">
-          <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+          <p className="text-sm font-semibold" style={{ color: 'var(--dock-text-primary)' }}>
             {t('form_format_pick')}
-            <span className="ml-2 text-xs font-normal" style={{ color: 'var(--text-muted)' }}>↑↓ / jk · Enter</span>
+            <span className="ml-2 text-xs font-normal" style={{ color: 'var(--dock-text-muted)' }}>↑↓ / jk · Enter</span>
           </p>
-          <button type="button" onClick={onClose} className="text-sm" style={{ color: 'var(--text-muted)' }}><Icon name="close" size={13} /></button>
+          <button type="button" onClick={onClose} className="text-sm" style={{ color: 'var(--dock-text-muted)' }}><Icon name="close" size={13} /></button>
         </div>
         <div className="space-y-2">
         {groups.map(group => {
           const isOpen = !collapsed[group.key]
           return (
             <div key={group.key} className="rounded-xl border overflow-hidden"
-                 style={{ borderColor: 'var(--border-default)' }}>
+                 style={{ borderColor: 'var(--dock-border-default)' }}>
               {/* Group header — only show if there's a label */}
               {group.label && (
                 <button
                   type="button"
                   onClick={() => setCollapsed(c => ({ ...c, [group.key]: !c[group.key] }))}
                   className="w-full flex items-center gap-2 px-3 py-1.5 text-left"
-                  style={{ backgroundColor: 'var(--surface-2)' }}
+                  style={{ backgroundColor: 'var(--dock-surface-2)' }}
                 >
-                  <span className="text-xs inline-flex" style={{ color: 'var(--text-muted)' }}><Icon name={isOpen ? 'caret-down' : 'caret-right'} size={12} /></span>
-                  <span className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>{group.label}</span>
+                  <span className="text-xs inline-flex" style={{ color: 'var(--dock-text-muted)' }}><Icon name={isOpen ? 'caret-down' : 'caret-right'} size={12} /></span>
+                  <span className="text-xs font-semibold" style={{ color: 'var(--dock-text-primary)' }}>{group.label}</span>
                   {group.sublabel && (
-                    <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{group.sublabel}</span>
+                    <span className="text-[10px]" style={{ color: 'var(--dock-text-muted)' }}>{group.sublabel}</span>
                   )}
-                  <span className="ml-auto text-[10px]" style={{ color: 'var(--text-muted)' }}>{group.fmts.length}</span>
+                  <span className="ml-auto text-[10px]" style={{ color: 'var(--dock-text-muted)' }}>{group.fmts.length}</span>
                 </button>
               )}
 
               {/* Items */}
               {isOpen && (
-                <div className="divide-y" style={{ borderColor: 'var(--border-subtle)' }}>
+                <div className="divide-y" style={{ borderColor: 'var(--dock-border-subtle)' }}>
                   {group.fmts.map(fmt => {
                     const idx = globalIdx++
                     const isFocused = idx === focusedIdx
@@ -161,23 +162,23 @@ export function FormatPicker({ formats, onPick, onClose, t }) {
                         onMouseEnter={() => setFocusedIdx(idx)}
                         className="w-full px-4 py-2.5 text-left transition-colors"
                         style={{
-                          backgroundColor: isFocused ? 'var(--info-bg)' : 'var(--surface)',
-                          borderLeft: isFocused ? '2px solid var(--border-focus)' : '2px solid transparent',
+                          backgroundColor: isFocused ? 'var(--dock-info-bg)' : 'var(--dock-surface)',
+                          borderLeft: isFocused ? '2px solid var(--dock-border-focus)' : '2px solid transparent',
                         }}
                       >
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-medium"
-                                style={{ color: isFocused ? 'var(--text-link)' : 'var(--text-primary)' }}>
+                                style={{ color: isFocused ? 'var(--dock-text-link)' : 'var(--dock-text-primary)' }}>
                             {fmt.name}
                           </span>
                           {fmt.is_default && (
                             <span className="text-xs px-1.5 py-0.5 rounded"
-                                  style={{ backgroundColor: 'var(--warning-bg)', color: 'var(--warning-text)' }}>
+                                  style={{ backgroundColor: 'var(--dock-warning-bg)', color: 'var(--dock-warning-text)' }}>
                               {t('form_format_default_badge')}
                             </span>
                           )}
                         </div>
-                        <div className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                        <div className="text-xs mt-0.5" style={{ color: 'var(--dock-text-muted)' }}>
                           {fmt._isStandard
                             ? 'title · run · level · tags · body · attachments'
                             : fmt.fields.slice().sort((a, b) => a.order - b.order).map(f => f.label).join(' · ')}
@@ -630,18 +631,18 @@ export default function LogForm({
 
   // Wait until format is resolved
   if (selectedFormat === undefined) {
-    return <div className="text-center py-16" style={{ color: 'var(--text-muted)' }}>{t('home_loading')}</div>
+    return <div className="text-center py-16" style={{ color: 'var(--dock-text-muted)' }}>{t('home_loading')}</div>
   }
 
   // Shared input style — matches --input-* tokens (theme/tokens.js).
   const inputStyle = {
-    backgroundColor: 'var(--input-bg)',
-    borderColor:     'var(--input-border)',
-    color:           'var(--text-primary)',
+    backgroundColor: 'var(--dock-input-bg)',
+    borderColor:     'var(--dock-input-border)',
+    color:           'var(--dock-text-primary)',
   }
-  const inputCls = 'w-full border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--input-focus-border)]'
+  const inputCls = 'w-full border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--dock-input-focus-border)]'
   const labelCls = 'shrink-0 w-20 text-right text-sm font-medium'
-  const labelStyle = { color: 'var(--text-secondary)' }
+  const labelStyle = { color: 'var(--dock-text-secondary)' }
 
   const cancelTo  = isEdit ? `/logs/${id}` : fromEntry ? `/logs/${fromId}` : '/'
   const handleCancel = () => { if (onCancel) onCancel(); else navigate(cancelTo) }
@@ -690,7 +691,7 @@ export default function LogForm({
             type="button"
             onClick={() => setShowPicker(true)}
             className="text-xs border px-2 py-1 rounded transition-colors inline-flex items-center gap-1"
-            style={{ backgroundColor: 'var(--info-bg)', color: 'var(--info-text)', borderColor: 'var(--border-focus)' }}
+            style={{ backgroundColor: 'var(--dock-info-bg)', color: 'var(--dock-info-text)', borderColor: 'var(--dock-border-focus)' }}
           >
             {selectedFormat ? selectedFormat.name : t('form_format_standard')}
             <Icon name="edit" size={12} />
@@ -700,20 +701,20 @@ export default function LogForm({
 
       {fromEntry && (
         <div className="mb-4 border text-sm px-4 py-3 rounded-lg"
-             style={{ backgroundColor: 'var(--success-bg)', borderColor: 'var(--success-text)', color: 'var(--success-text)' }}>
+             style={{ backgroundColor: 'var(--dock-success-bg)', borderColor: 'var(--dock-success-text)', color: 'var(--dock-success-text)' }}>
           {t('form_continue_banner', fromEntry.id, fromEntry.title)}
         </div>
       )}
       {error && (
         <div className="mb-4 border text-sm px-4 py-3 rounded-lg"
-             style={{ backgroundColor: 'var(--danger-bg)', borderColor: 'var(--danger-text)', color: 'var(--danger-text)' }}>{error}</div>
+             style={{ backgroundColor: 'var(--dock-danger-bg)', borderColor: 'var(--dock-danger-text)', color: 'var(--dock-danger-text)' }}>{error}</div>
       )}
 
       <form onSubmit={handleSubmit} className={flat ? '' : 'rounded-xl border shadow-sm'}
-            style={{ backgroundColor: 'var(--surface)', borderColor: flat ? undefined : 'var(--border-default)' }}>
+            style={{ backgroundColor: 'var(--dock-surface)', borderColor: flat ? undefined : 'var(--dock-border-default)' }}>
         {/* Top actions — log # (host badge) on the left, Cancel / Save on the right (#4) */}
         <div className="px-4 py-2.5 border-b flex items-center justify-between gap-2 flex-wrap"
-             style={{ borderColor: 'var(--border-subtle)', backgroundColor: flat ? 'var(--surface-2)' : undefined }}>
+             style={{ borderColor: 'var(--dock-border-subtle)', backgroundColor: flat ? 'var(--dock-surface-2)' : undefined }}>
           <div className="flex items-center gap-2 flex-wrap min-w-0">{headerBadge}</div>
           <div className="flex items-center gap-2 shrink-0">
             <Button variant="secondary" type="button" onClick={handleCancel}>{t('form_cancel')}</Button>
@@ -726,9 +727,9 @@ export default function LogForm({
           {fieldVisible('title') && autoTitle && (
             <div className="flex items-center gap-3">
               <label className={labelCls} style={labelStyle}>{t('form_title')}</label>
-              <div className="flex-1 text-sm px-1" style={{ color: 'var(--text-secondary)' }}>
-                <span className="font-medium" style={{ color: 'var(--text-primary)' }}>{autoTitleValue}</span>
-                <span className="ml-2 text-xs" style={{ color: 'var(--text-muted)' }}>(auto title — 포맷 이름)</span>
+              <div className="flex-1 text-sm px-1" style={{ color: 'var(--dock-text-secondary)' }}>
+                <span className="font-medium" style={{ color: 'var(--dock-text-primary)' }}>{autoTitleValue}</span>
+                <span className="ml-2 text-xs" style={{ color: 'var(--dock-text-muted)' }}>(auto title — 포맷 이름)</span>
               </div>
             </div>
           )}
@@ -756,9 +757,9 @@ export default function LogForm({
                     title={lastTitle}
                     onClick={() => { setForm(prev => ({ ...prev, title: lastTitle })); setLastTitle('') }}
                     className="mt-1 max-w-full text-xs border rounded px-2 py-0.5 truncate transition-colors"
-                    style={{ color: 'var(--text-muted)', borderColor: 'var(--border-default)' }}
-                    onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-link)'; e.currentTarget.style.borderColor = 'var(--border-focus)' }}
-                    onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.borderColor = 'var(--border-default)' }}
+                    style={{ color: 'var(--dock-text-muted)', borderColor: 'var(--dock-border-default)' }}
+                    onMouseEnter={e => { e.currentTarget.style.color = 'var(--dock-text-link)'; e.currentTarget.style.borderColor = 'var(--dock-border-focus)' }}
+                    onMouseLeave={e => { e.currentTarget.style.color = 'var(--dock-text-muted)'; e.currentTarget.style.borderColor = 'var(--dock-border-default)' }}
                   >
                     ↩ {lastTitle}
                   </button>
@@ -778,9 +779,9 @@ export default function LogForm({
                 if (!composed || composed === form.title) return null
                 return (
                   <div className="text-[11px] font-mono ml-[88px]"
-                       style={{ color: 'var(--text-muted)' }}>
+                       style={{ color: 'var(--dock-text-muted)' }}>
                     → {composed}{!form.title && (
-                      <span className="ml-2 italic" style={{ color: 'var(--text-muted)' }}>
+                      <span className="ml-2 italic" style={{ color: 'var(--dock-text-muted)' }}>
                         ({lang === 'ko' ? '제목 없이' : 'no user title'})
                       </span>
                     )}
@@ -804,8 +805,8 @@ export default function LogForm({
                       onClick={() => { setRunType(rt); setRunError('') }}
                       className="px-3 py-1 text-xs font-medium rounded border transition-colors"
                       style={runType === rt
-                        ? { backgroundColor: 'var(--btn-primary-bg)', borderColor: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)' }
-                        : { backgroundColor: 'var(--surface)',        borderColor: 'var(--input-border)',   color: 'var(--text-secondary)'  }
+                        ? { backgroundColor: 'var(--dock-btn-primary-bg)', borderColor: 'var(--dock-btn-primary-bg)', color: 'var(--dock-btn-primary-text)' }
+                        : { backgroundColor: 'var(--dock-surface)',        borderColor: 'var(--dock-input-border)',   color: 'var(--dock-text-secondary)'  }
                       }
                     >
                       {t(`form_run_${rt}`)}
@@ -834,20 +835,20 @@ export default function LogForm({
                             <button type="button"
                               onClick={() => setRunSingle(String(lastRunNumber))}
                               className="text-xs border rounded px-2 py-1.5 transition-colors whitespace-nowrap"
-                              style={{ color: 'var(--text-secondary)', borderColor: 'var(--border-default)' }}
+                              style={{ color: 'var(--dock-text-secondary)', borderColor: 'var(--dock-border-default)' }}
                             >
                               {t('form_run_last', lastRunNumber)}
                             </button>
                             <button type="button"
                               onClick={() => setRunSingle(String(lastRunNumber + 1))}
                               className="text-xs rounded px-2 py-1.5 transition-colors whitespace-nowrap"
-                              style={{ backgroundColor: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)' }}
+                              style={{ backgroundColor: 'var(--dock-btn-primary-bg)', color: 'var(--dock-btn-primary-text)' }}
                             >
                               {t('form_run_next', lastRunNumber + 1)}
                             </button>
                           </div>
                         ) : (
-                          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('form_run_no_last')}</span>
+                          <span className="text-xs" style={{ color: 'var(--dock-text-muted)' }}>{t('form_run_no_last')}</span>
                         )
                       )}
                     </div>
@@ -861,12 +862,12 @@ export default function LogForm({
                       onBlur={checkRun}
                       placeholder={runPlaceholder}
                       className={inputCls}
-                      style={{ ...inputStyle, borderColor: runError ? 'var(--danger-text)' : 'var(--input-border)' }}
+                      style={{ ...inputStyle, borderColor: runError ? 'var(--dock-danger-text)' : 'var(--dock-input-border)' }}
                     />
-                    {runHint && !runError && <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{runHint}</p>}
+                    {runHint && !runError && <p className="text-xs mt-1" style={{ color: 'var(--dock-text-muted)' }}>{runHint}</p>}
                   </div>
                 )}
-                {runError && <p className="text-xs" style={{ color: 'var(--danger-text)' }}>{runError}</p>}
+                {runError && <p className="text-xs" style={{ color: 'var(--dock-danger-text)' }}>{runError}</p>}
 
                 {/* Phase 4: run_type pill picker. Locks when the active format
                     has run_type_lock; otherwise defaults to the server's
@@ -911,7 +912,7 @@ export default function LogForm({
               <span className={labelCls} />
               <div className="flex-1">
                 <label className="flex items-center gap-1.5 text-xs cursor-pointer"
-                       style={{ color: applyFwd ? 'var(--text-link)' : 'var(--text-secondary)' }}>
+                       style={{ color: applyFwd ? 'var(--dock-text-link)' : 'var(--dock-text-secondary)' }}>
                   <input type="checkbox" checked={applyFwd}
                          onChange={e => {
                            setApplyFwd(e.target.checked)
@@ -922,14 +923,14 @@ export default function LogForm({
                   이 Beam / Target 을 다른 로그에도 채우기
                 </label>
                 {!applyFwd && (
-                  <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>
+                  <p className="text-[11px] mt-1" style={{ color: 'var(--dock-text-muted)' }}>
                     Beam / Target 은 설정한 로그부터 뒤로 계속 이어집니다.
                     늦게 입력했다면 켜서 시작 번호를 앞으로 당기세요.
                   </p>
                 )}
                 {applyFwd && (
                   <div className="mt-1.5">
-                    <div className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--text-secondary)' }}>
+                    <div className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--dock-text-secondary)' }}>
                       <span style={{ fontFamily: 'var(--font-mono)' }}>_</span>
                       <input type="number" value={applyFrom}
                              onChange={e => setApplyFrom(e.target.value)}
@@ -938,24 +939,24 @@ export default function LogForm({
                              style={{ ...inputStyle, width: 84 }} />
                       번 로그부터 적용
                       {myIndex != null && (
-                        <span style={{ color: 'var(--text-muted)' }}>(이 로그: _{myIndex})</span>
+                        <span style={{ color: 'var(--dock-text-muted)' }}>(이 로그: _{myIndex})</span>
                       )}
                     </div>
                     {applyPreview?.error && (
-                      <p className="text-[11px] mt-1" style={{ color: 'var(--danger-text)' }}>
+                      <p className="text-[11px] mt-1" style={{ color: 'var(--dock-danger-text)' }}>
                         {applyPreview.error}
                       </p>
                     )}
                     {applyPreview && !applyPreview.error && (
-                      <div className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>
+                      <div className="text-[11px] mt-1" style={{ color: 'var(--dock-text-muted)' }}>
                         {['beam', 'target'].map(f => {
                           const r = applyPreview[f]
                           if (!r) return null
                           const label = f === 'beam' ? 'Beam' : 'Target'
                           return (
                             <span key={f} style={{ display: 'block' }}>
-                              {label} <b style={{ color: 'var(--text-primary)' }}>{r.value || '(비움)'}</b>
-                              {' → '}_{r.from} 부터 <b style={{ color: 'var(--text-primary)' }}>{r.updated}개</b> 로그에 채워집니다
+                              {label} <b style={{ color: 'var(--dock-text-primary)' }}>{r.value || '(비움)'}</b>
+                              {' → '}_{r.from} 부터 <b style={{ color: 'var(--dock-text-primary)' }}>{r.updated}개</b> 로그에 채워집니다
                               {r.stopped_at != null
                                 ? ` · _${r.stopped_at} 에서 다른 값이라 멈춤`
                                 : ' · 마지막 로그까지'}
@@ -979,7 +980,7 @@ export default function LogForm({
               <label className={labelCls} style={labelStyle}>
                 {t('form_level')}
               </label>
-              <select
+              <Select
                 name="level"
                 value={form.level}
                 onChange={e => setForm(prev => ({ ...prev, level: e.target.value }))}
@@ -987,7 +988,7 @@ export default function LogForm({
                 style={inputStyle}
               >
                 {SEVERITIES.map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
+              </Select>
             </div>
           )}
 
@@ -1000,13 +1001,13 @@ export default function LogForm({
               <div className="flex-1 relative">
                 <div
                   className="flex flex-wrap gap-1.5 p-2 border rounded-lg focus-within:ring-2 min-h-[42px] cursor-text"
-                  style={{ ...inputStyle, '--tw-ring-color': 'var(--input-focus-border)' }}
+                  style={{ ...inputStyle, '--tw-ring-color': 'var(--dock-input-focus-border)' }}
                   onClick={() => tagInputRef.current?.focus()}
                 >
                   {tagList.map(name => (
                     <span key={name}
                       className="flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full"
-                      style={{ backgroundColor: 'var(--info-bg)', color: 'var(--info-text)' }}>
+                      style={{ backgroundColor: 'var(--dock-info-bg)', color: 'var(--dock-info-text)' }}>
                       {name}
                       <button type="button" onClick={e => { e.stopPropagation(); removeTag(name) }}
                         className="leading-none hover:opacity-70">×</button>
@@ -1021,21 +1022,21 @@ export default function LogForm({
                     onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
                     placeholder={tagList.length === 0 ? t('form_tags_input_placeholder') : ''}
                     className="flex-1 min-w-24 text-sm outline-none bg-transparent"
-                    style={{ color: 'var(--text-primary)' }}
+                    style={{ color: 'var(--dock-text-primary)' }}
                   />
                 </div>
-                <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{t('form_tags_add_hint')}</p>
+                <p className="text-xs mt-1" style={{ color: 'var(--dock-text-muted)' }}>{t('form_tags_add_hint')}</p>
                 {showSuggestions && tagSuggestions.length > 0 && (
                   <ul className="absolute z-20 left-0 right-0 mt-1 border rounded-lg shadow-lg overflow-hidden"
-                      style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border-default)' }}>
+                      style={{ backgroundColor: 'var(--dock-surface)', borderColor: 'var(--dock-border-default)' }}>
                     {tagSuggestions.map(name => (
                       <li key={name}>
                         <button type="button"
                           onMouseDown={e => { e.preventDefault(); addTag(name) }}
                           className="w-full text-left px-3 py-2 text-sm transition-colors"
-                          style={{ color: 'var(--text-primary)' }}
-                          onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'var(--info-bg)'; e.currentTarget.style.color = 'var(--info-text)' }}
-                          onMouseLeave={e => { e.currentTarget.style.backgroundColor = ''; e.currentTarget.style.color = 'var(--text-primary)' }}
+                          style={{ color: 'var(--dock-text-primary)' }}
+                          onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'var(--dock-info-bg)'; e.currentTarget.style.color = 'var(--dock-info-text)' }}
+                          onMouseLeave={e => { e.currentTarget.style.backgroundColor = ''; e.currentTarget.style.color = 'var(--dock-text-primary)' }}
                         >
                           {name}
                         </button>
@@ -1061,7 +1062,7 @@ export default function LogForm({
               <div key={field.key} className="flex items-center gap-3">
                 <label className={labelCls} style={labelStyle}>
                   {field.label}
-                  {field.required && <span className="ml-0.5" style={{ color: 'var(--danger-text)' }}>*</span>}
+                  {field.required && <span className="ml-0.5" style={{ color: 'var(--dock-danger-text)' }}>*</span>}
                 </label>
                 <div className="flex-1">
                   {isNumberEntry ? (
@@ -1072,7 +1073,7 @@ export default function LogForm({
                       onChange={raw => setCustomValues(prev => ({ ...prev, [field.key]: raw }))}
                     />
                   ) : isSelect ? (
-                    <select
+                    <Select
                       value={selectValue}
                       onChange={e => setCustomValues(prev => ({ ...prev, [field.key]: e.target.value }))}
                       required={field.required}
@@ -1082,7 +1083,7 @@ export default function LogForm({
                       <option value="">{field.placeholder || '—'}</option>
                       {opts.map(o => <option key={o} value={o}>{o}</option>)}
                       {staleValue && <option value={selectValue}>{selectValue} (목록에 없음)</option>}
-                    </select>
+                    </Select>
                   ) : (
                     <input
                       type={field.field_type === 'number' ? 'number' : 'text'}
@@ -1105,16 +1106,16 @@ export default function LogForm({
               <div className="flex items-center justify-between mb-1">
                 <label className="text-sm font-medium" style={labelStyle}>{t('form_body')}</label>
                 <button type="button" onClick={() => setPreview(p => !p)}
-                  className="text-xs hover:underline" style={{ color: 'var(--text-link)' }}>
+                  className="text-xs hover:underline" style={{ color: 'var(--dock-text-link)' }}>
                   {preview ? t('form_edit') : t('form_preview')}
                 </button>
               </div>
               {preview ? (
                 <div className="min-h-24 border rounded-lg p-4 markdown-body text-sm"
-                     style={{ backgroundColor: 'var(--surface-2)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}>
+                     style={{ backgroundColor: 'var(--dock-surface-2)', borderColor: 'var(--dock-border-default)', color: 'var(--dock-text-primary)' }}>
                   {form.body
                     ? <ReactMarkdown remarkPlugins={[remarkGfm]}>{form.body}</ReactMarkdown>
-                    : <span className="italic" style={{ color: 'var(--text-muted)' }}>{t('form_preview_empty')}</span>
+                    : <span className="italic" style={{ color: 'var(--dock-text-muted)' }}>{t('form_preview_empty')}</span>
                   }
                 </div>
               ) : (
@@ -1142,7 +1143,7 @@ export default function LogForm({
                   <ul className="mb-2 space-y-1">
                     {existingAttachments.map(a => (
                       <li key={a.id} className="text-xs flex items-center gap-1"
-                          style={{ color: 'var(--text-secondary)' }}>
+                          style={{ color: 'var(--dock-text-secondary)' }}>
                         {a.original_filename}
                         <button type="button"
                           onClick={async () => {
@@ -1151,9 +1152,9 @@ export default function LogForm({
                             setExistingAttachments(prev => prev.filter(x => x.id !== a.id))
                           }}
                           className="ml-1"
-                          style={{ color: 'var(--text-muted)' }}
-                          onMouseEnter={e => e.currentTarget.style.color = 'var(--danger-text)'}
-                          onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
+                          style={{ color: 'var(--dock-text-muted)' }}
+                          onMouseEnter={e => e.currentTarget.style.color = 'var(--dock-danger-text)'}
+                          onMouseLeave={e => e.currentTarget.style.color = 'var(--dock-text-muted)'}
                         >remove</button>
                       </li>
                     ))}
@@ -1161,18 +1162,18 @@ export default function LogForm({
                 )}
                 {fromAttachments.length > 0 && (
                   <div className="mb-2">
-                    <p className="text-xs mb-1" style={{ color: 'var(--success-text)' }}>{t('form_from_attachments')}</p>
+                    <p className="text-xs mb-1" style={{ color: 'var(--dock-success-text)' }}>{t('form_from_attachments')}</p>
                     <ul className="space-y-1">
                       {fromAttachments.map(a => (
                         <li key={a.id} className="text-xs flex items-center gap-1"
-                            style={{ color: 'var(--text-secondary)' }}>
+                            style={{ color: 'var(--dock-text-secondary)' }}>
                           {a.original_filename}
                           <button type="button"
                             onClick={() => setFromAttachments(prev => prev.filter(x => x.id !== a.id))}
                             className="ml-1"
-                            style={{ color: 'var(--text-muted)' }}
-                            onMouseEnter={e => e.currentTarget.style.color = 'var(--danger-text)'}
-                            onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
+                            style={{ color: 'var(--dock-text-muted)' }}
+                            onMouseEnter={e => e.currentTarget.style.color = 'var(--dock-danger-text)'}
+                            onMouseLeave={e => e.currentTarget.style.color = 'var(--dock-text-muted)'}
                           ><Icon name="close" size={13} /></button>
                         </li>
                       ))}
@@ -1187,15 +1188,15 @@ export default function LogForm({
                     // was barely taller than the text inside it.
                     minHeight: 96,
                     padding: '16px',
-                    borderColor:     dragOver ? 'var(--border-focus)' : 'var(--border-default)',
-                    backgroundColor: dragOver ? 'var(--info-bg)'      : 'transparent',
+                    borderColor:     dragOver ? 'var(--dock-border-focus)' : 'var(--dock-border-default)',
+                    backgroundColor: dragOver ? 'var(--dock-info-bg)'      : 'transparent',
                   }}
                   onClick={() => fileInputRef.current?.click()}
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
                 >
-                  <p className="text-sm flex items-center justify-center gap-1.5" style={{ color: 'var(--text-muted)' }}>
+                  <p className="text-sm flex items-center justify-center gap-1.5" style={{ color: 'var(--dock-text-muted)' }}>
                     <Icon name={dragOver ? 'folder' : 'attach'} size={14} />
                     {dragOver ? '여기에 놓으세요'
                       : fileItems.length > 0 ? t('form_files_selected', fileItems.length)
@@ -1229,18 +1230,18 @@ export default function LogForm({
                 </div>
                 {pickedAtts.length > 0 && (
                   <div className="mt-2">
-                    <p className="text-xs mb-1" style={{ color: 'var(--text-link)' }}>
+                    <p className="text-xs mb-1" style={{ color: 'var(--dock-text-link)' }}>
                       파일에서 선택 ({pickedAtts.length})
                     </p>
                     <ul className="space-y-1">
                       {pickedAtts.map(a => (
                         <li key={a.id} className="flex items-center gap-1.5 text-xs"
-                            style={{ color: 'var(--text-secondary)' }}>
+                            style={{ color: 'var(--dock-text-secondary)' }}>
                           <Icon name="folder" size={12} />
                           <span className="flex-1 truncate">{a.original_filename}</span>
                           <button type="button" title="빼기"
                             onClick={() => setPickedAtts(prev => prev.filter(x => x.id !== a.id))}
-                            style={{ color: 'var(--text-muted)' }}><Icon name="close" size={12} /></button>
+                            style={{ color: 'var(--dock-text-muted)' }}><Icon name="close" size={12} /></button>
                         </li>
                       ))}
                     </ul>
@@ -1250,7 +1251,7 @@ export default function LogForm({
                   <ul className="mt-2 space-y-1.5">
                     {fileItems.map((item, i) => (
                       <li key={i} className="flex items-center gap-1.5">
-                        <span className="shrink-0" style={{ color: 'var(--text-muted)' }}>·</span>
+                        <span className="shrink-0" style={{ color: 'var(--dock-text-muted)' }}>·</span>
                         <input
                           type="text"
                           value={item.name}
@@ -1264,9 +1265,9 @@ export default function LogForm({
                         <button type="button"
                           onClick={() => setFileItems(prev => prev.filter((_, j) => j !== i))}
                           className="text-xs shrink-0"
-                          style={{ color: 'var(--text-muted)' }}
-                          onMouseEnter={e => e.currentTarget.style.color = 'var(--danger-text)'}
-                          onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
+                          style={{ color: 'var(--dock-text-muted)' }}
+                          onMouseEnter={e => e.currentTarget.style.color = 'var(--dock-danger-text)'}
+                          onMouseLeave={e => e.currentTarget.style.color = 'var(--dock-text-muted)'}
                         ><Icon name="close" size={13} /></button>
                       </li>
                     ))}
@@ -1280,8 +1281,8 @@ export default function LogForm({
 
         {/* Footer — Cancel / Save (#4) */}
         <div className="px-4 py-3 border-t rounded-b-xl flex items-center justify-between gap-3"
-             style={{ backgroundColor: 'var(--surface-2)', borderColor: 'var(--border-subtle)' }}>
-          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('form_author', user.username)}</span>
+             style={{ backgroundColor: 'var(--dock-surface-2)', borderColor: 'var(--dock-border-subtle)' }}>
+          <span className="text-xs" style={{ color: 'var(--dock-text-muted)' }}>{t('form_author', user.username)}</span>
           <div className="flex items-center gap-2">
             <Button variant="secondary" type="button" onClick={handleCancel}>{t('form_cancel')}</Button>
             <Button variant="primary" type="submit" disabled={saving}>{saveLabel}</Button>

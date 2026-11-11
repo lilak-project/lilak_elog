@@ -1,3 +1,4 @@
+import Select from 'lilak-ui/components/Select.jsx'
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { CrudTable, Modal, Button, Avatar, Row, Stack, useTaggables } from 'lilak-ui'
@@ -103,15 +104,15 @@ export default function AdminUsers() {
     } catch (err) { setTransferError(err.response?.data?.detail || t('admin_transfer_run')) }
     finally { setTransferring(false) }
   }
-  if (!user) return <div style={{ textAlign: 'center', padding: '64px 0', fontSize: 'var(--fs-body, 13px)', color: 'var(--text-muted)' }}>로그인 후 등록된 계정 목록을 볼 수 있습니다.</div>
+  if (!user) return <div style={{ textAlign: 'center', padding: '64px 0', fontSize: 'var(--fs-body, 13px)', color: 'var(--dock-text-muted)' }}>로그인 후 등록된 계정 목록을 볼 수 있습니다.</div>
 
   const badge = (text, tone) => (
     <span style={{ fontSize: 'var(--fs-micro, 10px)', padding: '1px 8px', borderRadius: 999, whiteSpace: 'nowrap', ...tone }}>{text}</span>
   )
-  const roleTone = (r) => r === 'manager' ? { backgroundColor: 'var(--warning-bg)', color: 'var(--warning-text)' } : { backgroundColor: 'var(--surface-2)', color: 'var(--text-secondary)' }
-  const statusTone = (a) => a ? { backgroundColor: 'var(--success-bg)', color: 'var(--success-text)' } : { backgroundColor: 'var(--danger-bg)', color: 'var(--danger-text)' }
-  const banner = (tone) => ({ border: `1px solid ${tone === 'ok' ? 'var(--success-text)' : 'var(--danger-text)'}`, backgroundColor: tone === 'ok' ? 'var(--success-bg)' : 'var(--danger-bg)', color: tone === 'ok' ? 'var(--success-text)' : 'var(--danger-text)', fontSize: 'var(--fs-body, 13px)', padding: '8px 12px', borderRadius: 8 })
-  const selectStyle = { ...inputBase, width: '100%', border: '1px solid var(--input-border)', borderRadius: 8, padding: '8px 12px', fontSize: 'var(--fs-body, 13px)', outline: 'none' }
+  const roleTone = (r) => r === 'manager' ? { backgroundColor: 'var(--dock-warning-bg)', color: 'var(--dock-warning-text)' } : { backgroundColor: 'var(--dock-surface-2)', color: 'var(--dock-text-secondary)' }
+  const statusTone = (a) => a ? { backgroundColor: 'var(--dock-success-bg)', color: 'var(--dock-success-text)' } : { backgroundColor: 'var(--dock-danger-bg)', color: 'var(--dock-danger-text)' }
+  const banner = (tone) => ({ border: `1px solid ${tone === 'ok' ? 'var(--dock-success-text)' : 'var(--dock-danger-text)'}`, backgroundColor: tone === 'ok' ? 'var(--dock-success-bg)' : 'var(--dock-danger-bg)', color: tone === 'ok' ? 'var(--dock-success-text)' : 'var(--dock-danger-text)', fontSize: 'var(--fs-body, 13px)', padding: '8px 12px', borderRadius: 8 })
+  const selectStyle = { ...inputBase, width: '100%', border: '1px solid var(--dock-input-border)', borderRadius: 8, padding: '8px 12px', fontSize: 'var(--fs-body, 13px)', outline: 'none' }
 
   return (
     <div style={{ maxWidth: 1024, margin: '0 auto' }}>
@@ -137,7 +138,7 @@ export default function AdminUsers() {
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
               <Avatar {...displayAvatar(u)} seed={u.username} size={22} />
               <span style={{ fontFamily: 'var(--font-mono)' }}>{u.username}</span>
-              {u.id === user.user_id && <span style={{ fontSize: 'var(--fs-micro, 10px)', color: 'var(--text-link)' }}>{t('admin_me')}</span>}
+              {u.id === user.user_id && <span style={{ fontSize: 'var(--fs-micro, 10px)', color: 'var(--dock-text-link)' }}>{t('admin_me')}</span>}
             </span>
           ) },
           { key: 'email', header: t('admin_col_email'), muted: true, render: (u) => u.email || '—' },
@@ -170,8 +171,8 @@ export default function AdminUsers() {
         formExtra={isManager ? (row, { close }) => {
           const isSelf = row.id === user.user_id
           return (
-            <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 12, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
-              <span style={{ width: '100%', fontSize: 'var(--fs-tiny, 11px)', color: 'var(--text-muted)' }}>{t('admin_danger_zone') || '관리 작업 — 매니저 비밀번호 확인이 필요합니다.'}</span>
+            <div style={{ borderTop: '1px solid var(--dock-border-subtle)', paddingTop: 12, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
+              <span style={{ width: '100%', fontSize: 'var(--fs-tiny, 11px)', color: 'var(--dock-text-muted)' }}>{t('admin_danger_zone') || '관리 작업 — 매니저 비밀번호 확인이 필요합니다.'}</span>
               {!isSelf && (
                 <Button variant="warning" size="sm" type="button" onClick={() => askDeactivate(row)}>
                   {row.is_active ? t('admin_deactivate') : t('admin_activate')}
@@ -202,17 +203,17 @@ export default function AdminUsers() {
             <Button variant="warning" disabled={transferring || !transferFrom || !transferTo || transferFrom === transferTo} onClick={() => handleTransfer()}>{transferring ? t('admin_transferring') : t('admin_transfer_run')}</Button>
           </>}>
           <Stack gap={12}>
-            <p style={{ margin: 0, fontSize: 'var(--fs-small, 12px)', color: 'var(--text-secondary)' }}>선택한 계정의 모든 로그를 다른 계정으로 이전합니다.</p>
+            <p style={{ margin: 0, fontSize: 'var(--fs-small, 12px)', color: 'var(--dock-text-secondary)' }}>선택한 계정의 모든 로그를 다른 계정으로 이전합니다.</p>
             {transferMsg && <div style={banner('ok')}>{transferMsg}</div>}
             {transferError && <div style={banner('err')}>{transferError}</div>}
             <Row gap={12}>
               {[['from', transferFrom, setTransferFrom, transferTo], ['to', transferTo, setTransferTo, transferFrom]].map(([k, val, setv, other]) => (
                 <div key={k} style={{ flex: 1 }}>
-                  <label style={{ display: 'block', fontSize: 'var(--fs-tiny, 11px)', fontWeight: 500, marginBottom: 4, color: 'var(--text-secondary)' }}>{k === 'from' ? t('admin_from_id') : t('admin_to_id')}</label>
-                  <select value={val} onChange={e => setv(e.target.value)} required style={selectStyle}>
+                  <label style={{ display: 'block', fontSize: 'var(--fs-tiny, 11px)', fontWeight: 500, marginBottom: 4, color: 'var(--dock-text-secondary)' }}>{k === 'from' ? t('admin_from_id') : t('admin_to_id')}</label>
+                  <Select value={val} onChange={e => setv(e.target.value)} required style={selectStyle}>
                     <option value="">-- 선택 --</option>
                     {users.map(u => <option key={u.id} value={u.username} disabled={u.username === other}>{u.username} ({u.log_count ?? 0}건)</option>)}
-                  </select>
+                  </Select>
                 </div>
               ))}
             </Row>
@@ -229,8 +230,8 @@ export default function AdminUsers() {
             <Button variant="danger" disabled={pwBusy || !pwVal} onClick={confirmGate}>{pwBusy ? '…' : (t('admin_confirm') || '확인')}</Button>
           </>}>
           <Stack gap={10}>
-            <p style={{ margin: 0, fontSize: 'var(--fs-body, 13px)', color: 'var(--text-primary)' }}>{pwGate.title}</p>
-            <p style={{ margin: 0, fontSize: 'var(--fs-small, 12px)', color: 'var(--text-muted)' }}>{t('admin_pw_confirm_hint') || '계속하려면 본인(매니저) 비밀번호를 입력하세요.'}</p>
+            <p style={{ margin: 0, fontSize: 'var(--fs-body, 13px)', color: 'var(--dock-text-primary)' }}>{pwGate.title}</p>
+            <p style={{ margin: 0, fontSize: 'var(--fs-small, 12px)', color: 'var(--dock-text-muted)' }}>{t('admin_pw_confirm_hint') || '계속하려면 본인(매니저) 비밀번호를 입력하세요.'}</p>
             <input type="password" autoFocus value={pwVal} onChange={e => setPwVal(e.target.value)} placeholder={t('reg_password')} style={selectStyle}
               onKeyDown={e => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) { e.preventDefault(); confirmGate() } }} />
             {pwErr && <div style={banner('err')}>{pwErr}</div>}

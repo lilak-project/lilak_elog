@@ -28,15 +28,15 @@ export default function AdminWebhooks() {
   const Switch = ({ on, onClick, title }) => (
     <button onClick={(e) => { e.stopPropagation(); onClick() }} title={title}
       style={{ width: 40, height: 24, borderRadius: 999, border: 'none', cursor: 'pointer', position: 'relative',
-        backgroundColor: on ? 'var(--success-text)' : 'var(--surface-3)', transition: 'background-color .15s' }}>
+        backgroundColor: on ? 'var(--dock-success-text)' : 'var(--dock-surface-3)', transition: 'background-color .15s' }}>
       <span style={{ position: 'absolute', top: 4, left: on ? 20 : 4, width: 16, height: 16, borderRadius: '50%',
-        backgroundColor: 'var(--surface)', boxShadow: '0 1px 2px rgba(0,0,0,.3)', transition: 'left .2s' }} />
+        backgroundColor: 'var(--dock-surface)', boxShadow: '0 1px 2px rgba(0,0,0,.3)', transition: 'left .2s' }} />
     </button>
   )
 
   return (
     <div style={{ maxWidth: 720 }}>
-      <p style={{ fontSize: 'var(--fs-small, 12px)', color: 'var(--text-secondary)', margin: '0 0 12px' }}>{t('webhook_subtitle')}</p>
+      <p style={{ fontSize: 'var(--fs-small, 12px)', color: 'var(--dock-text-secondary)', margin: '0 0 12px' }}>{t('webhook_subtitle')}</p>
       <CrudTable
         rows={webhooks}
         rowKey={(r) => r.id}

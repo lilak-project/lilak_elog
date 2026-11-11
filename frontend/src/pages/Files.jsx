@@ -117,14 +117,14 @@ export default function Files() {
       return { type: 'text', text: txt === 'ERR' ? '(미리보기를 불러오지 못했습니다)' : txt === undefined ? '로딩 중…' : txt }
     }
     return { type: 'node', node: (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 'var(--fs-small, 12px)', color: 'var(--text-secondary)' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 'var(--fs-small, 12px)', color: 'var(--dock-text-secondary)' }}>
         <Row gap={16} wrap>
           <span>{fileTypeLabel(it.content_type).toUpperCase()}</span>
           <span>{formatSize(it.size)}</span>
           <span>{formatLogStamp(it.created_at, { time: false })}</span>
         </Row>
         <a href={attUrl(it.id)} download={it.original_filename}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--text-link)', textDecoration: 'none' }}>
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--dock-text-link)', textDecoration: 'none' }}>
           <Icon name="download" size={14} /> {t('files_download')}
         </a>
       </div>
@@ -155,15 +155,15 @@ export default function Files() {
         <ChipGroup label={t('gallery_cols')} value={cols} onChange={setCols}
           options={[2, 3, 4].map(n => ({ value: n, label: String(n) }))}
           style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 'auto' }} />
-        <span style={{ fontSize: 'var(--fs-small, 12px)', color: 'var(--text-secondary)', alignSelf: 'center' }}>{t('files_total', total)}</span>
+        <span style={{ fontSize: 'var(--fs-small, 12px)', color: 'var(--dock-text-secondary)', alignSelf: 'center' }}>{t('files_total', total)}</span>
       </form>
 
       {loading ? (
-        <p style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>{t('files_loading')}</p>
+        <p style={{ textAlign: 'center', padding: '40px 0', color: 'var(--dock-text-muted)' }}>{t('files_loading')}</p>
       ) : loadErr ? (
-        <p style={{ textAlign: 'center', padding: '40px 0', fontSize: 'var(--fs-body, 13px)', color: 'var(--danger-text)' }}>{loadErr}</p>
+        <p style={{ textAlign: 'center', padding: '40px 0', fontSize: 'var(--fs-body, 13px)', color: 'var(--dock-danger-text)' }}>{loadErr}</p>
       ) : items.length === 0 ? (
-        <p style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>{t('files_empty')}</p>
+        <p style={{ textAlign: 'center', padding: '40px 0', color: 'var(--dock-text-muted)' }}>{t('files_empty')}</p>
       ) : (
         <DataGrid
           items={items}
@@ -187,14 +187,14 @@ export default function Files() {
               media={open ? { type: 'node', node: (() => {
                 const m = mediaFor(it)
                 const preview = m.type === 'image'
-                  ? <img src={m.src} alt={it.original_filename} style={{ display: 'block', width: '100%', height: 'auto', objectFit: 'contain', backgroundColor: 'var(--surface-2)' }} />
+                  ? <img src={m.src} alt={it.original_filename} style={{ display: 'block', width: '100%', height: 'auto', objectFit: 'contain', backgroundColor: 'var(--dock-surface-2)' }} />
                   : m.type === 'text'
-                    ? <pre style={{ margin: 0, fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-small, 12px)', lineHeight: 1.5, whiteSpace: 'pre-wrap', wordBreak: 'break-word', padding: '10px 12px', color: 'var(--text-primary)' }}>{m.text}</pre>
+                    ? <pre style={{ margin: 0, fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-small, 12px)', lineHeight: 1.5, whiteSpace: 'pre-wrap', wordBreak: 'break-word', padding: '10px 12px', color: 'var(--dock-text-primary)' }}>{m.text}</pre>
                     : <div style={{ padding: '10px 12px' }}>{m.node}</div>
                 return (
                   <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
                     <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>{preview}</div>
-                    <div style={{ padding: '8px 10px', borderTop: '1px solid var(--border-subtle)' }} onClick={(e) => e.stopPropagation()}>
+                    <div style={{ padding: '8px 10px', borderTop: '1px solid var(--dock-border-subtle)' }} onClick={(e) => e.stopPropagation()}>
                       <AttachmentComments logId={it.log_id} onOpenLog={openLogInTab} compact />
                     </div>
                   </div>
@@ -204,7 +204,7 @@ export default function Files() {
               bodyStyle={isImage(it.content_type) ? { maxHeight: 360 } : { maxHeight: 280 }}
               headerActions={
                 <button type="button" title={t('files_col_log')} onClick={(e) => { e.stopPropagation(); openLogInTab(it.log_id) }}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-tiny, 11px)' }}>
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--dock-text-muted)', fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-tiny, 11px)' }}>
                   #{it.log_id}
                 </button>
               }

@@ -29,9 +29,9 @@ function openLogInTab(activateTab, logId) {
 
 // AI bot accent → theme tokens (was Tailwind emerald/orange/violet classes).
 const AI_BOT_STYLES = {
-  gpt:     { bg: 'var(--success-bg)', text: 'var(--success-text)', color: '#10b981' },
-  claude:  { bg: 'var(--warning-bg)', text: 'var(--warning-text)', color: '#8b5cf6' },
-  default: { bg: 'var(--info-bg)',    text: 'var(--info-text)',    color: '#6366f1' },
+  gpt:     { bg: 'var(--dock-success-bg)', text: 'var(--dock-success-text)', color: '#10b981' },
+  claude:  { bg: 'var(--dock-warning-bg)', text: 'var(--dock-warning-text)', color: '#8b5cf6' },
+  default: { bg: 'var(--dock-info-bg)',    text: 'var(--dock-info-text)',    color: '#6366f1' },
 }
 function aiBotStyle(name) {
   const key = Object.keys(AI_BOT_STYLES).find(k => (name || '').toLowerCase().includes(k))
@@ -57,7 +57,7 @@ function MdLink({ href, children, activateTab }) {
   const idxMatch = href?.match(/^\/logidx\/(\d+)$/)
   const infMatch = href?.match(/^\/infograph\/(\d+)$/)
   const asButton = (onClick) => (
-    <button style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'var(--font-mono)', color: 'var(--text-link)', textDecoration: 'underline' }} onClick={onClick}>{children}</button>
+    <button style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'var(--font-mono)', color: 'var(--dock-text-link)', textDecoration: 'underline' }} onClick={onClick}>{children}</button>
   )
   if (logMatch) return asButton(() => openLogInTab(activateTab, logMatch[1]))
   if (idxMatch) return asButton(() => { activateTab('logs'); setTimeout(() => window.dispatchEvent(new CustomEvent('lilak:cmd:find-log', { detail: { logIndex: Number(idxMatch[1]) } })), 100) })
@@ -82,26 +82,26 @@ function MessageBubble({ msg, currentUser, onDelete, onReply, onJumpToMsg, t, ac
   if (isSystem) {
     return (
       <div id={`msg-${msg.id}`} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 8px' }}>
-        <div style={{ flex: 1, borderTop: '1px solid var(--border-subtle)' }} />
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--fs-tiny, 11px)', flexShrink: 0, color: 'var(--bubble-system-text)' }}>
+        <div style={{ flex: 1, borderTop: '1px solid var(--dock-border-subtle)' }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--fs-tiny, 11px)', flexShrink: 0, color: 'var(--dock-bubble-system-text)' }}>
           <span style={{ fontFamily: 'var(--font-mono)' }}>sys</span>
           <button onClick={() => openLogInTab(activateTab, msg.log_id)}
             style={{ background: 'none', border: 'none', padding: 0, cursor: msg.log_id ? 'pointer' : 'default', color: 'inherit' }}>{msg.body}</button>
           <span style={{ fontSize: 'var(--fs-micro, 10px)', opacity: 0.6 }}>{new Date(msg.created_at).toLocaleTimeString()}</span>
-          {canDelete && <button onClick={() => onDelete(msg.id)} style={{ marginLeft: 4, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>×</button>}
+          {canDelete && <button onClick={() => onDelete(msg.id)} style={{ marginLeft: 4, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--dock-text-muted)' }}>×</button>}
         </div>
-        <div style={{ flex: 1, borderTop: '1px solid var(--border-subtle)' }} />
+        <div style={{ flex: 1, borderTop: '1px solid var(--dock-border-subtle)' }} />
       </div>
     )
   }
 
   const aiStyle = isAi ? aiBotStyle(msg.author_name) : null
   const bubbleStyle = isMine
-    ? { ...combo('bubbleMine'), borderColor: 'var(--bubble-mine-border)' }
+    ? { ...combo('bubbleMine'), borderColor: 'var(--dock-bubble-mine-border)' }
     : isAi
-    ? { ...combo('bubbleAi'), borderColor: 'var(--bubble-ai-border)', backgroundColor: aiStyle.bg }
-    : { ...combo('bubbleOther'), borderColor: 'var(--bubble-other-border)' }
-  const authorColor = isAi ? aiStyle.text : isMine ? 'var(--text-link)' : 'var(--text-secondary)'
+    ? { ...combo('bubbleAi'), borderColor: 'var(--dock-bubble-ai-border)', backgroundColor: aiStyle.bg }
+    : { ...combo('bubbleOther'), borderColor: 'var(--dock-bubble-other-border)' }
+  const authorColor = isAi ? aiStyle.text : isMine ? 'var(--dock-text-link)' : 'var(--dock-text-secondary)'
 
   return (
     <div id={`msg-${msg.id}`} onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
@@ -113,15 +113,15 @@ function MessageBubble({ msg, currentUser, onDelete, onReply, onJumpToMsg, t, ac
         {!grouped && (
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, lineHeight: 1 }}>
             <span style={{ fontSize: 'var(--fs-tiny, 11px)', color: authorColor }}>{msg.author_name}</span>
-            {isMine && <span style={miniBadge({ backgroundColor: 'var(--bubble-mine-bg)', color: 'var(--text-link)' })}>me</span>}
+            {isMine && <span style={miniBadge({ backgroundColor: 'var(--dock-bubble-mine-bg)', color: 'var(--dock-text-link)' })}>me</span>}
             {isAi && <span style={miniBadge({ backgroundColor: aiStyle.bg, color: aiStyle.text, fontFamily: 'var(--font-mono)' })}>AI</span>}
             {isExternal && (
-              <span title={`from ${msg.external_source}`} style={miniBadge({ backgroundColor: 'var(--info-bg)', color: 'var(--info-text)', fontFamily: 'var(--font-mono)', textTransform: 'uppercase' })}>
+              <span title={`from ${msg.external_source}`} style={miniBadge({ backgroundColor: 'var(--dock-info-bg)', color: 'var(--dock-info-text)', fontFamily: 'var(--font-mono)', textTransform: 'uppercase' })}>
                 {msg.external_source}{msg.external_author && msg.external_author !== msg.author_name && <span style={{ opacity: 0.8 }}> · {msg.external_author}</span>}
               </span>
             )}
-            <span style={{ fontSize: 'var(--fs-micro, 10px)', color: 'var(--text-muted)' }}>{new Date(msg.created_at).toLocaleTimeString()}</span>
-            {isCrossPost && !isAi && <span style={miniBadge({ backgroundColor: 'var(--surface-2)', color: 'var(--text-muted)' })}>댓글</span>}
+            <span style={{ fontSize: 'var(--fs-micro, 10px)', color: 'var(--dock-text-muted)' }}>{new Date(msg.created_at).toLocaleTimeString()}</span>
+            {isCrossPost && !isAi && <span style={miniBadge({ backgroundColor: 'var(--dock-surface-2)', color: 'var(--dock-text-muted)' })}>댓글</span>}
           </div>
         )}
 
@@ -129,10 +129,10 @@ function MessageBubble({ msg, currentUser, onDelete, onReply, onJumpToMsg, t, ac
           {hasReply && (
             <button type="button" onClick={() => onJumpToMsg(msg.reply_to_id)}
               style={{ display: 'flex', alignItems: 'flex-start', gap: 4, marginBottom: 4, padding: '2px 6px', borderRadius: 4, fontSize: 'var(--fs-tiny, 11px)', width: '100%', textAlign: 'left', cursor: 'pointer', border: 'none',
-                ...(isMine ? { backgroundColor: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)', opacity: 0.85 } : { backgroundColor: 'var(--surface-2)', color: 'var(--text-secondary)', borderLeft: '2px solid var(--border-default)' }) }}>
+                ...(isMine ? { backgroundColor: 'var(--dock-btn-primary-bg)', color: 'var(--dock-btn-primary-text)', opacity: 0.85 } : { backgroundColor: 'var(--dock-surface-2)', color: 'var(--dock-text-secondary)', borderLeft: '2px solid var(--dock-border-default)' }) }}>
               <span style={{ flexShrink: 0, opacity: 0.7 }}>↩</span>
               <div style={{ minWidth: 0 }}>
-                <span style={{ marginRight: 4, color: isMine ? 'var(--btn-primary-text)' : 'var(--text-secondary)', opacity: isMine ? 0.85 : 1 }}>{msg.reply_to_author}</span>
+                <span style={{ marginRight: 4, color: isMine ? 'var(--dock-btn-primary-text)' : 'var(--dock-text-secondary)', opacity: isMine ? 0.85 : 1 }}>{msg.reply_to_author}</span>
                 <span style={{ opacity: 0.8 }}>{truncate(msg.reply_to_body)}</span>
               </div>
             </button>
@@ -140,7 +140,7 @@ function MessageBubble({ msg, currentUser, onDelete, onReply, onJumpToMsg, t, ac
           {msg.log_id && !isCrossPost && (
             <button onClick={() => openLogInTab(activateTab, msg.log_id)}
               style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 'var(--fs-tiny, 11px)', marginBottom: 4, padding: '2px 6px', borderRadius: 4, width: '100%', textAlign: 'left', cursor: 'pointer',
-                ...(isMine ? combo('solidPrimary') : { ...combo('pillInfo'), border: '1px solid var(--border-focus)' }) }}>
+                ...(isMine ? combo('solidPrimary') : { ...combo('pillInfo'), border: '1px solid var(--dock-border-focus)' }) }}>
               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>#{msg.log_id} {msg.log_title || ''}</span>
             </button>
           )}
@@ -161,13 +161,13 @@ function MessageBubble({ msg, currentUser, onDelete, onReply, onJumpToMsg, t, ac
           opacity: hovered ? 1 : 0, pointerEvents: hovered ? 'auto' : 'none', transition: 'opacity .12s' }}>
           <button onClick={() => onReply(msg)} title={t('community_reply')}
             style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 8, cursor: 'pointer',
-              fontSize: 'var(--fs-small, 12px)', border: '1px solid var(--border-subtle)', backgroundColor: 'var(--surface)', color: 'var(--text-secondary)' }}>
+              fontSize: 'var(--fs-small, 12px)', border: '1px solid var(--dock-border-subtle)', backgroundColor: 'var(--dock-surface)', color: 'var(--dock-text-secondary)' }}>
             <Icon name="reply" size={16} weight="bold" /> {t('community_reply')}
           </button>
           {canDelete && (
             <button onClick={() => onDelete(msg.id)} title={t('community_delete')}
               style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 8, cursor: 'pointer',
-                fontSize: 'var(--fs-small, 12px)', border: '1px solid var(--danger-border, var(--border-subtle))', backgroundColor: 'var(--surface)', color: 'var(--danger-text, #ef4444)' }}>
+                fontSize: 'var(--fs-small, 12px)', border: '1px solid var(--danger-border, var(--dock-border-subtle))', backgroundColor: 'var(--dock-surface)', color: 'var(--dock-danger-text, #ef4444)' }}>
               <Icon name="trash" size={16} weight="bold" /> {t('community_delete')}
             </button>
           )}
@@ -439,12 +439,12 @@ export default function CommunityPage() {
       <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative', height: 'calc(100vh - 7rem)' }}>
         <div ref={scrollRef} onScroll={handleScroll} className="scroll-soft"
           style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 4, padding: '0 12px 48px 4px' }}>
-          {!initialLoaded && <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--text-muted)' }}>{t('home_loading')}</div>}
+          {!initialLoaded && <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--dock-text-muted)' }}>{t('home_loading')}</div>}
           {initialLoaded && messages.length === 0 && (
-            <div style={{ textAlign: 'center', padding: '64px 0', fontSize: 'var(--fs-small, 12px)', color: 'var(--text-muted)' }}><p>{t('community_empty')}</p></div>
+            <div style={{ textAlign: 'center', padding: '64px 0', fontSize: 'var(--fs-small, 12px)', color: 'var(--dock-text-muted)' }}><p>{t('community_empty')}</p></div>
           )}
           {initialLoaded && messages.length > 0 && (
-            <div style={{ textAlign: 'center', padding: '8px 0', fontSize: 'var(--fs-micro, 10px)', color: 'var(--text-muted)' }}>
+            <div style={{ textAlign: 'center', padding: '8px 0', fontSize: 'var(--fs-micro, 10px)', color: 'var(--dock-text-muted)' }}>
               {loadingOlder ? '옛 메시지 불러오는 중…' : hasOlder ? '↑ 위로 스크롤해서 더 보기' : '— 대화 시작 —'}
             </div>
           )}
@@ -458,7 +458,7 @@ export default function CommunityPage() {
               && (new Date(msg.created_at) - new Date(prev.created_at)) <= GROUP_WINDOW_MS
             return (
               <div key={msg.id} style={{ borderRadius: 6, transition: 'background-color .3s',
-                ...(highlightedMsgId === msg.id ? { backgroundColor: 'var(--highlight-bg)', boxShadow: '0 0 0 1px var(--warning-text)' } : {}) }}>
+                ...(highlightedMsgId === msg.id ? { backgroundColor: 'var(--dock-highlight-bg)', boxShadow: '0 0 0 1px var(--dock-warning-text)' } : {}) }}>
                 <MessageBubble msg={msg} currentUser={user} onDelete={deleteMessage} onReply={handleReply}
                   onJumpToMsg={scrollToMsg} activateTab={activateTab} t={t} grouped={grouped}
                   authorProfile={userProfiles[msg.author_name] || null} />
@@ -476,24 +476,24 @@ export default function CommunityPage() {
 
       {/* Composer — portaled into the ONE bottom bar's slot (always expanded). */}
       {slotEl && createPortal(
-      <div style={{ fontFamily: 'var(--font-mono)', userSelect: 'none', backgroundColor: 'var(--nav-bg)', color: 'var(--nav-text)' }}>
+      <div style={{ fontFamily: 'var(--font-mono)', userSelect: 'none', backgroundColor: 'var(--dock-nav-bg)', color: 'var(--dock-nav-text)' }}>
         {logLinkInfo && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, borderTop: '1px solid var(--nav-border)', padding: '4px 16px', fontSize: 'var(--fs-small, 12px)', backgroundColor: 'var(--nav-accent)', color: 'var(--nav-text)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, borderTop: '1px solid var(--dock-nav-border)', padding: '4px 16px', fontSize: 'var(--fs-small, 12px)', backgroundColor: 'var(--dock-nav-accent)', color: 'var(--dock-nav-text)' }}>
             <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>#{logLinkInfo.id} {logLinkInfo.title}</span>
-            <button onClick={() => { setLogLinkId(''); setLogLinkInfo(null) }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--nav-text-muted)' }}>×</button>
+            <button onClick={() => { setLogLinkId(''); setLogLinkInfo(null) }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--dock-nav-text-muted)' }}>×</button>
           </div>
         )}
         {replyTo && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 16px', borderTop: '1px solid var(--nav-border)', fontSize: 'var(--fs-small, 12px)', color: 'var(--nav-text-muted)' }}>
-            <span style={{ color: 'var(--nav-text)' }}>↳ {replyTo.author_name}</span>
-            <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--nav-text-muted)' }}>{truncate(replyTo.body, 60)}</span>
-            <button onClick={cancelReply} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--nav-text-muted)' }}>×</button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 16px', borderTop: '1px solid var(--dock-nav-border)', fontSize: 'var(--fs-small, 12px)', color: 'var(--dock-nav-text-muted)' }}>
+            <span style={{ color: 'var(--dock-nav-text)' }}>↳ {replyTo.author_name}</span>
+            <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--dock-nav-text-muted)' }}>{truncate(replyTo.body, 60)}</span>
+            <button onClick={cancelReply} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--dock-nav-text-muted)' }}>×</button>
           </div>
         )}
 
         {user ? (
-          <form onSubmit={send} style={{ display: 'flex', alignItems: 'center', height: 40, padding: '0 16px', gap: 8, fontSize: 'var(--fs-small, 12px)', borderTop: '1px solid var(--nav-border)' }}>
-            <Icon name="chats" size={14} weight="regular" style={{ flexShrink: 0, color: 'var(--nav-text-muted)' }} />
+          <form onSubmit={send} style={{ display: 'flex', alignItems: 'center', height: 40, padding: '0 16px', gap: 8, fontSize: 'var(--fs-small, 12px)', borderTop: '1px solid var(--dock-nav-border)' }}>
+            <Icon name="chats" size={14} weight="regular" style={{ flexShrink: 0, color: 'var(--dock-nav-text-muted)' }} />
             <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'center' }}>
               <textarea ref={textareaRef} value={body} onChange={e => handleBodyChange(e.target.value)}
                 onSelect={handleSelectChange} onPaste={handlePaste}
@@ -514,28 +514,28 @@ export default function CommunityPage() {
                 }}
                 placeholder={replyTo ? `@${replyTo.author_name}에게 답글…` : t('community_placeholder')}
                 rows={1} disabled={uploading}
-                style={{ width: '100%', background: 'transparent', outline: 'none', fontSize: 'var(--fs-small, 12px)', resize: 'none', border: 'none', maxHeight: 56, overflowY: 'auto', lineHeight: 1.4, color: 'var(--nav-text)', fontFamily: 'inherit' }} />
-              {uploading && <span style={{ position: 'absolute', right: 0, fontSize: 'var(--fs-small, 12px)', color: 'var(--nav-text-muted)' }}>업로드 중…</span>}
-              {sending && <span style={{ position: 'absolute', right: 0, fontSize: 'var(--fs-small, 12px)', color: 'var(--nav-text-muted)' }}>전송 중…</span>}
+                style={{ width: '100%', background: 'transparent', outline: 'none', fontSize: 'var(--fs-small, 12px)', resize: 'none', border: 'none', maxHeight: 56, overflowY: 'auto', lineHeight: 1.4, color: 'var(--dock-nav-text)', fontFamily: 'inherit' }} />
+              {uploading && <span style={{ position: 'absolute', right: 0, fontSize: 'var(--fs-small, 12px)', color: 'var(--dock-nav-text-muted)' }}>업로드 중…</span>}
+              {sending && <span style={{ position: 'absolute', right: 0, fontSize: 'var(--fs-small, 12px)', color: 'var(--dock-nav-text-muted)' }}>전송 중…</span>}
 
               {mentionOpen && filteredMentionUsers.length > 0 && (
                 <div style={{ position: 'absolute', bottom: '100%', left: 0, marginBottom: 4, minWidth: 160, borderRadius: 6, overflow: 'hidden', zIndex: 40,
-                  border: '1px solid var(--nav-border)', backgroundColor: 'var(--nav-accent)', boxShadow: '0 8px 20px rgba(0,0,0,0.25)' }}>
+                  border: '1px solid var(--dock-nav-border)', backgroundColor: 'var(--dock-nav-accent)', boxShadow: '0 8px 20px rgba(0,0,0,0.25)' }}>
                   {filteredMentionUsers.map((u, idx) => (
                     <button key={u.username} type="button" onMouseDown={e => { e.preventDefault(); applyMention(u.username) }} onMouseEnter={() => setMentionIdx(idx)}
                       style={{ display: 'block', width: '100%', textAlign: 'left', padding: '4px 12px', fontSize: 'var(--fs-small, 12px)', fontFamily: 'var(--font-mono)', border: 'none', cursor: 'pointer',
-                        ...(idx === mentionIdx ? { backgroundColor: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)' } : { background: 'transparent', color: 'var(--nav-text)' }) }}>
-                      @{u.username}{u.display_name && <span style={{ marginLeft: 8, color: 'var(--nav-text-muted)' }}>{u.display_name}</span>}
+                        ...(idx === mentionIdx ? { backgroundColor: 'var(--dock-btn-primary-bg)', color: 'var(--dock-btn-primary-text)' } : { background: 'transparent', color: 'var(--dock-nav-text)' }) }}>
+                      @{u.username}{u.display_name && <span style={{ marginLeft: 8, color: 'var(--dock-nav-text-muted)' }}>{u.display_name}</span>}
                     </button>
                   ))}
                 </div>
               )}
             </div>
-            <span style={{ fontSize: 'var(--fs-small, 12px)', flexShrink: 0, color: 'var(--nav-text-muted)' }}>Enter·전송  Shift+Enter·줄바꿈  Ctrl+V·이미지</span>
+            <span style={{ fontSize: 'var(--fs-small, 12px)', flexShrink: 0, color: 'var(--dock-nav-text-muted)' }}>Enter·전송  Shift+Enter·줄바꿈  Ctrl+V·이미지</span>
           </form>
         ) : (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 40, fontSize: 'var(--fs-small, 12px)', borderTop: '1px solid var(--nav-border)', color: 'var(--nav-text-muted)' }}>
-            <button onClick={() => openSettings('account')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-link)', textDecoration: 'underline' }}>{t('nav_login')}</button>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 40, fontSize: 'var(--fs-small, 12px)', borderTop: '1px solid var(--dock-nav-border)', color: 'var(--dock-nav-text-muted)' }}>
+            <button onClick={() => openSettings('account')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--dock-text-link)', textDecoration: 'underline' }}>{t('nav_login')}</button>
             <span style={{ marginLeft: 4 }}>{t('community_login_prompt')}</span>
           </div>
         )}

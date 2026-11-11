@@ -48,7 +48,7 @@ export function chipProps(name, color, border, text) {
   if (bg) {
     style.backgroundColor = bg
     style.color = text || textOn(bg)
-    if (bg.toLowerCase() === '#ffffff' && !bd) bd = 'var(--border-default)'
+    if (bg.toLowerCase() === '#ffffff' && !bd) bd = 'var(--dock-border-default)'
   } else if (text) {
     className = 'bg-sky-100'   // themed sky bg, custom text color
     style.color = text

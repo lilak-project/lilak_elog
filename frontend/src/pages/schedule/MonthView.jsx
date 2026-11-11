@@ -109,16 +109,16 @@ export default function MonthView({ anchor, events, runs, colors, onDayClick, on
 
   return (
     <div className="border-2 sched-border rounded-lg overflow-hidden"
-         style={{ backgroundColor: 'var(--surface)' }}>
+         style={{ backgroundColor: 'var(--dock-surface)' }}>
       {/* Day-of-week header */}
       <div className="grid grid-cols-7 border-b-2 sched-border"
-           style={{ backgroundColor: 'var(--surface-2)' }}>
+           style={{ backgroundColor: 'var(--dock-surface-2)' }}>
         {DOW_LABELS.map((d, i) => (
           <div key={d}
             className={`text-center text-xs py-1.5 border-r sched-border-r last:border-r-0 ${
               i === 0 ? 'sched-sun' : i === 6 ? 'sched-sat' : ''
             }`}
-            style={(i !== 0 && i !== 6) ? { color: 'var(--text-secondary)' } : undefined}>{d}</div>
+            style={(i !== 0 && i !== 6) ? { color: 'var(--dock-text-secondary)' } : undefined}>{d}</div>
         ))}
       </div>
 
@@ -139,12 +139,12 @@ export default function MonthView({ anchor, events, runs, colors, onDayClick, on
                 isFocused ? 'ring-2 ring-inset z-10 relative' : ''
               }`}
               style={
-                isFocused        ? { backgroundColor: 'var(--focused-day-bg)', '--tw-ring-color': 'var(--focused-day-ring)' }
-                : !isThisMonth   ? { backgroundColor: 'var(--surface-2)', opacity: 0.5 }
+                isFocused        ? { backgroundColor: 'var(--dock-focused-day-bg)', '--tw-ring-color': 'var(--dock-focused-day-ring)' }
+                : !isThisMonth   ? { backgroundColor: 'var(--dock-surface-2)', opacity: 0.5 }
                 : undefined
               }
               onMouseEnter={e => {
-                if (!isFocused && isThisMonth) e.currentTarget.style.backgroundColor = 'var(--surface-2)'
+                if (!isFocused && isThisMonth) e.currentTarget.style.backgroundColor = 'var(--dock-surface-2)'
               }}
               onMouseLeave={e => {
                 if (!isFocused && isThisMonth) e.currentTarget.style.backgroundColor = ''
@@ -157,10 +157,10 @@ export default function MonthView({ anchor, events, runs, colors, onDayClick, on
                 : ''
               }`}
               style={
-                isToday          ? { backgroundColor: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)' }
-                : !isThisMonth   ? { color: 'var(--text-muted)' }
+                isToday          ? { backgroundColor: 'var(--dock-btn-primary-bg)', color: 'var(--dock-btn-primary-text)' }
+                : !isThisMonth   ? { color: 'var(--dock-text-muted)' }
                 : (day.getDay() === 0 || day.getDay() === 6) ? undefined
-                : { color: 'var(--text-secondary)' }
+                : { color: 'var(--dock-text-secondary)' }
               }>
                 {day.getDate()}
               </div>
@@ -181,7 +181,7 @@ export default function MonthView({ anchor, events, runs, colors, onDayClick, on
                   </div>
                 ))}
                 {dayItems.length > 4 && (
-                  <div className="text-[10px] px-1" style={{ color: 'var(--text-muted)' }}>{t('sched_more', dayItems.length - 4)}</div>
+                  <div className="text-[10px] px-1" style={{ color: 'var(--dock-text-muted)' }}>{t('sched_more', dayItems.length - 4)}</div>
                 )}
               </div>
             </div>

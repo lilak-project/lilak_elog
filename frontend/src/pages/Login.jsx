@@ -22,16 +22,16 @@ function PwField({ value, onChange, placeholder, required, autoFocus, className 
         placeholder={placeholder}
         required={required}
         autoFocus={autoFocus}
-        className={`w-full border rounded-lg px-3 py-2 pr-9 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--input-focus-border)] ${className || ''}`}
+        className={`w-full border rounded-lg px-3 py-2 pr-9 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--dock-input-focus-border)] ${className || ''}`}
         style={inputBase}
       />
       <button
         type="button"
         onClick={() => setShow(s => !s)}
         className="absolute right-2.5 top-1/2 -translate-y-1/2 transition-colors"
-        style={{ color: 'var(--text-muted)' }}
-        onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
-        onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
+        style={{ color: 'var(--dock-text-muted)' }}
+        onMouseEnter={e => e.currentTarget.style.color = 'var(--dock-text-primary)'}
+        onMouseLeave={e => e.currentTarget.style.color = 'var(--dock-text-muted)'}
         tabIndex={-1}
         aria-label={show ? '비밀번호 숨기기' : '비밀번호 보기'}
       >
@@ -52,7 +52,7 @@ function PwField({ value, onChange, placeholder, required, autoFocus, className 
 }
 
 // Common form input class used in the auth forms — paired with `inputBase` inline style.
-const fieldInputCls = 'w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--input-focus-border)]'
+const fieldInputCls = 'w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--dock-input-focus-border)]'
 const labelCls = 'block text-sm font-medium mb-1'
 
 export default function Login() {
@@ -123,21 +123,21 @@ export default function Login() {
   function tabBtnStyle(active) {
     return active
       ? { ...btnPrimary }
-      : { backgroundColor: 'var(--surface)', color: 'var(--text-secondary)' }
+      : { backgroundColor: 'var(--dock-surface)', color: 'var(--dock-text-secondary)' }
   }
 
   return (
     <div className="max-w-sm mx-auto mt-10">
       <div className="text-center mb-8">
         <div className="flex justify-center mb-3">
-          <Logo className="h-14 w-14" style={{ color: 'var(--text-link)' }} />
+          <Logo className="h-14 w-14" style={{ color: 'var(--dock-text-link)' }} />
         </div>
-        <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>LILAK Elog</h1>
-        <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>{t('login_subtitle')}</p>
+        <h1 className="text-2xl font-bold" style={{ color: 'var(--dock-text-primary)' }}>LILAK Elog</h1>
+        <p className="text-sm mt-1" style={{ color: 'var(--dock-text-secondary)' }}>{t('login_subtitle')}</p>
       </div>
 
       {/* Tab */}
-      <div className="flex rounded-lg border overflow-hidden mb-5" style={{ borderColor: 'var(--border-default)' }}>
+      <div className="flex rounded-lg border overflow-hidden mb-5" style={{ borderColor: 'var(--dock-border-default)' }}>
         <button
           onClick={() => { setTab('login'); setError(null) }}
           className="flex-1 py-2 text-sm font-medium transition-colors"
@@ -157,7 +157,7 @@ export default function Login() {
       <div className="rounded-xl border shadow-sm p-6" style={modalFrame}>
         {error && (
           <div className="mb-4 border text-sm px-4 py-3 rounded-lg"
-               style={{ backgroundColor: 'var(--danger-bg)', borderColor: 'var(--danger-text)', color: 'var(--danger-text)' }}>
+               style={{ backgroundColor: 'var(--dock-danger-bg)', borderColor: 'var(--dock-danger-text)', color: 'var(--dock-danger-text)' }}>
             {error}
           </div>
         )}
@@ -166,7 +166,7 @@ export default function Login() {
         {tab === 'login' && (
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className={labelCls} style={{ color: 'var(--text-secondary)' }}>{t('login_username')}</label>
+              <label className={labelCls} style={{ color: 'var(--dock-text-secondary)' }}>{t('login_username')}</label>
               <input
                 type="text"
                 value={loginForm.username}
@@ -177,7 +177,7 @@ export default function Login() {
               />
             </div>
             <div>
-              <label className={labelCls} style={{ color: 'var(--text-secondary)' }}>{t('login_password')}</label>
+              <label className={labelCls} style={{ color: 'var(--dock-text-secondary)' }}>{t('login_password')}</label>
               <PwField
                 value={loginForm.password}
                 onChange={e => setLoginForm(p => ({ ...p, password: e.target.value }))}
@@ -199,9 +199,9 @@ export default function Login() {
         {tab === 'register' && (
           <form onSubmit={handleRegister} className="space-y-3">
             <div>
-              <label className={labelCls} style={{ color: 'var(--text-secondary)' }}>
-                {t('reg_username')} <span style={{ color: 'var(--danger-text)' }}>*</span>
-                <span className="text-xs ml-1" style={{ color: 'var(--text-muted)' }}>({t('reg_username_hint')})</span>
+              <label className={labelCls} style={{ color: 'var(--dock-text-secondary)' }}>
+                {t('reg_username')} <span style={{ color: 'var(--dock-danger-text)' }}>*</span>
+                <span className="text-xs ml-1" style={{ color: 'var(--dock-text-muted)' }}>({t('reg_username_hint')})</span>
               </label>
               <input
                 type="text"
@@ -213,8 +213,8 @@ export default function Login() {
               />
             </div>
             <div>
-              <label className={labelCls} style={{ color: 'var(--text-secondary)' }}>
-                {t('reg_email')} <span style={{ color: 'var(--danger-text)' }}>*</span>
+              <label className={labelCls} style={{ color: 'var(--dock-text-secondary)' }}>
+                {t('reg_email')} <span style={{ color: 'var(--dock-danger-text)' }}>*</span>
               </label>
               <input
                 type="email"
@@ -227,9 +227,9 @@ export default function Login() {
               />
             </div>
             <div>
-              <label className={labelCls} style={{ color: 'var(--text-secondary)' }}>
-                {t('reg_password')} <span style={{ color: 'var(--danger-text)' }}>*</span>
-                <span className="text-xs ml-1" style={{ color: 'var(--text-muted)' }}>({t('reg_password_hint')})</span>
+              <label className={labelCls} style={{ color: 'var(--dock-text-secondary)' }}>
+                {t('reg_password')} <span style={{ color: 'var(--dock-danger-text)' }}>*</span>
+                <span className="text-xs ml-1" style={{ color: 'var(--dock-text-muted)' }}>({t('reg_password_hint')})</span>
               </label>
               <PwField
                 value={regForm.password}
@@ -239,7 +239,7 @@ export default function Login() {
               />
             </div>
             <div>
-              <label className={labelCls} style={{ color: 'var(--text-secondary)' }}>{t('reg_confirm')}</label>
+              <label className={labelCls} style={{ color: 'var(--dock-text-secondary)' }}>{t('reg_confirm')}</label>
               <PwField
                 value={regForm.passwordConfirm}
                 onChange={e => setRegForm(p => ({ ...p, passwordConfirm: e.target.value }))}
@@ -262,10 +262,10 @@ export default function Login() {
       {members.length > 0 && (
         <div className="mt-5 rounded-xl border shadow-sm overflow-hidden" style={modalFrame}>
           <div className="px-4 py-2.5 border-b text-xs font-semibold uppercase tracking-wide"
-               style={{ backgroundColor: 'var(--surface-2)', borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }}>
+               style={{ backgroundColor: 'var(--dock-surface-2)', borderColor: 'var(--dock-border-subtle)', color: 'var(--dock-text-secondary)' }}>
             {t('login_members')}
           </div>
-          <ul className="divide-y" style={{ borderColor: 'var(--border-subtle)' }}>
+          <ul className="divide-y" style={{ borderColor: 'var(--dock-border-subtle)' }}>
             {members.map(m => (
               <li
                 key={m.username}
@@ -275,19 +275,19 @@ export default function Login() {
                   setLoginForm(p => ({ ...p, username: m.username }))
                   document.querySelector('input[type=password]')?.focus()
                 }}
-                onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--info-bg)'}
+                onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--dock-info-bg)'}
                 onMouseLeave={e => e.currentTarget.style.backgroundColor = ''}
               >
                 <div className="h-7 w-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
-                     style={{ backgroundColor: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)' }}>
+                     style={{ backgroundColor: 'var(--dock-btn-primary-bg)', color: 'var(--dock-btn-primary-text)' }}>
                   {m.username[0].toUpperCase()}
                 </div>
                 <div className="min-w-0">
-                  <p className="text-sm font-medium leading-tight" style={{ color: 'var(--text-primary)' }}>
+                  <p className="text-sm font-medium leading-tight" style={{ color: 'var(--dock-text-primary)' }}>
                     {m.username}
                   </p>
                   {m.email && (
-                    <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>{m.email}</p>
+                    <p className="text-xs truncate" style={{ color: 'var(--dock-text-muted)' }}>{m.email}</p>
                   )}
                 </div>
               </li>
@@ -296,7 +296,7 @@ export default function Login() {
         </div>
       )}
 
-      <p className="text-center text-xs mt-4" style={{ color: 'var(--text-muted)' }}>
+      <p className="text-center text-xs mt-4" style={{ color: 'var(--dock-text-muted)' }}>
         {t('login_read_only')}{' '}
         <Link to="/" className="hover:underline" style={inlineLink}>{t('login_go_home')}</Link>
       </p>

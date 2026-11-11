@@ -1,3 +1,4 @@
+import Select from 'lilak-ui/components/Select.jsx'
 import { useState, useEffect, useCallback } from 'react'
 import { confirm } from '../components/dialog'
 import { Icon, ColorPicker, Modal, Button, Input, Stack } from 'lilak-ui'
@@ -33,7 +34,7 @@ function ColorControls({ bg, border, text, onBg, onBorder, onText, onClearBg, on
   const pBg = bg || '#888888'
   const pBorder = (border && border !== 'none') ? border : '#4b5563'
   const pText = text || '#111827'
-  const util = { fontSize: 'var(--fs-micro)', padding: '2px 7px', borderRadius: 6, background: 'none', cursor: 'pointer', border: '1px solid var(--border-subtle)', color: 'var(--text-muted)' }
+  const util = { fontSize: 'var(--fs-micro)', padding: '2px 7px', borderRadius: 6, background: 'none', cursor: 'pointer', border: '1px solid var(--dock-border-subtle)', color: 'var(--dock-text-muted)' }
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
       <ColorPicker size={22} title="배경·테두리·글씨 색"
@@ -48,7 +49,7 @@ function ColorControls({ bg, border, text, onBg, onBorder, onText, onClearBg, on
       <button onClick={onClearBorder} style={util} title="테두리 없애기">테두리 없음</button>
       {onReset && <button onClick={onReset} style={util} title="기본 색상으로 되돌리기">기본값</button>}
       <button onClick={onCopy} style={util} title="이 색 복사">복사</button>
-      <button onClick={onPaste} disabled={!canPaste} style={{ ...util, color: 'var(--text-link)', opacity: canPaste ? 1 : 0.3 }} title="복사한 색 적용">붙여넣기</button>
+      <button onClick={onPaste} disabled={!canPaste} style={{ ...util, color: 'var(--dock-text-link)', opacity: canPaste ? 1 : 0.3 }} title="복사한 색 적용">붙여넣기</button>
     </span>
   )
 }
@@ -79,14 +80,14 @@ function TagEditPopup({ tag, tags, onClose, onChanged }) {
     catch (e) { setErr(e.response?.data?.detail || '삭제 실패') }
   }
 
-  const fldStyle = { width: '100%', backgroundColor: 'var(--input-bg)', border: '1px solid var(--input-border)', borderRadius: 8, padding: '6px 8px', fontSize: 'var(--fs-body)', color: 'var(--text-primary)', outline: 'none' }
-  const lbl = { display: 'block', fontSize: 'var(--fs-tiny)', fontWeight: 600, marginBottom: 6, color: 'var(--text-muted)' }
+  const fldStyle = { width: '100%', backgroundColor: 'var(--dock-input-bg)', border: '1px solid var(--dock-input-border)', borderRadius: 8, padding: '6px 8px', fontSize: 'var(--fs-body)', color: 'var(--dock-text-primary)', outline: 'none' }
+  const lbl = { display: 'block', fontSize: 'var(--fs-tiny)', fontWeight: 600, marginBottom: 6, color: 'var(--dock-text-muted)' }
 
   return (
     <Modal title={`#${tag.name} 관리`} width={400} onClose={onClose} onSubmit={builtin ? undefined : doRename}>
       <Stack gap={16}>
-        {builtin && <p style={{ margin: 0, fontSize: 'var(--fs-small)', color: 'var(--text-muted)' }}>빌트인 태그는 이름변경·합치기·삭제할 수 없습니다.</p>}
-        {err && <div style={{ fontSize: 'var(--fs-small)', padding: '8px 12px', borderRadius: 8, backgroundColor: 'var(--danger-bg)', color: 'var(--danger-text)' }}>{err}</div>}
+        {builtin && <p style={{ margin: 0, fontSize: 'var(--fs-small)', color: 'var(--dock-text-muted)' }}>빌트인 태그는 이름변경·합치기·삭제할 수 없습니다.</p>}
+        {err && <div style={{ fontSize: 'var(--fs-small)', padding: '8px 12px', borderRadius: 8, backgroundColor: 'var(--dock-danger-bg)', color: 'var(--dock-danger-text)' }}>{err}</div>}
 
         {!builtin && (
           <div>
@@ -102,17 +103,17 @@ function TagEditPopup({ tag, tags, onClose, onChanged }) {
           <div>
             <label style={lbl}>다른 태그에 합치기</label>
             <div style={{ display: 'flex', gap: 8 }}>
-              <select value={mergeId} onChange={e => setMergeId(e.target.value)} style={fldStyle}>
+              <Select value={mergeId} onChange={e => setMergeId(e.target.value)} style={fldStyle}>
                 <option value="">대상 선택…</option>
                 {tags.filter(t => t.id !== tag.id).map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-              </select>
+              </Select>
               <Button variant="warning" size="md" disabled={!mergeId} onClick={doMerge}>합치기</Button>
             </div>
           </div>
         )}
 
         {!builtin && (
-          <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 12 }}>
+          <div style={{ borderTop: '1px solid var(--dock-border-subtle)', paddingTop: 12 }}>
             <Button variant="dangerSoft" onClick={doDelete}>태그 삭제</Button>
           </div>
         )}
@@ -161,8 +162,8 @@ export default function AdminTags() {
 
   if (!user || user.role !== 'manager') return null
 
-  const card = { backgroundColor: 'var(--surface)', borderColor: 'var(--border-default)' }
-  const header = { backgroundColor: 'var(--surface-2)', borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }
+  const card = { backgroundColor: 'var(--dock-surface)', borderColor: 'var(--dock-border-default)' }
+  const header = { backgroundColor: 'var(--dock-surface-2)', borderColor: 'var(--dock-border-subtle)', color: 'var(--dock-text-secondary)' }
 
   const Chip = ({ name, props }) => (
     <span className={`text-xs px-2.5 py-1 rounded-full inline-block ${props.className}`} style={props.style}>#{name}</span>
@@ -189,20 +190,20 @@ export default function AdminTags() {
 
   return (
     <div className="max-w-3xl mx-auto space-y-4 pb-20">
-      {msg && <div className="text-sm px-4 py-2 rounded-lg" style={{ backgroundColor: 'var(--success-bg)', color: 'var(--success-text)' }}>{msg}</div>}
-      {err && <div className="text-sm px-4 py-2 rounded-lg" style={{ backgroundColor: 'var(--danger-bg)', color: 'var(--danger-text)' }}>{err}</div>}
+      {msg && <div className="text-sm px-4 py-2 rounded-lg" style={{ backgroundColor: 'var(--dock-success-bg)', color: 'var(--dock-success-text)' }}>{msg}</div>}
+      {err && <div className="text-sm px-4 py-2 rounded-lg" style={{ backgroundColor: 'var(--dock-danger-bg)', color: 'var(--dock-danger-text)' }}>{err}</div>}
 
       {/* System tags */}
       <div className="rounded-xl border shadow-sm overflow-hidden" style={card}>
         <div className="px-5 py-3 border-b text-sm font-semibold" style={header}>시스템 태그 (배경·테두리 색 변경)</div>
-        <div className="divide-y" style={{ borderColor: 'var(--border-subtle)' }}>
+        <div className="divide-y" style={{ borderColor: 'var(--dock-border-subtle)' }}>
           {SYSTEM_TAGS.map(s => {
             const cfg = sys[s.name] || {}
             return (
               <div key={s.name} className="flex items-center gap-2 px-4 py-2">
                 <Chip name={s.name} props={synthChipProps(s.name, sys)} />
-                <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{s.note}</span>
-                <span className="text-xs" style={{ color: 'var(--text-muted)' }}>· {counts[s.name] ?? 0}개</span>
+                <span className="text-xs" style={{ color: 'var(--dock-text-muted)' }}>{s.note}</span>
+                <span className="text-xs" style={{ color: 'var(--dock-text-muted)' }}>· {counts[s.name] ?? 0}개</span>
                 <span className="flex-1" />
                 <ColorControls
                   bg={cfg.color === 'theme' ? '' : (cfg.color || DEFAULT_TAG_COLORS[s.name] || '')}
@@ -229,8 +230,8 @@ export default function AdminTags() {
           {builtinTags.map(tag => (
             <div key={tag.id} className="flex items-center gap-2 px-4 py-2">
               <Chip name={tag.name} props={chipProps(tag.name, tag.color, tag.border_color, tag.text_color)} />
-              <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ backgroundColor: 'var(--surface)', color: 'var(--text-muted)' }}>built-in</span>
-              <span className="text-xs" style={{ color: 'var(--text-muted)' }}>· {tag.count}개</span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ backgroundColor: 'var(--dock-surface)', color: 'var(--dock-text-muted)' }}>built-in</span>
+              <span className="text-xs" style={{ color: 'var(--dock-text-muted)' }}>· {tag.count}개</span>
               <span className="flex-1" />
               {dbTagControls(tag)}
             </div>
@@ -244,15 +245,15 @@ export default function AdminTags() {
           {loading ? '불러오는 중…' : `태그 (${userTags.length})`}
         </div>
         {!loading && userTags.length === 0 ? (
-          <p className="px-5 py-8 text-center text-sm" style={{ color: 'var(--text-muted)' }}>태그가 없습니다.</p>
+          <p className="px-5 py-8 text-center text-sm" style={{ color: 'var(--dock-text-muted)' }}>태그가 없습니다.</p>
         ) : (
-          <div className="divide-y" style={{ borderColor: 'var(--border-subtle)' }}>
+          <div className="divide-y" style={{ borderColor: 'var(--dock-border-subtle)' }}>
             {userTags.map(tag => (
               <div key={tag.id} className="flex items-center gap-2 px-4 py-2">
                 <button onClick={() => setEditTag(tag)} title="이름변경·합치기·삭제">
                   <Chip name={tag.name} props={chipProps(tag.name, tag.color, tag.border_color, tag.text_color)} />
                 </button>
-                <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{tag.count}개</span>
+                <span className="text-xs" style={{ color: 'var(--dock-text-muted)' }}>{tag.count}개</span>
                 <span className="flex-1" />
                 {dbTagControls(tag)}
               </div>

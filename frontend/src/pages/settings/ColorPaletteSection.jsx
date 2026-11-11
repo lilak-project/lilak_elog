@@ -13,10 +13,10 @@ export default function ColorPaletteSection() {
   const { t } = useLang()
   return (
     <div className="max-w-5xl">
-      <h2 className="text-lg font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>
+      <h2 className="text-lg font-semibold mb-1" style={{ color: 'var(--dock-text-primary)' }}>
         {t('settings_palette') || 'Color palette'}
       </h2>
-      <p className="text-xs mb-5" style={{ color: 'var(--text-muted)' }}>
+      <p className="text-xs mb-5" style={{ color: 'var(--dock-text-muted)' }}>
         {t('palette_hint') || 'Pick a preset or edit any color; changes apply live and can be saved as a preset.'}
       </p>
       <ColorSettings

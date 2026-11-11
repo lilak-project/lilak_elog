@@ -32,8 +32,8 @@ function Fields({ detail, formats }) {
         const val = (v && typeof v === 'object' && 'value' in v) ? formatNumberEntry(v) : String(v ?? '')
         return (
           <span key={k} className="inline-flex items-baseline gap-1">
-            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{labelByKey[k] || k}</span>
-            <span className="font-mono" style={{ color: 'var(--text-primary)' }}>{val}</span>
+            <span className="text-xs" style={{ color: 'var(--dock-text-muted)' }}>{labelByKey[k] || k}</span>
+            <span className="font-mono" style={{ color: 'var(--dock-text-primary)' }}>{val}</span>
           </span>
         )
       })}
@@ -56,21 +56,21 @@ function RunLogBlock({ entry, formats }) {
   const files = atts.filter(a => !isImg(a))
 
   return (
-    <div className="border-t pt-2 mt-2" style={{ borderColor: 'var(--border-subtle)' }}>
-      <div className="flex items-center flex-wrap gap-x-2 gap-y-0.5 text-xs mb-0.5" style={{ color: 'var(--text-muted)' }}>
+    <div className="border-t pt-2 mt-2" style={{ borderColor: 'var(--dock-border-subtle)' }}>
+      <div className="flex items-center flex-wrap gap-x-2 gap-y-0.5 text-xs mb-0.5" style={{ color: 'var(--dock-text-muted)' }}>
         <span className="font-mono">_{entry.log_index ?? entry.id}</span>
         {entry.run_type && <span className="font-mono">{entry.run_type}</span>}
         <span>{entry.created_at ? formatLogStamp(entry.created_at) : ''}</span>
         <span>{entry.author_name}</span>
-        {entry.title && <span style={{ color: 'var(--text-secondary)' }}>· {entry.title}</span>}
+        {entry.title && <span style={{ color: 'var(--dock-text-secondary)' }}>· {entry.title}</span>}
       </div>
       <Fields detail={detail} formats={formats} />
-      {d.body && <div className="text-sm mt-1" style={{ color: 'var(--text-primary)' }}><Markdown>{d.body}</Markdown></div>}
+      {d.body && <div className="text-sm mt-1" style={{ color: 'var(--dock-text-primary)' }}><Markdown>{d.body}</Markdown></div>}
       {images.length > 0 && (
         <div className="flex flex-wrap gap-2 mt-2">
           {images.map(a => (
             <a key={a.id} href={attUrl(a.id)} target="_blank" rel="noopener noreferrer" title={a.original_filename}
-               style={{ display: 'block', borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border-default)', lineHeight: 0 }}>
+               style={{ display: 'block', borderRadius: 8, overflow: 'hidden', border: '1px solid var(--dock-border-default)', lineHeight: 0 }}>
               <img src={attUrl(a.id)} alt={a.original_filename} loading="lazy"
                    style={{ display: 'block', maxWidth: 180, maxHeight: 180, objectFit: 'cover' }} />
             </a>
@@ -81,7 +81,7 @@ function RunLogBlock({ entry, formats }) {
         <div className="flex flex-wrap gap-2 mt-2">
           {files.map(a => (
             <a key={a.id} href={attUrl(a.id)} target="_blank" rel="noopener noreferrer"
-               className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded border" style={{ borderColor: 'var(--border-default)', backgroundColor: 'var(--surface)', color: 'var(--text-primary)', textDecoration: 'none' }}>
+               className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded border" style={{ borderColor: 'var(--dock-border-default)', backgroundColor: 'var(--dock-surface)', color: 'var(--dock-text-primary)', textDecoration: 'none' }}>
               <span className="truncate" style={{ maxWidth: 180 }}>{a.original_filename}</span>
             </a>
           ))}

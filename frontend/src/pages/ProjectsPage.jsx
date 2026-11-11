@@ -29,8 +29,8 @@ const iconFor = (name, stored) => stored || PROJECT_ICONS[hashStr(name) % PROJEC
 
 const inputStyle = {
   width: '100%', height: 36, padding: '0 12px', borderRadius: 8, fontFamily: 'var(--font-mono)',
-  fontSize: 'var(--fs-body, 13px)', backgroundColor: 'var(--input-bg)', color: 'var(--text-primary)',
-  border: '1px solid var(--input-border)', outline: 'none',
+  fontSize: 'var(--fs-body, 13px)', backgroundColor: 'var(--dock-input-bg)', color: 'var(--dock-text-primary)',
+  border: '1px solid var(--dock-input-border)', outline: 'none',
 }
 
 // Attach / clear the portal bearer token on the shared launcher axios.
@@ -78,7 +78,7 @@ function AuthCard({ t, onAuthed }) {
 
   return (
     <div style={{ maxWidth: 360, margin: '28px auto 0', display: 'flex', flexDirection: 'column', gap: 10 }}>
-      <div style={{ fontSize: 'var(--fs-small, 12px)', color: 'var(--text-muted)', textAlign: 'center' }}>
+      <div style={{ fontSize: 'var(--fs-small, 12px)', color: 'var(--dock-text-muted)', textAlign: 'center' }}>
         {t('projects_login_prompt')}
       </div>
       <div style={{ display: 'flex', gap: 6 }}>
@@ -91,9 +91,9 @@ function AuthCard({ t, onAuthed }) {
           <input placeholder={t('projects_signup_email')} value={f.email} onChange={set('email')} style={inputStyle} />
         )}
         <input type="password" placeholder={t('projects_login_pass')} value={f.password} onChange={set('password')} style={inputStyle} />
-        {err && <div style={{ fontSize: 'var(--fs-small, 12px)', color: 'var(--danger-text)' }}>{err}</div>}
+        {err && <div style={{ fontSize: 'var(--fs-small, 12px)', color: 'var(--dock-danger-text)' }}>{err}</div>}
         {mode === 'signup' && (
-          <div style={{ fontSize: 'var(--fs-micro, 10px)', color: 'var(--text-muted)' }}>{t('projects_signup_admin_hint')}</div>
+          <div style={{ fontSize: 'var(--fs-micro, 10px)', color: 'var(--dock-text-muted)' }}>{t('projects_signup_admin_hint')}</div>
         )}
         <Button type="submit" style={{ justifyContent: 'center', marginTop: 2 }}
           disabled={busy || !f.username.trim() || !f.password || (mode === 'signup' && !f.email.trim())}>
@@ -268,7 +268,7 @@ export default function ProjectsPage() {
       subtitle={t('projects_subtitle')}
       actions={user ? (
         <>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 'var(--fs-small, 12px)', color: 'var(--text-secondary)' }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 'var(--fs-small, 12px)', color: 'var(--dock-text-secondary)' }}>
             <Icon name="user" size={14} /> {user.username}{isManager ? ' · admin' : ''}
           </span>
           {isManager && (
@@ -289,7 +289,7 @@ export default function ProjectsPage() {
         <>
           {error && (
             <div style={{ margin: '8px 0', padding: '10px 12px', borderRadius: 8, fontSize: 'var(--fs-small, 12px)',
-              backgroundColor: 'var(--danger-bg)', color: 'var(--danger-text)', border: '1px solid var(--danger-border, transparent)' }}>
+              backgroundColor: 'var(--dock-danger-bg)', color: 'var(--dock-danger-text)', border: '1px solid var(--danger-border, transparent)' }}>
               {error}
             </div>
           )}
@@ -301,8 +301,8 @@ export default function ProjectsPage() {
             onDragLeave={() => setDragOver(false)}
             onDrop={(e) => { e.preventDefault(); setDragOver(false); stageFile(e.dataTransfer.files?.[0]) }}
             style={{ margin: '12px 0 20px', padding: 8, borderRadius: 10, transition: 'background-color .1s, box-shadow .1s',
-              border: '2px dashed', borderColor: dragOver ? 'var(--btn-primary-bg)' : 'transparent',
-              backgroundColor: dragOver ? 'var(--info-bg)' : 'transparent' }}>
+              border: '2px dashed', borderColor: dragOver ? 'var(--dock-btn-primary-bg)' : 'transparent',
+              backgroundColor: dragOver ? 'var(--dock-info-bg)' : 'transparent' }}>
             <form onSubmit={(e) => { e.preventDefault(); stagedFile ? doImportFile() : create(e) }} style={{ display: 'flex', gap: 8 }}>
               <input
                 ref={newRef} value={newName} onChange={(e) => setNewName(e.target.value)}
@@ -316,22 +316,22 @@ export default function ProjectsPage() {
                 disabled={importing || (!!stagedFile && !newName.trim())}
                 onClick={() => stagedFile ? doImportFile() : fileRef.current?.click()}
                 style={{ minWidth: 92, justifyContent: 'center',
-                  ...(stagedFile ? { backgroundColor: 'var(--btn-primary-bg)', color: '#fff',
-                    boxShadow: '0 0 0 3px color-mix(in srgb, var(--btn-primary-bg) 28%, transparent)' } : {}) }}>
+                  ...(stagedFile ? { backgroundColor: 'var(--dock-btn-primary-bg)', color: '#fff',
+                    boxShadow: '0 0 0 3px color-mix(in srgb, var(--dock-btn-primary-bg) 28%, transparent)' } : {}) }}>
                 {t('projects_import')}
               </Button>
             </form>
             {stagedFile ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8, paddingLeft: 2, fontSize: 'var(--fs-micro, 10px)', color: 'var(--text-secondary)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8, paddingLeft: 2, fontSize: 'var(--fs-micro, 10px)', color: 'var(--dock-text-secondary)' }}>
                 <Icon name="upload" size={12} />
                 <span>{t('projects_import_staged', stagedFile.name, newName.trim() || '—')}</span>
                 <button type="button" onClick={cancelStaged} title={t('close') || 'cancel'}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'inline-flex', padding: 0 }}>
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--dock-text-muted)', display: 'inline-flex', padding: 0 }}>
                   <Icon name="close" size={12} />
                 </button>
               </div>
             ) : (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 8, paddingLeft: 2, fontSize: 'var(--fs-micro, 10px)', color: 'var(--text-muted)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 8, paddingLeft: 2, fontSize: 'var(--fs-micro, 10px)', color: 'var(--dock-text-muted)' }}>
                 <Icon name="upload" size={12} /> {t('projects_drop_hint')}
               </div>
             )}
@@ -342,10 +342,10 @@ export default function ProjectsPage() {
 
           {/* List */}
           {projects === null && (
-            <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>{t('home_loading')}</div>
+            <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--dock-text-muted)' }}>{t('home_loading')}</div>
           )}
           {projects && projects.length === 0 && !error && (
-            <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)', fontSize: 'var(--fs-small, 12px)' }}>
+            <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--dock-text-muted)', fontSize: 'var(--fs-small, 12px)' }}>
               {t('projects_empty')}
             </div>
           )}
@@ -359,7 +359,7 @@ export default function ProjectsPage() {
                   title={p.name}
                   active={isCurrent}
                   badge={(
-                    <span style={{ fontSize: 'var(--fs-micro, 10px)', padding: '1px 6px', borderRadius: 999, backgroundColor: 'var(--surface-2)', color: 'var(--text-muted)' }}>
+                    <span style={{ fontSize: 'var(--fs-micro, 10px)', padding: '1px 6px', borderRadius: 999, backgroundColor: 'var(--dock-surface-2)', color: 'var(--dock-text-muted)' }}>
                       {t('service_kind_elog')}
                     </span>
                   )}

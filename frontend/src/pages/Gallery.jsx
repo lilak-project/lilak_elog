@@ -1,3 +1,4 @@
+import Select from 'lilak-ui/components/Select.jsx'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Input, Button, Chip, ChipGroup, Lightbox, Row, Grid, formatLogStamp } from 'lilak-ui'
 import api, { apiBaseFor, getExperiment } from '../api'
@@ -57,13 +58,13 @@ function TagEditor({ logId, initialTags, allTags, onSaved }) {
           placeholder={t('gallery_tags_add')} />
         {suggestions.length > 0 && (
           <ul style={{ position: 'absolute', zIndex: 10, left: 0, right: 0, marginTop: 2, listStyle: 'none', padding: 0,
-            border: '1px solid var(--border-default)', borderRadius: 6, overflow: 'hidden',
-            backgroundColor: 'var(--surface)', boxShadow: '0 8px 20px rgba(0,0,0,0.18)' }}>
+            border: '1px solid var(--dock-border-default)', borderRadius: 6, overflow: 'hidden',
+            backgroundColor: 'var(--dock-surface)', boxShadow: '0 8px 20px rgba(0,0,0,0.18)' }}>
             {suggestions.map(n => (
               <li key={n}>
                 <button type="button" onMouseDown={e => { e.preventDefault(); addTag(n) }}
-                  style={{ width: '100%', textAlign: 'left', padding: '4px 8px', fontSize: 'var(--fs-small, 12px)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-primary)' }}
-                  onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--info-bg)'}
+                  style={{ width: '100%', textAlign: 'left', padding: '4px 8px', fontSize: 'var(--fs-small, 12px)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--dock-text-primary)' }}
+                  onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--dock-info-bg)'}
                   onMouseLeave={e => e.currentTarget.style.backgroundColor = ''}>{n}</button>
               </li>
             ))}
@@ -164,9 +165,9 @@ export default function Gallery() {
 
   const selectedImg = selectedIdx !== null ? filtered[selectedIdx] : null
 
-  if (loadErr) return <div style={{ textAlign: 'center', padding: '64px 0', fontSize: 'var(--fs-body, 13px)', color: 'var(--danger-text)' }}>{loadErr}</div>
+  if (loadErr) return <div style={{ textAlign: 'center', padding: '64px 0', fontSize: 'var(--fs-body, 13px)', color: 'var(--dock-danger-text)' }}>{loadErr}</div>
 
-  const labelS = { fontSize: 'var(--fs-small, 12px)', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }
+  const labelS = { fontSize: 'var(--fs-small, 12px)', color: 'var(--dock-text-secondary)', whiteSpace: 'nowrap' }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -178,20 +179,20 @@ export default function Gallery() {
         </Row>
         <Row gap={6}>
           <label style={labelS}>{t('gallery_filter_tag')}</label>
-          <select value={filterTag} onChange={e => { setFilterTag(e.target.value); setSelectedIdx(null) }}
-            style={{ background: 'var(--input-bg)', border: '1px solid var(--input-border)', borderRadius: 7, padding: '6px 10px', fontSize: 'var(--fs-body, 13px)', color: 'var(--text-primary)', outline: 'none' }}>
+          <Select value={filterTag} onChange={e => { setFilterTag(e.target.value); setSelectedIdx(null) }}
+            style={{ background: 'var(--dock-input-bg)', border: '1px solid var(--dock-input-border)', borderRadius: 7, padding: '6px 10px', fontSize: 'var(--fs-body, 13px)', color: 'var(--dock-text-primary)', outline: 'none' }}>
             <option value="">{t('gallery_filter_all')}</option>
             {availableTags.map(name => <option key={name} value={name}>{name}</option>)}
-          </select>
+          </Select>
         </Row>
         <ChipGroup label={t('gallery_cols')} value={cols} onChange={setCols}
           options={[3, 4, 5, 6].map(n => ({ value: n, label: String(n) }))}
           style={{ display: 'flex', alignItems: 'center', gap: 8 }} />
-        <span style={{ fontSize: 'var(--fs-small, 12px)', color: 'var(--text-muted)', marginLeft: 'auto' }}>{filtered.length} / {images.length}</span>
+        <span style={{ fontSize: 'var(--fs-small, 12px)', color: 'var(--dock-text-muted)', marginLeft: 'auto' }}>{filtered.length} / {images.length}</span>
       </Row>
 
-      {loading && <p style={{ textAlign: 'center', padding: '64px 0', color: 'var(--text-muted)' }}>{t('gallery_loading')}</p>}
-      {!loading && filtered.length === 0 && <p style={{ textAlign: 'center', padding: '64px 0', color: 'var(--text-muted)' }}>{t('gallery_empty')}</p>}
+      {loading && <p style={{ textAlign: 'center', padding: '64px 0', color: 'var(--dock-text-muted)' }}>{t('gallery_loading')}</p>}
+      {!loading && filtered.length === 0 && <p style={{ textAlign: 'center', padding: '64px 0', color: 'var(--dock-text-muted)' }}>{t('gallery_empty')}</p>}
 
       {!loading && filtered.length > 0 && (
         <div style={{ display: 'flex', gap: 16, flex: 1, minHeight: 0 }}>
@@ -203,9 +204,9 @@ export default function Gallery() {
                   onClick={() => setSelectedIdx(idx === selectedIdx ? null : idx)}
                   onDoubleClick={() => { setSelectedIdx(idx); setFullscreen(true) }}
                   style={{ position: 'relative', aspectRatio: '1 / 1', overflow: 'hidden', borderRadius: 6, cursor: 'pointer',
-                    border: '2px solid', borderColor: selectedIdx === idx ? 'var(--border-focus)' : 'transparent',
+                    border: '2px solid', borderColor: selectedIdx === idx ? 'var(--dock-border-focus)' : 'transparent',
                     boxShadow: selectedIdx === idx ? '0 8px 20px rgba(0,0,0,0.2)' : 'none', transition: 'border-color .12s' }}
-                  onMouseEnter={e => { if (selectedIdx !== idx) e.currentTarget.style.borderColor = 'var(--border-strong)' }}
+                  onMouseEnter={e => { if (selectedIdx !== idx) e.currentTarget.style.borderColor = 'var(--dock-border-strong)' }}
                   onMouseLeave={e => { if (selectedIdx !== idx) e.currentTarget.style.borderColor = 'transparent' }}>
                   <img src={attUrl(img.id)} alt={img.original_filename} loading="lazy"
                     style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
@@ -216,37 +217,37 @@ export default function Gallery() {
 
           {/* Info panel */}
           {selectedImg && (
-            <div style={{ width: 256, flexShrink: 0, borderRadius: 12, border: '1px solid var(--border-default)',
-              backgroundColor: 'var(--surface)', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
-              <div style={{ aspectRatio: '16 / 9', overflow: 'hidden', borderRadius: '12px 12px 0 0', backgroundColor: 'var(--surface-2)' }}>
+            <div style={{ width: 256, flexShrink: 0, borderRadius: 12, border: '1px solid var(--dock-border-default)',
+              backgroundColor: 'var(--dock-surface)', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+              <div style={{ aspectRatio: '16 / 9', overflow: 'hidden', borderRadius: '12px 12px 0 0', backgroundColor: 'var(--dock-surface-2)' }}>
                 <img src={attUrl(selectedImg.id)} alt={selectedImg.original_filename}
                   onClick={() => setFullscreen(true)}
                   style={{ width: '100%', height: '100%', objectFit: 'contain', cursor: 'zoom-in', display: 'block' }} />
               </div>
               <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12, flex: 1 }}>
-                <p style={{ margin: 0, fontWeight: 500, fontSize: 'var(--fs-small, 12px)', wordBreak: 'break-all', color: 'var(--text-primary)' }}>{selectedImg.original_filename}</p>
+                <p style={{ margin: 0, fontWeight: 500, fontSize: 'var(--fs-small, 12px)', wordBreak: 'break-all', color: 'var(--dock-text-primary)' }}>{selectedImg.original_filename}</p>
                 <div>
-                  <p style={{ margin: '0 0 2px', fontSize: 'var(--fs-tiny, 11px)', color: 'var(--text-muted)' }}>{t('gallery_info_log')}</p>
+                  <p style={{ margin: '0 0 2px', fontSize: 'var(--fs-tiny, 11px)', color: 'var(--dock-text-muted)' }}>{t('gallery_info_log')}</p>
                   <button type="button" onClick={() => openLogInTab(selectedImg.log_id)}
-                    style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: 'var(--fs-small, 12px)', fontWeight: 500, textAlign: 'left', color: 'var(--text-link)' }}>
+                    style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: 'var(--fs-small, 12px)', fontWeight: 500, textAlign: 'left', color: 'var(--dock-text-link)' }}>
                     #{selectedImg.log_id} {selectedImg.log_title}
                   </button>
-                  <p style={{ margin: '2px 0 0', fontSize: 'var(--fs-small, 12px)', color: 'var(--text-secondary)' }}>{selectedImg.log_author}</p>
-                  <p style={{ margin: 0, fontSize: 'var(--fs-small, 12px)', color: 'var(--text-muted)' }}>{formatLogStamp(selectedImg.log_created_at)}</p>
+                  <p style={{ margin: '2px 0 0', fontSize: 'var(--fs-small, 12px)', color: 'var(--dock-text-secondary)' }}>{selectedImg.log_author}</p>
+                  <p style={{ margin: 0, fontSize: 'var(--fs-small, 12px)', color: 'var(--dock-text-muted)' }}>{formatLogStamp(selectedImg.log_created_at)}</p>
                 </div>
                 {(selectedImg.log_run_number != null || selectedImg.log_run_number_text) && (
                   <p style={{ margin: 0 }}>
-                    <span style={{ fontSize: 'var(--fs-small, 12px)', padding: '1px 8px', borderRadius: 999, backgroundColor: 'var(--surface-2)', color: 'var(--text-secondary)' }}>
+                    <span style={{ fontSize: 'var(--fs-small, 12px)', padding: '1px 8px', borderRadius: 999, backgroundColor: 'var(--dock-surface-2)', color: 'var(--dock-text-secondary)' }}>
                       Run {selectedImg.log_run_number_type === 'single' || !selectedImg.log_run_number_type ? selectedImg.log_run_number : selectedImg.log_run_number_text}
                     </span>
                   </p>
                 )}
                 <TagEditor logId={selectedImg.log_id} initialTags={selectedImg.log_tags} allTags={allTags}
                   onSaved={(newTags) => handleTagsSaved(selectedImg.id, newTags)} />
-                <div style={{ paddingTop: 8, borderTop: '1px solid var(--border-subtle)' }}>
+                <div style={{ paddingTop: 8, borderTop: '1px solid var(--dock-border-subtle)' }}>
                   <AttachmentComments logId={selectedImg.log_id} onOpenLog={openLogInTab} compact />
                 </div>
-                <p style={{ margin: 0, fontSize: 'var(--fs-small, 12px)', color: 'var(--text-muted)' }}>{t('gallery_fullscreen_hint')}</p>
+                <p style={{ margin: 0, fontSize: 'var(--fs-small, 12px)', color: 'var(--dock-text-muted)' }}>{t('gallery_fullscreen_hint')}</p>
               </div>
             </div>
           )}

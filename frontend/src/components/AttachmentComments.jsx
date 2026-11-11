@@ -33,18 +33,18 @@ export default function AttachmentComments({ logId, onOpenLog, compact = false }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <div style={{ fontSize: 'var(--fs-tiny, 11px)', textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--text-muted)' }}>
+      <div style={{ fontSize: 'var(--fs-tiny, 11px)', textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--dock-text-muted)' }}>
         {t('comments') || '댓글'} ({comments.length})
       </div>
       {comments.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: compact ? 120 : 180, overflowY: 'auto' }}>
           {comments.map(c => (
             <button key={c.id} type="button" onClick={() => onOpenLog?.(logId)} title={t('comment_open_log') || '로그에서 보기'}
-              style={{ textAlign: 'left', background: 'none', border: '1px solid var(--border-subtle)', borderRadius: 8, padding: '6px 8px', cursor: 'pointer' }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--border-focus)' }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-subtle)' }}>
-              <div style={{ fontSize: 'var(--fs-small, 12px)', color: 'var(--text-primary)', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{c.body}</div>
-              <div style={{ fontSize: 'var(--fs-micro, 10px)', color: 'var(--text-muted)', marginTop: 2 }}>
+              style={{ textAlign: 'left', background: 'none', border: '1px solid var(--dock-border-subtle)', borderRadius: 8, padding: '6px 8px', cursor: 'pointer' }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--dock-border-focus)' }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--dock-border-subtle)' }}>
+              <div style={{ fontSize: 'var(--fs-small, 12px)', color: 'var(--dock-text-primary)', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{c.body}</div>
+              <div style={{ fontSize: 'var(--fs-micro, 10px)', color: 'var(--dock-text-muted)', marginTop: 2 }}>
                 {c.author_name} · {c.created_at ? formatLogStamp(c.created_at) : ''}
               </div>
             </button>
@@ -58,7 +58,7 @@ export default function AttachmentComments({ logId, onOpenLog, compact = false }
           <Button variant="primary" size="sm" onClick={post} disabled={busy || !text.trim()}>{t('comment_post') || '등록'}</Button>
         </div>
       ) : (
-        <div style={{ fontSize: 'var(--fs-tiny, 11px)', color: 'var(--text-muted)' }}>{t('comment_login_hint') || '로그인 후 댓글을 달 수 있습니다.'}</div>
+        <div style={{ fontSize: 'var(--fs-tiny, 11px)', color: 'var(--dock-text-muted)' }}>{t('comment_login_hint') || '로그인 후 댓글을 달 수 있습니다.'}</div>
       )}
     </div>
   )

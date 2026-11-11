@@ -5,15 +5,15 @@ import api from '../api'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LangContext'
 
-const inputCls = 'border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--input-focus-border)]'
-const inputStyle = { backgroundColor: 'var(--input-bg)', borderColor: 'var(--input-border)', color: 'var(--text-primary)', width: 120 }
+const inputCls = 'border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--dock-input-focus-border)]'
+const inputStyle = { backgroundColor: 'var(--dock-input-bg)', borderColor: 'var(--dock-input-border)', color: 'var(--dock-text-primary)', width: 120 }
 
 function StatCard({ label, value }) {
   return (
     <div className="rounded-xl border px-4 py-3"
-         style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border-default)' }}>
-      <div className="text-xs" style={{ color: 'var(--text-muted)' }}>{label}</div>
-      <div className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>{value ?? '—'}</div>
+         style={{ backgroundColor: 'var(--dock-surface)', borderColor: 'var(--dock-border-default)' }}>
+      <div className="text-xs" style={{ color: 'var(--dock-text-muted)' }}>{label}</div>
+      <div className="text-xl font-semibold" style={{ color: 'var(--dock-text-primary)' }}>{value ?? '—'}</div>
     </div>
   )
 }
@@ -83,14 +83,14 @@ export default function AdminLogManagement() {
   }
 
   if (loading && !summary) {
-    return <div className="text-center py-12" style={{ color: 'var(--text-muted)' }}>{ko ? '불러오는 중…' : 'Loading…'}</div>
+    return <div className="text-center py-12" style={{ color: 'var(--dock-text-muted)' }}>{ko ? '불러오는 중…' : 'Loading…'}</div>
   }
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       {/* Summary */}
       <div>
-        <h2 className="text-sm font-semibold uppercase tracking-wide mb-3" style={{ color: 'var(--text-secondary)' }}>
+        <h2 className="text-sm font-semibold uppercase tracking-wide mb-3" style={{ color: 'var(--dock-text-secondary)' }}>
           {ko ? '로그 요약' : 'Log Summary'}
         </h2>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -107,7 +107,7 @@ export default function AdminLogManagement() {
           <div className="mt-3 flex flex-wrap gap-2">
             {Object.entries(summary.by_level).map(([lvl, c]) => (
               <span key={lvl} className="text-xs px-2 py-1 rounded-full border"
-                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
+                    style={{ borderColor: 'var(--dock-border-default)', color: 'var(--dock-text-secondary)' }}>
                 {lvl}: <b>{c}</b>
               </span>
             ))}
@@ -116,11 +116,11 @@ export default function AdminLogManagement() {
 
         {summary?.by_source?.length > 0 && (
           <div className="mt-3">
-            <div className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>{ko ? '소스별 (상위 10)' : 'By source (top 10)'}</div>
+            <div className="text-xs mb-1" style={{ color: 'var(--dock-text-muted)' }}>{ko ? '소스별 (상위 10)' : 'By source (top 10)'}</div>
             <div className="flex flex-wrap gap-2">
               {summary.by_source.map(s => (
                 <span key={s.source} className="text-xs px-2 py-1 rounded-full"
-                      style={{ backgroundColor: 'var(--surface-2)', color: 'var(--text-secondary)' }}>
+                      style={{ backgroundColor: 'var(--dock-surface-2)', color: 'var(--dock-text-secondary)' }}>
                   {s.source}: <b>{s.count}</b>
                 </span>
               ))}
@@ -131,39 +131,39 @@ export default function AdminLogManagement() {
 
       {/* Bulk delete by range */}
       <div className="rounded-xl border p-4 space-y-3"
-           style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border-default)' }}>
-        <h2 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+           style={{ backgroundColor: 'var(--dock-surface)', borderColor: 'var(--dock-border-default)' }}>
+        <h2 className="text-sm font-semibold" style={{ color: 'var(--dock-text-primary)' }}>
           {ko ? '로그 번호 범위로 삭제' : 'Delete by log # range'}
         </h2>
-        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+        <p className="text-xs" style={{ color: 'var(--dock-text-muted)' }}>
           {ko
             ? '범위(포함)에 해당하는 로그를 삭제합니다. 한쪽만 비워두면 처음/끝까지 적용됩니다. 삭제는 복구 가능합니다.'
             : 'Soft-deletes logs in the inclusive range. Leave one side blank for open-ended. Deletion is restorable.'}
         </p>
         <div className="flex flex-wrap items-end gap-3">
           <div>
-            <label className="block text-xs mb-1" style={{ color: 'var(--text-muted)' }}>{ko ? '시작 #' : 'Start #'}</label>
+            <label className="block text-xs mb-1" style={{ color: 'var(--dock-text-muted)' }}>{ko ? '시작 #' : 'Start #'}</label>
             <input type="number" value={start} onChange={e => setStart(e.target.value)}
                    placeholder={summary?.min_log_index ?? '0'} className={inputCls} style={inputStyle} />
           </div>
           <div>
-            <label className="block text-xs mb-1" style={{ color: 'var(--text-muted)' }}>{ko ? '끝 #' : 'End #'}</label>
+            <label className="block text-xs mb-1" style={{ color: 'var(--dock-text-muted)' }}>{ko ? '끝 #' : 'End #'}</label>
             <input type="number" value={end} onChange={e => setEnd(e.target.value)}
                    placeholder={summary?.max_log_index ?? '∞'} className={inputCls} style={inputStyle} />
           </div>
           <button onClick={doDelete} disabled={busy}
                   className="px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-50"
-                  style={{ backgroundColor: 'var(--danger-text)', color: '#ffffff' }}>
+                  style={{ backgroundColor: 'var(--dock-danger-text)', color: '#ffffff' }}>
             {ko ? '삭제' : 'Delete'}
           </button>
           <button onClick={doRestore} disabled={busy}
                   className="px-3 py-1.5 rounded-lg text-xs font-medium border disabled:opacity-50"
-                  style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
+                  style={{ borderColor: 'var(--dock-border-default)', color: 'var(--dock-text-secondary)' }}>
             {ko ? '복구' : 'Restore'}
           </button>
         </div>
-        {msg && <div className="text-xs px-3 py-2 rounded-lg" style={{ backgroundColor: 'var(--success-bg)', color: 'var(--success-text)' }}>{msg}</div>}
-        {err && <div className="text-xs px-3 py-2 rounded-lg" style={{ backgroundColor: 'var(--danger-bg)', color: 'var(--danger-text)' }}>{err}</div>}
+        {msg && <div className="text-xs px-3 py-2 rounded-lg" style={{ backgroundColor: 'var(--dock-success-bg)', color: 'var(--dock-success-text)' }}>{msg}</div>}
+        {err && <div className="text-xs px-3 py-2 rounded-lg" style={{ backgroundColor: 'var(--dock-danger-bg)', color: 'var(--dock-danger-text)' }}>{err}</div>}
       </div>
     </div>
   )

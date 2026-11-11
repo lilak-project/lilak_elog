@@ -400,15 +400,15 @@ export default function TimelineView({
 
   return (
     <div className="border sched-border rounded-lg flex flex-col overflow-y-auto overflow-x-hidden"
-      style={{ maxHeight: 'calc(100vh - 12rem)', backgroundColor: 'var(--surface)' }}>
+      style={{ maxHeight: 'calc(100vh - 12rem)', backgroundColor: 'var(--dock-surface)' }}>
       {/* Zoom toolbar — value = number of days visible at once */}
       <div className="flex items-center gap-1 px-2 py-1.5 border-b sched-border-b"
-           style={{ backgroundColor: 'var(--surface-2)' }}>
-        <span className="text-[10px] mr-1" style={{ color: 'var(--text-muted)' }}>{t('sched_zoom')}</span>
+           style={{ backgroundColor: 'var(--dock-surface-2)' }}>
+        <span className="text-[10px] mr-1" style={{ color: 'var(--dock-text-muted)' }}>{t('sched_zoom')}</span>
         <button onClick={() => setDaysVisible(z => Math.max(ZOOM_MIN, z - 1))}
           className="h-6 w-6 text-sm rounded transition-colors"
-          style={{ color: 'var(--text-secondary)' }}
-          onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--surface-3)'}
+          style={{ color: 'var(--dock-text-secondary)' }}
+          onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--dock-surface-3)'}
           onMouseLeave={e => e.currentTarget.style.backgroundColor = ''}
           title="keyboard: -">−</button>
         <input type="number" min={ZOOM_MIN} max={ZOOM_MAX} value={daysVisible}
@@ -416,28 +416,28 @@ export default function TimelineView({
             const v = parseInt(e.target.value, 10)
             if (!isNaN(v)) setDaysVisible(Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, v)))
           }}
-          className="h-6 w-14 text-center text-xs border rounded no-spin focus:outline-none focus:ring-2 focus:ring-[var(--input-focus-border)]"
-          style={{ backgroundColor: 'var(--input-bg)', borderColor: 'var(--input-border)', color: 'var(--text-primary)' }} />
+          className="h-6 w-14 text-center text-xs border rounded no-spin focus:outline-none focus:ring-2 focus:ring-[var(--dock-input-focus-border)]"
+          style={{ backgroundColor: 'var(--dock-input-bg)', borderColor: 'var(--dock-input-border)', color: 'var(--dock-text-primary)' }} />
         <button onClick={() => setDaysVisible(z => Math.min(ZOOM_MAX, z + 1))}
           className="h-6 w-6 text-sm rounded transition-colors"
-          style={{ color: 'var(--text-secondary)' }}
-          onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--surface-3)'}
+          style={{ color: 'var(--dock-text-secondary)' }}
+          onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--dock-surface-3)'}
           onMouseLeave={e => e.currentTarget.style.backgroundColor = ''}
           title="keyboard: =">+</button>
-        <span className="text-[10px] ml-1" style={{ color: 'var(--text-muted)' }}>일</span>
+        <span className="text-[10px] ml-1" style={{ color: 'var(--dock-text-muted)' }}>일</span>
         {activePattern && (
-          <span className="ml-3 text-[10px]" style={{ color: 'var(--text-muted)' }}>
-            {t('sched_active_pattern')}: <span style={{ color: 'var(--text-secondary)' }}>{activePattern.name}</span>
+          <span className="ml-3 text-[10px]" style={{ color: 'var(--dock-text-muted)' }}>
+            {t('sched_active_pattern')}: <span style={{ color: 'var(--dock-text-secondary)' }}>{activePattern.name}</span>
           </span>
         )}
         {!activePattern && (
-          <span className="ml-3 text-[10px]" style={{ color: 'var(--warning-text)' }}>{t('sched_no_active_pattern')}</span>
+          <span className="ml-3 text-[10px]" style={{ color: 'var(--dock-warning-text)' }}>{t('sched_no_active_pattern')}</span>
         )}
       </div>
 
       <div className="flex" style={{ height: HEADER_H + TRACK_H * tracks.length + 8 }}>
         {/* ── Fixed left column ─────────────────────────────────────────── */}
-        <div className="shrink-0 border-r sched-border" style={{ width: LABEL_W, backgroundColor: 'var(--surface-2)' }}>
+        <div className="shrink-0 border-r sched-border" style={{ width: LABEL_W, backgroundColor: 'var(--dock-surface-2)' }}>
           <div style={{ height: HEADER_H }} className="border-b sched-border flex items-end px-2 pb-1.5">
           </div>
           {tracks.map(t => {
@@ -452,9 +452,9 @@ export default function TimelineView({
                   className={`flex items-center px-2 text-[11px] border-b sched-border-b ${thickTop}`}
                 >
                   <span className={`truncate flex-1 ${ur.isFree ? 'italic' : ''}`}
-                        style={{ color: ur.isFree ? 'var(--text-secondary)' : 'var(--text-primary)' }}>
+                        style={{ color: ur.isFree ? 'var(--dock-text-secondary)' : 'var(--dock-text-primary)' }}>
                     {ur.name}
-                    {ur.display_name && <span className="ml-1" style={{ color: 'var(--text-muted)' }}>({ur.display_name})</span>}
+                    {ur.display_name && <span className="ml-1" style={{ color: 'var(--dock-text-muted)' }}>({ur.display_name})</span>}
                   </span>
                   {count > 0 && (
                     <span className="ml-1 text-[10px] px-1.5 rounded-full"
@@ -466,7 +466,7 @@ export default function TimelineView({
             return (
               <div
                 key={t.key}
-                style={{ height: TRACK_H, color: 'var(--text-primary)' }}
+                style={{ height: TRACK_H, color: 'var(--dock-text-primary)' }}
                 className={`flex items-center px-2 text-[11px] border-b sched-border-b ${thickTop}`}
               >
                 {t.label}
@@ -501,7 +501,7 @@ export default function TimelineView({
             })}
 
             {/* ── Day header (date only — counts moved to summary track) ─── */}
-            <div className="flex sticky top-0 z-10 border-b sched-border" style={{ height: HEADER_H, backgroundColor: 'var(--surface-2)' }}>
+            <div className="flex sticky top-0 z-10 border-b sched-border" style={{ height: HEADER_H, backgroundColor: 'var(--dock-surface-2)' }}>
               {dayCells.map((d, i) => {
                 const isToday   = sameDay(d, today)
                 const isFocused = sameDay(d, focusedDay)
@@ -514,9 +514,9 @@ export default function TimelineView({
                     style={{
                       width: dayWidth,
                       ...(isFocused
-                        ? { backgroundColor: 'var(--focused-day-bg)', '--tw-ring-color': 'var(--focused-day-ring)' }
+                        ? { backgroundColor: 'var(--dock-focused-day-bg)', '--tw-ring-color': 'var(--dock-focused-day-ring)' }
                         : isToday
-                          ? { backgroundColor: 'var(--info-bg)' }
+                          ? { backgroundColor: 'var(--dock-info-bg)' }
                           : null),
                     }}
                   >
@@ -536,11 +536,11 @@ export default function TimelineView({
                     <div className={`text-[12px] font-medium ${
                       d.getDay() === 0 ? 'sched-sun' : d.getDay() === 6 ? 'sched-sat' : ''
                     }`}
-                         style={(d.getDay() !== 0 && d.getDay() !== 6) ? { color: 'var(--text-secondary)' } : undefined}>
+                         style={(d.getDay() !== 0 && d.getDay() !== 6) ? { color: 'var(--dock-text-secondary)' } : undefined}>
                       {d.getMonth()+1}/{d.getDate()} ({DOW[d.getDay()]})
                     </div>
                     {hourWidth >= 40 && (
-                      <div className="flex text-[8px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                      <div className="flex text-[8px] mt-0.5" style={{ color: 'var(--dock-text-muted)' }}>
                         {[0,6,12,18].map(h => (
                           <div key={h} style={{ width: dayWidth/4 }} className="text-center">{h}h</div>
                         ))}
@@ -797,7 +797,7 @@ export default function TimelineView({
 
       {/* Hint */}
       <div className="px-2 py-1.5 text-[10px] border-t sched-border-t"
-           style={{ color: 'var(--text-muted)', backgroundColor: 'var(--surface-2)' }}>
+           style={{ color: 'var(--dock-text-muted)', backgroundColor: 'var(--dock-surface-2)' }}>
         {t('sched_hint_horizontal')}
       </div>
 
@@ -811,11 +811,11 @@ export default function TimelineView({
               left: rolePicker.x,
               top: rolePicker.y,
               transform: 'translateX(-50%)',
-              backgroundColor: 'var(--surface)',
-              borderColor: 'var(--border-default)',
+              backgroundColor: 'var(--dock-surface)',
+              borderColor: 'var(--dock-border-default)',
             }}
           >
-            <div className="text-[10px] mb-1.5 px-1" style={{ color: 'var(--text-muted)' }}>{t('sched_pick_role')}</div>
+            <div className="text-[10px] mb-1.5 px-1" style={{ color: 'var(--dock-text-muted)' }}>{t('sched_pick_role')}</div>
             <div className="flex flex-col gap-1">
               {patternRoles.map(r => {
                 const cls = roleColorClasses(r.color)

@@ -25,15 +25,15 @@ export default class ErrorBoundary extends Component {
 
       return (
         <div className="rounded-xl border-2 px-5 py-4 text-sm"
-             style={{ backgroundColor: 'var(--danger-bg)', borderColor: 'var(--danger-text)', color: 'var(--danger-text)' }}>
+             style={{ backgroundColor: 'var(--dock-danger-bg)', borderColor: 'var(--dock-danger-text)', color: 'var(--dock-danger-text)' }}>
           <p className="font-semibold mb-1">렌더링 오류</p>
-          <p className="text-xs font-mono break-all mb-2" style={{ color: 'var(--danger-text)', opacity: 0.85 }}>
+          <p className="text-xs font-mono break-all mb-2" style={{ color: 'var(--dock-danger-text)', opacity: 0.85 }}>
             {String(this.state.error)}
           </p>
           <button
             onClick={() => this.reset()}
             className="text-xs hover:underline"
-            style={{ color: 'var(--danger-text)' }}
+            style={{ color: 'var(--dock-danger-text)' }}
           >
             다시 시도
           </button>

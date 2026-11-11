@@ -57,22 +57,22 @@ export default function AdminExperiments() {
 
   if (!user || user.role !== 'manager') return null
 
-  const cardStyle       = { backgroundColor: 'var(--surface)', borderColor: 'var(--border-default)' }
-  const cardHeaderStyle = { backgroundColor: 'var(--surface-2)', borderColor: 'var(--border-subtle)' }
-  const successBanner   = { backgroundColor: 'var(--success-bg)', borderColor: 'var(--success-text)', color: 'var(--success-text)' }
-  const errorBanner     = { backgroundColor: 'var(--danger-bg)',  borderColor: 'var(--danger-text)',  color: 'var(--danger-text)' }
-  const codeStyle       = { color: 'var(--text-muted)', backgroundColor: 'var(--surface-2)', borderColor: 'var(--border-default)' }
+  const cardStyle       = { backgroundColor: 'var(--dock-surface)', borderColor: 'var(--dock-border-default)' }
+  const cardHeaderStyle = { backgroundColor: 'var(--dock-surface-2)', borderColor: 'var(--dock-border-subtle)' }
+  const successBanner   = { backgroundColor: 'var(--dock-success-bg)', borderColor: 'var(--dock-success-text)', color: 'var(--dock-success-text)' }
+  const errorBanner     = { backgroundColor: 'var(--dock-danger-bg)',  borderColor: 'var(--dock-danger-text)',  color: 'var(--dock-danger-text)' }
+  const codeStyle       = { color: 'var(--dock-text-muted)', backgroundColor: 'var(--dock-surface-2)', borderColor: 'var(--dock-border-default)' }
 
   return (
     <div className="max-w-xl mx-auto space-y-4">
       {/* Current experiment */}
       <div className="rounded-xl border shadow-sm p-5" style={cardStyle}>
-        <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: 'var(--text-secondary)' }}>
+        <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: 'var(--dock-text-secondary)' }}>
           {t('admin_exp_current')}
         </p>
         <div className="flex items-center gap-3">
           <span className="font-mono font-bold px-3 py-1.5 rounded-lg text-sm"
-                style={{ backgroundColor: 'var(--info-bg)', color: 'var(--info-text)' }}>
+                style={{ backgroundColor: 'var(--dock-info-bg)', color: 'var(--dock-info-text)' }}>
             {current || '—'}
           </span>
           <code className="text-xs px-2 py-1 rounded border" style={codeStyle}>
@@ -84,11 +84,11 @@ export default function AdminExperiments() {
       {/* All experiments */}
       <div className="rounded-xl border shadow-sm overflow-hidden" style={cardStyle}>
         <div className="px-5 py-3 border-b text-sm font-semibold"
-             style={{ ...cardHeaderStyle, color: 'var(--text-secondary)' }}>
+             style={{ ...cardHeaderStyle, color: 'var(--dock-text-secondary)' }}>
           {loading ? t('admin_exp_loading') : t('admin_exp_list')}
         </div>
         {!loading && (
-          <ul className="divide-y" style={{ borderColor: 'var(--border-subtle)' }}>
+          <ul className="divide-y" style={{ borderColor: 'var(--dock-border-subtle)' }}>
             {experiments.map(({ name, port }) => {
               const url = port ? `http://${window.location.hostname}:${port}` : null
               const isCurrent = name === current
@@ -96,16 +96,16 @@ export default function AdminExperiments() {
                 <li key={name} className="px-5 py-3 flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2 min-w-0">
                     <span className={`font-mono text-sm ${isCurrent ? 'font-bold' : ''}`}
-                          style={{ color: isCurrent ? 'var(--text-link)' : 'var(--text-primary)' }}>
+                          style={{ color: isCurrent ? 'var(--dock-text-link)' : 'var(--dock-text-primary)' }}>
                       {name}
                     </span>
                     {isCurrent && (
                       <span className="text-xs px-1.5 py-0.5 rounded"
-                            style={{ backgroundColor: 'var(--info-bg)', color: 'var(--info-text)' }}>{t('admin_exp_current')}</span>
+                            style={{ backgroundColor: 'var(--dock-info-bg)', color: 'var(--dock-info-text)' }}>{t('admin_exp_current')}</span>
                     )}
                     {port && !isCurrent && (
                       <span className="text-xs px-1.5 py-0.5 rounded"
-                            style={{ backgroundColor: 'var(--success-bg)', color: 'var(--success-text)' }}>:{port}</span>
+                            style={{ backgroundColor: 'var(--dock-success-bg)', color: 'var(--dock-success-text)' }}>:{port}</span>
                     )}
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
@@ -132,13 +132,13 @@ export default function AdminExperiments() {
 
       {/* Create new */}
       <div className="rounded-xl border shadow-sm p-5" style={cardStyle}>
-        <h2 className="text-sm font-semibold mb-4" style={{ color: 'var(--text-secondary)' }}>{t('admin_exp_create')}</h2>
+        <h2 className="text-sm font-semibold mb-4" style={{ color: 'var(--dock-text-secondary)' }}>{t('admin_exp_create')}</h2>
 
         {createOk && (
           <div className="mb-3 border text-sm px-4 py-3 rounded-lg space-y-1" style={successBanner}>
             <p>{t('admin_exp_created', createOk.created)}</p>
             <code className="text-xs px-2 py-0.5 rounded"
-                  style={{ backgroundColor: 'var(--success-text)', color: 'var(--btn-primary-text)' }}>
+                  style={{ backgroundColor: 'var(--dock-success-text)', color: 'var(--dock-btn-primary-text)' }}>
               {t('admin_exp_start_cmd', createOk.created)}
             </code>
           </div>
@@ -156,10 +156,10 @@ export default function AdminExperiments() {
               pattern="[A-Za-z0-9_-]+"
               title={t('admin_exp_name_hint')}
               required
-              className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--input-focus-border)]"
+              className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--dock-input-focus-border)]"
               style={inputBase}
             />
-            <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{t('admin_exp_name_hint')}</p>
+            <p className="text-xs mt-1" style={{ color: 'var(--dock-text-muted)' }}>{t('admin_exp_name_hint')}</p>
           </div>
           <button
             type="submit"

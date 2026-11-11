@@ -28,16 +28,16 @@ export default function NoticePage() {
   return (
     <div className="pb-10">
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-xl font-bold flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
-          <span style={{ color: 'var(--warning-text)' }}>📌</span>
+        <h1 className="text-xl font-bold flex items-center gap-2" style={{ color: 'var(--dock-text-primary)' }}>
+          <span style={{ color: 'var(--dock-warning-text)' }}>📌</span>
           {t('notice_title')}
         </h1>
       </div>
 
-      {loading && <div className="text-center py-12" style={{ color: 'var(--text-muted)' }}>{t('home_loading')}</div>}
+      {loading && <div className="text-center py-12" style={{ color: 'var(--dock-text-muted)' }}>{t('home_loading')}</div>}
 
       {!loading && entries.length === 0 && (
-        <div className="text-center py-16" style={{ color: 'var(--text-muted)' }}>
+        <div className="text-center py-16" style={{ color: 'var(--dock-text-muted)' }}>
           <p className="text-4xl mb-3">📌</p>
           <p>{t('notice_empty')}</p>
         </div>

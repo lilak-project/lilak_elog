@@ -28,7 +28,7 @@ function EditCardHeader({ entry }) {
   return (
     <>
       <span className="text-xs font-mono px-2 py-0.5 rounded border"
-            style={{ color: 'var(--text-muted)', backgroundColor: 'var(--surface)', borderColor: 'var(--border-default)' }}>
+            style={{ color: 'var(--dock-text-muted)', backgroundColor: 'var(--dock-surface)', borderColor: 'var(--dock-border-default)' }}>
         _{entry.log_index ?? entry.id}
       </span>
       {level !== 'info' && (
@@ -38,13 +38,13 @@ function EditCardHeader({ entry }) {
       )}
       {entry.category && (
         <span className="text-xs px-2 py-0.5 rounded-full"
-              style={{ backgroundColor: 'var(--surface-3)', color: 'var(--text-secondary)' }}>
+              style={{ backgroundColor: 'var(--dock-surface-3)', color: 'var(--dock-text-secondary)' }}>
           {entry.category}
         </span>
       )}
       {entry.is_auto && (
         <span className="text-xs px-2 py-0.5 rounded-full"
-              style={{ backgroundColor: 'var(--info-bg)', color: 'var(--info-text)' }}>
+              style={{ backgroundColor: 'var(--dock-info-bg)', color: 'var(--dock-info-text)' }}>
           AUTO
         </span>
       )}
@@ -938,28 +938,28 @@ export default function Home() {
             style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'none',
                      border: 0, padding: 0, cursor: 'pointer', font: 'inherit',
                      fontSize: 'var(--fs-small, 12px)',
-                     color: live ? 'var(--ok-text, #2f9e44)' : 'var(--text-muted)' }}>
+                     color: live ? 'var(--ok-text, #2f9e44)' : 'var(--dock-text-muted)' }}>
             <span style={{ width: 8, height: 8, borderRadius: 999, flexShrink: 0,
-                           background: live ? 'var(--ok-text, #2f9e44)' : 'var(--text-muted)' }} />
+                           background: live ? 'var(--ok-text, #2f9e44)' : 'var(--dock-text-muted)' }} />
             {t('live')}
           </button>
           {isFiltered && (
-            <span className="text-xs truncate" style={{ color: 'var(--text-secondary)' }}>
+            <span className="text-xs truncate" style={{ color: 'var(--dock-text-secondary)' }}>
               {t('home_filtered')}
               <button onClick={() => { setActiveTag(''); setActiveCategory(''); setActiveSource('') }}
-                className="ml-1 hover:underline" style={{ color: 'var(--text-link)' }}>{t('home_clear')}</button>
+                className="ml-1 hover:underline" style={{ color: 'var(--dock-text-link)' }}>{t('home_clear')}</button>
             </span>
           )}
           {serverSearchQuery && (
-            <span className="text-xs flex items-center gap-1 truncate" style={{ color: 'var(--text-secondary)' }}>
-              <span className="font-medium" style={{ color: 'var(--text-primary)' }}>"{serverSearchQuery}"</span>
+            <span className="text-xs flex items-center gap-1 truncate" style={{ color: 'var(--dock-text-secondary)' }}>
+              <span className="font-medium" style={{ color: 'var(--dock-text-primary)' }}>"{serverSearchQuery}"</span>
               <button onClick={() => { setServerSearchQuery(''); setSearchQuery('') }}
-                className="ml-0.5 hover:underline shrink-0" style={{ color: 'var(--text-link)' }}>{t('home_clear')}</button>
+                className="ml-0.5 hover:underline shrink-0" style={{ color: 'var(--dock-text-link)' }}>{t('home_clear')}</button>
             </span>
           )}
           {cmdFilter && (
-            <span className="text-xs flex items-center gap-1 truncate" style={{ color: 'var(--text-secondary)' }}>
-              <span className="font-mono font-medium" style={{ color: 'var(--text-primary)' }}>
+            <span className="text-xs flex items-center gap-1 truncate" style={{ color: 'var(--dock-text-secondary)' }}>
+              <span className="font-mono font-medium" style={{ color: 'var(--dock-text-primary)' }}>
                 {cmdFilter.logIndex != null ? `_${cmdFilter.logIndex}`
                   : cmdFilter.run != null ? `*${cmdFilter.run}`
                   : cmdFilter.beam ? `>${cmdFilter.beam}`
@@ -967,7 +967,7 @@ export default function Home() {
                   : cmdFilter.tagExpr ? cmdFilter.tagExpr : ''}
               </span>
               <button onClick={() => setCmdFilter(null)}
-                className="ml-0.5 hover:underline shrink-0" style={{ color: 'var(--text-link)' }}>{t('home_clear')}</button>
+                className="ml-0.5 hover:underline shrink-0" style={{ color: 'var(--dock-text-link)' }}>{t('home_clear')}</button>
             </span>
           )}
         </>}
@@ -986,7 +986,7 @@ export default function Home() {
         <div style={{
           marginBottom: 16, padding: 12, borderRadius: 12,
           display: 'flex', flexWrap: 'wrap', gap: 16,
-          backgroundColor: 'var(--surface-2)', border: '1px solid var(--border-default)',
+          backgroundColor: 'var(--dock-surface-2)', border: '1px solid var(--dock-border-default)',
         }}>
           <ChipGroup
             label={t('filter_source')}
@@ -1021,12 +1021,12 @@ export default function Home() {
           )}
 
           <div>
-            <p style={{ fontSize: 'var(--fs-micro, 10px)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-muted)', margin: '0 0 6px' }}>
+            <p style={{ fontSize: 'var(--fs-micro, 10px)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--dock-text-muted)', margin: '0 0 6px' }}>
               {t('filter_export')}
             </p>
             <div style={{ display: 'flex', gap: 8 }}>
               {[['json', 'JSON'], ['markdown', 'Markdown'], ['html', 'HTML']].map(([fmt, label]) => (
-                <a key={fmt} href={`/api/export/${fmt}`} style={{ fontSize: 'var(--fs-small, 12px)', color: 'var(--text-link)' }}>{label}</a>
+                <a key={fmt} href={`/api/export/${fmt}`} style={{ fontSize: 'var(--fs-small, 12px)', color: 'var(--dock-text-link)' }}>{label}</a>
               ))}
             </div>
           </div>
@@ -1075,17 +1075,17 @@ export default function Home() {
         </div>
       )}
 
-      {error && <div className="text-center py-8" style={{ color: 'var(--danger-text)' }}>{error}</div>}
+      {error && <div className="text-center py-8" style={{ color: 'var(--dock-danger-text)' }}>{error}</div>}
 
       {!loading && !error && filteredEntries.length === 0 && (
-        <div className="text-center py-16" style={{ color: 'var(--text-muted)' }}>
+        <div className="text-center py-16" style={{ color: 'var(--dock-text-muted)' }}>
           <p className="text-xs">
             {(isSearching || serverSearchQuery) ? t('home_search_empty') : t('home_empty')}
           </p>
           {!isSearching && user && (
             <button onClick={() => openNewLog()}
               className="hover:underline mt-2 inline-block"
-              style={{ color: 'var(--text-link)' }}
+              style={{ color: 'var(--dock-text-link)' }}
             >{t('home_empty_sub')}</button>
           )}
         </div>
@@ -1094,7 +1094,7 @@ export default function Home() {
       {/* Continue (이어쓰기) — opens as a draft card at the top of the list. */}
       {logFormReq?.fromId && (
         <div className="rounded-xl border shadow-sm p-4 mb-3"
-             style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border-focus)' }}>
+             style={{ backgroundColor: 'var(--dock-surface)', borderColor: 'var(--dock-border-focus)' }}>
           <LogForm
             embeddedFromId={logFormReq.fromId}
             onSaved={(newId) => { clearLogForm(); fetchEntries(page); if (newId) openOne(newId) }}
@@ -1106,7 +1106,7 @@ export default function Home() {
       {/* Edit of a log that isn't on the current page — editor card at the top. */}
       {logFormReq?.editId && !filteredEntries.some(e => e.id === logFormReq.editId) && (
         <div className="rounded-xl border shadow-sm p-4 mb-3"
-             style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border-focus)' }}>
+             style={{ backgroundColor: 'var(--dock-surface)', borderColor: 'var(--dock-border-focus)' }}>
           <LogForm
             embeddedEditId={logFormReq.editId}
             onSaved={() => handleEditorSaved(logFormReq.editId)}
@@ -1119,7 +1119,7 @@ export default function Home() {
           expanded). Run-group entries are synthetic (e._runLogs); only their
           content differs, rendered via RunGroupExpanded (kit LogDetail). */}
       {feedEntries.length === 0 && !loading && (
-        <p style={{ textAlign: 'center', padding: '40px 0', fontSize: 'var(--fs-body, 13px)', color: 'var(--text-muted)' }}>{t('home_empty')}</p>
+        <p style={{ textAlign: 'center', padding: '40px 0', fontSize: 'var(--fs-body, 13px)', color: 'var(--dock-text-muted)' }}>{t('home_empty')}</p>
       )}
       <LogList
         entries={feedEntries}
@@ -1139,7 +1139,7 @@ export default function Home() {
             // log # in its top action bar and Cancel/Save in both the top and footer.
             inner = (
               <div className="rounded-xl border-2 shadow-md overflow-hidden"
-                   style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border-focus)' }}>
+                   style={{ backgroundColor: 'var(--dock-surface)', borderColor: 'var(--dock-border-focus)' }}>
                 <LogForm embeddedEditId={e.id} flat headerBadge={<EditCardHeader entry={e} />}
                   onSaved={() => handleEditorSaved(e.id)} onCancel={() => handleEditorCancel(e.id)} />
               </div>

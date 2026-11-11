@@ -82,9 +82,9 @@ export default function NotificationBell() {
       <button
         onClick={openPanel}
         className="relative h-8 w-8 inline-flex items-center justify-center border rounded transition-colors"
-        style={{ color: 'var(--nav-text-muted)', borderColor: 'var(--nav-accent)' }}
-        onMouseEnter={e => { e.currentTarget.style.color = 'var(--nav-text)'; e.currentTarget.style.borderColor = 'var(--nav-text-muted)' }}
-        onMouseLeave={e => { e.currentTarget.style.color = 'var(--nav-text-muted)'; e.currentTarget.style.borderColor = 'var(--nav-accent)' }}
+        style={{ color: 'var(--dock-nav-text-muted)', borderColor: 'var(--dock-nav-accent)' }}
+        onMouseEnter={e => { e.currentTarget.style.color = 'var(--dock-nav-text)'; e.currentTarget.style.borderColor = 'var(--dock-nav-text-muted)' }}
+        onMouseLeave={e => { e.currentTarget.style.color = 'var(--dock-nav-text-muted)'; e.currentTarget.style.borderColor = 'var(--dock-nav-accent)' }}
         title={t('notif_title')}
       >
         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -100,16 +100,16 @@ export default function NotificationBell() {
 
       {open && (
         <div className="absolute top-full right-0 mt-1 w-80 border rounded-xl shadow-xl z-50 overflow-hidden"
-             style={{ ...combo('body'), borderColor: 'var(--border-default)' }}>
+             style={{ ...combo('body'), borderColor: 'var(--dock-border-default)' }}>
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-2.5 border-b"
-               style={{ borderColor: 'var(--border-subtle)' }}>
-            <span className="text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>{t('notif_title')}</span>
+               style={{ borderColor: 'var(--dock-border-subtle)' }}>
+            <span className="text-sm font-semibold" style={{ color: 'var(--dock-text-secondary)' }}>{t('notif_title')}</span>
             {count > 0 && (
               <button
                 onClick={markAllRead}
                 className="text-xs hover:underline"
-                style={{ color: 'var(--text-link)' }}
+                style={{ color: 'var(--dock-text-link)' }}
               >
                 {t('notif_read_all')}
               </button>
@@ -119,10 +119,10 @@ export default function NotificationBell() {
           {/* List */}
           <div className="max-h-80 overflow-y-auto">
             {loading && (
-              <div className="px-4 py-6 text-center text-sm" style={{ color: 'var(--text-muted)' }}>{t('home_loading')}</div>
+              <div className="px-4 py-6 text-center text-sm" style={{ color: 'var(--dock-text-muted)' }}>{t('home_loading')}</div>
             )}
             {!loading && notifs.length === 0 && (
-              <div className="px-4 py-6 text-center text-sm" style={{ color: 'var(--text-muted)' }}>{t('notif_empty')}</div>
+              <div className="px-4 py-6 text-center text-sm" style={{ color: 'var(--dock-text-muted)' }}>{t('notif_empty')}</div>
             )}
             {!loading && notifs.map(n => (
               <button
@@ -130,40 +130,40 @@ export default function NotificationBell() {
                 onClick={() => clickNotif(n)}
                 className="w-full text-left px-4 py-3 border-b transition-colors"
                 style={{
-                  borderColor: 'var(--border-subtle)',
-                  backgroundColor: !n.is_read ? 'var(--info-bg)' : 'transparent',
+                  borderColor: 'var(--dock-border-subtle)',
+                  backgroundColor: !n.is_read ? 'var(--dock-info-bg)' : 'transparent',
                 }}
-                onMouseEnter={e => { if (n.is_read) e.currentTarget.style.backgroundColor = 'var(--surface-2)' }}
-                onMouseLeave={e => { e.currentTarget.style.backgroundColor = !n.is_read ? 'var(--info-bg)' : 'transparent' }}
+                onMouseEnter={e => { if (n.is_read) e.currentTarget.style.backgroundColor = 'var(--dock-surface-2)' }}
+                onMouseLeave={e => { e.currentTarget.style.backgroundColor = !n.is_read ? 'var(--dock-info-bg)' : 'transparent' }}
               >
                 <div className="flex items-start gap-2">
                   {!n.is_read && (
                     <span className="mt-1.5 shrink-0 w-1.5 h-1.5 rounded-full"
-                          style={{ backgroundColor: 'var(--btn-primary-bg)' }} />
+                          style={{ backgroundColor: 'var(--dock-btn-primary-bg)' }} />
                   )}
                   <div className={`flex-1 min-w-0 ${n.is_read ? 'ml-3.5' : ''}`}>
-                    <p className="text-xs font-semibold truncate" style={{ color: 'var(--text-secondary)' }}>
+                    <p className="text-xs font-semibold truncate" style={{ color: 'var(--dock-text-secondary)' }}>
                       {n.notif_type === 'comment' && (
                         <>
-                          <span style={{ color: 'var(--text-link)' }}>{n.from_user_name}</span>
+                          <span style={{ color: 'var(--dock-text-link)' }}>{n.from_user_name}</span>
                           {' '}{t('notif_commented_on')}{' '}
-                          <span style={{ color: 'var(--text-secondary)' }}>#{n.log_id}</span>
-                          {n.log_title && <span style={{ color: 'var(--text-muted)' }}> {n.log_title}</span>}
+                          <span style={{ color: 'var(--dock-text-secondary)' }}>#{n.log_id}</span>
+                          {n.log_title && <span style={{ color: 'var(--dock-text-muted)' }}> {n.log_title}</span>}
                         </>
                       )}
                       {n.notif_type === 'mention' && (
                         <>
-                          <span style={{ color: 'var(--text-link)' }}>@{n.from_user_name}</span>
+                          <span style={{ color: 'var(--dock-text-link)' }}>@{n.from_user_name}</span>
                           {' '}{t('notif_mentioned_you')}
                         </>
                       )}
                     </p>
                     {n.comment_excerpt && (
-                      <p className="text-xs mt-0.5 line-clamp-2" style={{ color: 'var(--text-muted)' }}>
+                      <p className="text-xs mt-0.5 line-clamp-2" style={{ color: 'var(--dock-text-muted)' }}>
                         "{n.comment_excerpt}"
                       </p>
                     )}
-                    <p className="text-[10px] mt-1" style={{ color: 'var(--text-muted)' }}>
+                    <p className="text-[10px] mt-1" style={{ color: 'var(--dock-text-muted)' }}>
                       {formatLogStamp(n.created_at)}
                     </p>
                   </div>

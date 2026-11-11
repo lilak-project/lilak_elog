@@ -22,8 +22,8 @@ import ServiceManualModal from './experiment/ServiceManualModal'
 import ManageTasksModal from '../components/ManageTasksModal'
 import { useTab } from '../context/TabContext'
 
-const fieldInputStyle = { ...inputBase, width: '100%', borderWidth: 1, borderStyle: 'solid', borderColor: 'var(--input-border)', borderRadius: 8, padding: '8px 12px', fontSize: 'var(--fs-body, 13px)', outline: 'none', boxSizing: 'border-box' }
-const fieldLabelStyle = { display: 'block', fontSize: 'var(--fs-tiny, 11px)', fontWeight: 500, marginBottom: 4, color: 'var(--text-secondary)' }
+const fieldInputStyle = { ...inputBase, width: '100%', borderWidth: 1, borderStyle: 'solid', borderColor: 'var(--dock-input-border)', borderRadius: 8, padding: '8px 12px', fontSize: 'var(--fs-body, 13px)', outline: 'none', boxSizing: 'border-box' }
+const fieldLabelStyle = { display: 'block', fontSize: 'var(--fs-tiny, 11px)', fontWeight: 500, marginBottom: 4, color: 'var(--dock-text-secondary)' }
 
 // ── Format sort order helper ─────────────────────────────────────────────────
 const TASK_TYPE_ORDER = ['init_of_run', 'start_of_run', 'end_of_run', 'monitoring_run']
@@ -62,25 +62,25 @@ function parseRegistration(text) {
 function RegisterResultBanner({ result, onClose }) {
   return (
     <Callout tone="success" title={`${result.name} 등록 완료`} icon="check"
-      right={<button onClick={onClose} style={{ fontSize: 'var(--fs-tiny, 11px)', padding: '1px 8px', borderRadius: 6, border: '1px solid var(--border-default)', background: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>닫기</button>}>
+      right={<button onClick={onClose} style={{ fontSize: 'var(--fs-tiny, 11px)', padding: '1px 8px', borderRadius: 6, border: '1px solid var(--dock-border-default)', background: 'none', cursor: 'pointer', color: 'var(--dock-text-muted)' }}>닫기</button>}>
       <Stack gap={10} style={{ padding: '10px 12px 12px' }}>
         {result.credentials_sent === true && (
-          <p style={{ margin: 0, fontSize: 'var(--fs-small, 12px)', color: 'var(--success-text)' }}>
+          <p style={{ margin: 0, fontSize: 'var(--fs-small, 12px)', color: 'var(--dock-success-text)' }}>
             <Icon name="check" size={13} weight="bold" style={{ verticalAlign: -2 }} /> Credentials를 Command URL로 전송했습니다
             {result.command_url && <span style={{ fontFamily: 'var(--font-mono)', marginLeft: 4, opacity: 0.7 }}>({result.command_url})</span>}
           </p>
         )}
         {result.credentials_sent === false && (
           <Stack gap={2} style={{ fontSize: 'var(--fs-small, 12px)' }}>
-            <p style={{ margin: 0, color: 'var(--warning-text)' }}>
+            <p style={{ margin: 0, color: 'var(--dock-warning-text)' }}>
               <Icon name="warning" weight="fill" size={12} style={{ verticalAlign: -2 }} /> Credentials 전송 실패 — Command URL 서버가 실행 중인지 확인하세요
             </p>
-            {result.credentials_error && <p style={{ margin: 0, fontFamily: 'var(--font-mono)', opacity: 0.7, color: 'var(--text-muted)' }}>{result.credentials_error}</p>}
-            <p style={{ margin: 0, color: 'var(--text-secondary)' }}>서버 실행 후 서비스 상세 화면에서 [Send credentials]를 다시 누를 수 있습니다.</p>
+            {result.credentials_error && <p style={{ margin: 0, fontFamily: 'var(--font-mono)', opacity: 0.7, color: 'var(--dock-text-muted)' }}>{result.credentials_error}</p>}
+            <p style={{ margin: 0, color: 'var(--dock-text-secondary)' }}>서버 실행 후 서비스 상세 화면에서 [Send credentials]를 다시 누를 수 있습니다.</p>
           </Stack>
         )}
         <div>
-          <p style={{ margin: '0 0 4px', fontSize: 'var(--fs-small, 12px)', fontWeight: 500, color: 'var(--text-secondary)' }}>API Token — 지금 복사해두세요. 이후 다시 확인할 수 없습니다.</p>
+          <p style={{ margin: '0 0 4px', fontSize: 'var(--fs-small, 12px)', fontWeight: 500, color: 'var(--dock-text-secondary)' }}>API Token — 지금 복사해두세요. 이후 다시 확인할 수 없습니다.</p>
           <CopyField value={result.token} labels={{ copy: '복사', copied: '복사됨' }} />
         </div>
       </Stack>
@@ -323,7 +323,7 @@ function ServiceForm({ initial, formats, onSave, onCancel, busy, t, isManager, h
   )
 
   const req = <span style={{ color: 'var(--error-text, #ef4444)' }}>*</span>
-  const opt = <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}> (optional)</span>
+  const opt = <span style={{ color: 'var(--dock-text-muted)', fontWeight: 400 }}> (optional)</span>
 
   return (
     <form onSubmit={submit}
@@ -331,15 +331,15 @@ function ServiceForm({ initial, formats, onSave, onCancel, busy, t, isManager, h
             if (e.key === 'Escape') { e.stopPropagation(); onCancel?.() }
             else if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); submit(e) }
           }}
-          style={{ ...modalFrame, border: '1px solid var(--border-default)', borderRadius: 12, boxShadow: '0 1px 2px rgba(0,0,0,0.04)', padding: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <h3 style={{ margin: 0, fontWeight: 600, color: 'var(--text-secondary)' }}>{isEdit ? t('exp_form_edit') : t('exp_form_new')}</h3>
+          style={{ ...modalFrame, border: '1px solid var(--dock-border-default)', borderRadius: 12, boxShadow: '0 1px 2px rgba(0,0,0,0.04)', padding: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <h3 style={{ margin: 0, fontWeight: 600, color: 'var(--dock-text-secondary)' }}>{isEdit ? t('exp_form_edit') : t('exp_form_new')}</h3>
 
       {/* ── Discover (handshake) — new service only ── */}
       {!isEdit && (
         <Stack gap={8}>
           <Row gap={8} align="end">
             <div style={{ flex: 1 }}>
-              <label style={fieldLabelStyle}>URL <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(endpoint to discover)</span></label>
+              <label style={fieldLabelStyle}>URL <span style={{ color: 'var(--dock-text-muted)', fontWeight: 400 }}>(endpoint to discover)</span></label>
               <input value={discoverUrl} onChange={e => setDiscoverUrl(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); runDiscover() } }}
                 placeholder="http://myserver.local:8080/elog-command" style={fieldInputStyle} />
@@ -350,46 +350,46 @@ function ServiceForm({ initial, formats, onSave, onCancel, busy, t, isManager, h
           </Row>
 
           {discoverState.status === 'ok' && (
-            <Stack gap={4} style={{ borderRadius: 8, border: '1px solid var(--success-text)', padding: '8px 12px', fontSize: 'var(--fs-small, 12px)', backgroundColor: 'var(--success-bg)' }}>
-              <p style={{ margin: 0, fontWeight: 500, color: 'var(--success-text)' }}><Icon name="check" size={12} weight="bold" style={{ verticalAlign: -2 }} /> Handshake successful — form auto-filled</p>
+            <Stack gap={4} style={{ borderRadius: 8, border: '1px solid var(--dock-success-text)', padding: '8px 12px', fontSize: 'var(--fs-small, 12px)', backgroundColor: 'var(--dock-success-bg)' }}>
+              <p style={{ margin: 0, fontWeight: 500, color: 'var(--dock-success-text)' }}><Icon name="check" size={12} weight="bold" style={{ verticalAlign: -2 }} /> Handshake successful — form auto-filled</p>
               {discoverState.fields?.length > 0 && (
                 <div>
-                  <p style={{ margin: 0, color: 'var(--text-secondary)' }}>Log format "{form.name || '…'} log" will be auto-created with {discoverState.fields.length} field(s):</p>
+                  <p style={{ margin: 0, color: 'var(--dock-text-secondary)' }}>Log format "{form.name || '…'} log" will be auto-created with {discoverState.fields.length} field(s):</p>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
                     {discoverState.fields.map((f, i) => (
-                      <span key={i} style={{ fontFamily: 'var(--font-mono)', padding: '2px 6px', borderRadius: 4, fontSize: 'var(--fs-micro, 10px)', backgroundColor: 'var(--surface-2)', color: 'var(--text-secondary)', border: '1px solid var(--border-default)' }}>
-                        {f.label} <span style={{ color: 'var(--text-muted)' }}>({f.type})</span>
+                      <span key={i} style={{ fontFamily: 'var(--font-mono)', padding: '2px 6px', borderRadius: 4, fontSize: 'var(--fs-micro, 10px)', backgroundColor: 'var(--dock-surface-2)', color: 'var(--dock-text-secondary)', border: '1px solid var(--dock-border-default)' }}>
+                        {f.label} <span style={{ color: 'var(--dock-text-muted)' }}>({f.type})</span>
                       </span>
                     ))}
                   </div>
                 </div>
               )}
-              {discoverState.fields?.length === 0 && <p style={{ margin: 0, color: 'var(--text-muted)' }}>No log fields declared — no format will be auto-created.</p>}
+              {discoverState.fields?.length === 0 && <p style={{ margin: 0, color: 'var(--dock-text-muted)' }}>No log fields declared — no format will be auto-created.</p>}
             </Stack>
           )}
 
           {discoverState.status === 'error' && (
-            <Stack gap={4} style={{ borderRadius: 8, border: '1px solid var(--danger-text)', padding: '8px 12px', fontSize: 'var(--fs-small, 12px)', backgroundColor: 'var(--danger-bg)' }}>
+            <Stack gap={4} style={{ borderRadius: 8, border: '1px solid var(--dock-danger-text)', padding: '8px 12px', fontSize: 'var(--fs-small, 12px)', backgroundColor: 'var(--dock-danger-bg)' }}>
               <Row justify="between" align="center">
-                <p style={{ margin: 0, fontWeight: 500, color: 'var(--danger-text)' }}><Icon name="close" size={12} weight="bold" style={{ verticalAlign: -2 }} /> Handshake failed: {discoverState.error}</p>
-                <button type="button" onClick={runDiscover} style={{ flexShrink: 0, marginLeft: 8, padding: '2px 8px', borderRadius: 4, border: '1px solid var(--border-default)', background: 'none', cursor: 'pointer', fontSize: 'var(--fs-micro, 10px)', color: 'var(--text-secondary)' }}>Retry</button>
+                <p style={{ margin: 0, fontWeight: 500, color: 'var(--dock-danger-text)' }}><Icon name="close" size={12} weight="bold" style={{ verticalAlign: -2 }} /> Handshake failed: {discoverState.error}</p>
+                <button type="button" onClick={runDiscover} style={{ flexShrink: 0, marginLeft: 8, padding: '2px 8px', borderRadius: 4, border: '1px solid var(--dock-border-default)', background: 'none', cursor: 'pointer', fontSize: 'var(--fs-micro, 10px)', color: 'var(--dock-text-secondary)' }}>Retry</button>
               </Row>
-              <p style={{ margin: 0, color: 'var(--text-muted)' }}>Fill the form manually below, or fix the endpoint and retry.</p>
+              <p style={{ margin: 0, color: 'var(--dock-text-muted)' }}>Fill the form manually below, or fix the endpoint and retry.</p>
             </Stack>
           )}
 
           {/* Paste from script — collapsible fallback */}
-          <div style={{ borderRadius: 8, borderWidth: 1, borderStyle: 'solid', borderColor: pasteOpen ? 'var(--border-focus)' : 'var(--border-default)', overflow: 'hidden' }}>
+          <div style={{ borderRadius: 8, borderWidth: 1, borderStyle: 'solid', borderColor: pasteOpen ? 'var(--dock-border-focus)' : 'var(--dock-border-default)', overflow: 'hidden' }}>
             <button type="button" onClick={() => setPasteOpen(v => !v)}
-              style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', fontSize: 'var(--fs-small, 12px)', fontWeight: 500, cursor: 'pointer', border: 'none', backgroundColor: 'var(--surface-2)', color: 'var(--text-secondary)' }}>
+              style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', fontSize: 'var(--fs-small, 12px)', fontWeight: 500, cursor: 'pointer', border: 'none', backgroundColor: 'var(--dock-surface-2)', color: 'var(--dock-text-secondary)' }}>
               <span>📋 또는 스크립트 출력 붙여넣기 (elog_service_setup.sh)</span>
-              <span style={{ color: 'var(--text-muted)' }}>{pasteOpen ? '▲' : '▼'}</span>
+              <span style={{ color: 'var(--dock-text-muted)' }}>{pasteOpen ? '▲' : '▼'}</span>
             </button>
             {pasteOpen && (
-              <Stack gap={8} style={{ padding: 12, borderTop: '1px solid var(--border-default)' }}>
+              <Stack gap={8} style={{ padding: 12, borderTop: '1px solid var(--dock-border-default)' }}>
                 <textarea value={pasteText} onChange={e => setPasteText(e.target.value)} rows={5}
                   placeholder={`# elog-registration\nname: My Service\nhostname: myserver.local\ndirectory: /opt/myservice\nis_system: false\nrequest_url: http://myserver.local:8765/webhook`}
-                  style={{ ...inputBase, width: '100%', fontSize: 'var(--fs-tiny, 11px)', fontFamily: 'var(--font-mono)', border: '1px solid var(--border-default)', borderRadius: 8, padding: '6px 8px', resize: 'none', outline: 'none', boxSizing: 'border-box' }} />
+                  style={{ ...inputBase, width: '100%', fontSize: 'var(--fs-tiny, 11px)', fontFamily: 'var(--font-mono)', border: '1px solid var(--dock-border-default)', borderRadius: 8, padding: '6px 8px', resize: 'none', outline: 'none', boxSizing: 'border-box' }} />
                 <Row gap={8}>
                   <Button type="button" disabled={!pasteText.trim()} onClick={applyPaste} style={{ flex: 1 }}>필드 채우기</Button>
                   <Button type="button" variant="secondary" onClick={() => { setPasteOpen(false); setPasteText('') }}>취소</Button>
@@ -404,14 +404,14 @@ function ServiceForm({ initial, formats, onSave, onCancel, busy, t, isManager, h
       <Stack gap={6}>
         <Row gap={8}>
           <input id="svc-system" type="checkbox" checked={form.is_system} onChange={e => setIsSystem(e.target.checked)} />
-          <label htmlFor="svc-system" style={{ fontSize: 'var(--fs-body, 13px)', fontWeight: 500, color: 'var(--text-secondary)' }}>{t('exp_field_subsystem')}</label>
+          <label htmlFor="svc-system" style={{ fontSize: 'var(--fs-body, 13px)', fontWeight: 500, color: 'var(--dock-text-secondary)' }}>{t('exp_field_subsystem')}</label>
         </Row>
         {form.is_system && (
           <Row gap={8} style={{ marginLeft: 20 }}>
             <input id="svc-main-system" type="checkbox" checked={form.is_main_system} disabled={!form.is_main_system && hasMainSystem} onChange={e => set('is_main_system', e.target.checked)} />
-            <label htmlFor="svc-main-system" style={{ fontSize: 'var(--fs-body, 13px)', color: (!form.is_main_system && hasMainSystem) ? 'var(--text-muted)' : 'var(--text-secondary)', cursor: (!form.is_main_system && hasMainSystem) ? 'not-allowed' : 'pointer' }}>
+            <label htmlFor="svc-main-system" style={{ fontSize: 'var(--fs-body, 13px)', color: (!form.is_main_system && hasMainSystem) ? 'var(--dock-text-muted)' : 'var(--dock-text-secondary)', cursor: (!form.is_main_system && hasMainSystem) ? 'not-allowed' : 'pointer' }}>
               Main system
-              {!form.is_main_system && hasMainSystem && <span style={{ marginLeft: 8, fontSize: 'var(--fs-small, 12px)', color: 'var(--text-muted)' }}>(메인 시스템이 이미 등록되어 있음)</span>}
+              {!form.is_main_system && hasMainSystem && <span style={{ marginLeft: 8, fontSize: 'var(--fs-small, 12px)', color: 'var(--dock-text-muted)' }}>(메인 시스템이 이미 등록되어 있음)</span>}
             </label>
           </Row>
         )}
@@ -440,7 +440,7 @@ function ServiceForm({ initial, formats, onSave, onCancel, busy, t, isManager, h
                  ? 'http://myserver.local:8080/command-endpoint'
                  : 'http://myserver.local:8080/your-webhook-endpoint'}
                style={fieldInputStyle} />
-        <p style={{ margin: '4px 0 0', fontSize: 'var(--fs-tiny, 11px)', color: 'var(--text-muted)' }}>
+        <p style={{ margin: '4px 0 0', fontSize: 'var(--fs-tiny, 11px)', color: 'var(--dock-text-muted)' }}>
           {form.is_system ? 'elog이 이 시스템에 run 시작/중지 명령을 보낼 때 사용' : 'elog이 이 서비스에 데이터를 요청할 때 사용'}
         </p>
         {/* Connection test — just pings the URL (server-side) to confirm it's alive. */}
@@ -448,28 +448,28 @@ function ServiceForm({ initial, formats, onSave, onCancel, busy, t, isManager, h
           <button type="button" onClick={testConnection}
             disabled={!form.request_url.trim() || testState.status === 'loading'}
             style={{ fontSize: 'var(--fs-small, 12px)', padding: '5px 12px', borderRadius: 6, fontWeight: 500,
-              border: '1px solid var(--border-default)', background: 'var(--surface-2)', cursor: 'pointer',
-              opacity: (!form.request_url.trim() || testState.status === 'loading') ? 0.5 : 1, color: 'var(--text-secondary)' }}>
+              border: '1px solid var(--dock-border-default)', background: 'var(--dock-surface-2)', cursor: 'pointer',
+              opacity: (!form.request_url.trim() || testState.status === 'loading') ? 0.5 : 1, color: 'var(--dock-text-secondary)' }}>
             {testState.status === 'loading' ? '테스트 중…' : '연결 테스트'}
           </button>
           {initial?.id && (
             <button type="button" onClick={doRehandshake} disabled={rehandshake.busy || !form.request_url.trim()}
               title="서비스에 다시 물어보고, 바뀐 필드 목록을 포맷에 반영합니다"
               style={{ fontSize: 'var(--fs-small, 12px)', padding: '5px 12px', borderRadius: 6, fontWeight: 500,
-                border: '1px solid var(--border-default)', background: 'var(--surface-2)', cursor: 'pointer',
-                opacity: (rehandshake.busy || !form.request_url.trim()) ? 0.5 : 1, color: 'var(--text-secondary)' }}>
+                border: '1px solid var(--dock-border-default)', background: 'var(--dock-surface-2)', cursor: 'pointer',
+                opacity: (rehandshake.busy || !form.request_url.trim()) ? 0.5 : 1, color: 'var(--dock-text-secondary)' }}>
               {rehandshake.busy ? '확인 중…' : '핸드셰이크 다시'}
             </button>
           )}
           {testState.status === 'ok' && (
-            <span style={{ fontSize: 'var(--fs-small, 12px)', color: 'var(--success-text)' }}>
+            <span style={{ fontSize: 'var(--fs-small, 12px)', color: 'var(--dock-success-text)' }}>
               <Icon name="check" size={12} weight="bold" style={{ verticalAlign: -2 }} /> 연결됨
               {testState.result?.status ? ` · HTTP ${testState.result.status}` : ''}
               {testState.result?.ms != null ? ` · ${testState.result.ms}ms` : ''}
             </span>
           )}
           {testState.status === 'err' && (
-            <span style={{ fontSize: 'var(--fs-small, 12px)', color: 'var(--danger-text)' }}>
+            <span style={{ fontSize: 'var(--fs-small, 12px)', color: 'var(--dock-danger-text)' }}>
               <Icon name="close" size={12} weight="bold" style={{ verticalAlign: -2 }} /> 연결 실패
               {testState.result?.error ? ` · ${testState.result.error}` : ''}
             </span>
@@ -477,7 +477,7 @@ function ServiceForm({ initial, formats, onSave, onCancel, busy, t, isManager, h
         </Row>
         {rehandshake.result && (
           <p style={{ margin: '6px 0 0', fontSize: 'var(--fs-small, 12px)',
-                      color: rehandshake.result.ok ? 'var(--text-secondary)' : 'var(--danger-text)' }}>
+                      color: rehandshake.result.ok ? 'var(--dock-text-secondary)' : 'var(--dock-danger-text)' }}>
             {!rehandshake.result.ok
               ? <><Icon name="close" size={12} weight="bold" style={{ verticalAlign: -2 }} /> {rehandshake.result.error}</>
               : rehandshake.result.changed
@@ -493,40 +493,40 @@ function ServiceForm({ initial, formats, onSave, onCancel, busy, t, isManager, h
 
       {/* 신규 시스템: 등록 시 token 자동발급 + credentials 자동전송 안내 */}
       {form.is_system && isManager && !isEdit && (
-        <p style={{ margin: 0, fontSize: 'var(--fs-small, 12px)', padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border-default)', color: 'var(--text-muted)', backgroundColor: 'var(--surface-2)' }}>
+        <p style={{ margin: 0, fontSize: 'var(--fs-small, 12px)', padding: '8px 12px', borderRadius: 8, border: '1px solid var(--dock-border-default)', color: 'var(--dock-text-muted)', backgroundColor: 'var(--dock-surface-2)' }}>
           🔑 등록 시 API Token이 자동으로 발급되고, Command URL이 있으면 credentials가 자동 전송됩니다.
         </p>
       )}
 
       {/* ── API Token + elog config (시스템 편집 시만 표시, 신규 등록은 자동) ── */}
       {form.is_system && isManager && isEdit && (
-        <Stack gap={8} style={{ borderRadius: 8, border: '1px solid var(--border-default)', padding: 12, backgroundColor: 'var(--surface-2)' }}>
+        <Stack gap={8} style={{ borderRadius: 8, border: '1px solid var(--dock-border-default)', padding: 12, backgroundColor: 'var(--dock-surface-2)' }}>
           <Row justify="between" align="center">
-            <span style={{ fontSize: 'var(--fs-small, 12px)', fontWeight: 500, color: 'var(--text-secondary)' }}>API Token {req}</span>
+            <span style={{ fontSize: 'var(--fs-small, 12px)', fontWeight: 500, color: 'var(--dock-text-secondary)' }}>API Token {req}</span>
             <button type="button" onClick={generateToken} disabled={tokenState.loading}
-              style={{ fontSize: 'var(--fs-small, 12px)', padding: '4px 10px', borderRadius: 4, fontWeight: 500, border: '1px solid var(--border-default)', background: 'none', cursor: 'pointer', opacity: tokenState.loading ? 0.5 : 1, color: 'var(--text-secondary)' }}>
+              style={{ fontSize: 'var(--fs-small, 12px)', padding: '4px 10px', borderRadius: 4, fontWeight: 500, border: '1px solid var(--dock-border-default)', background: 'none', cursor: 'pointer', opacity: tokenState.loading ? 0.5 : 1, color: 'var(--dock-text-secondary)' }}>
               {tokenState.loading ? '...' : tokenState.token ? 'Regenerate' : 'Generate Token'}
             </button>
           </Row>
 
           {tokenState.token ? (
             <>
-              <div style={{ borderRadius: 4, border: '1px solid var(--border-default)', overflow: 'hidden' }}>
-                <Row justify="between" align="center" style={{ padding: '4px 8px', borderBottom: '1px solid var(--border-default)', backgroundColor: 'var(--surface-3)' }}>
-                  <span style={{ fontSize: 'var(--fs-micro, 10px)', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>system config</span>
-                  <button type="button" onClick={copyConfig} style={{ fontSize: 'var(--fs-micro, 10px)', padding: '2px 8px', borderRadius: 4, border: '1px solid var(--border-default)', background: 'none', cursor: 'pointer', color: tokenState.copiedConfig ? 'var(--success-text)' : 'var(--text-secondary)' }}>
+              <div style={{ borderRadius: 4, border: '1px solid var(--dock-border-default)', overflow: 'hidden' }}>
+                <Row justify="between" align="center" style={{ padding: '4px 8px', borderBottom: '1px solid var(--dock-border-default)', backgroundColor: 'var(--dock-surface-3)' }}>
+                  <span style={{ fontSize: 'var(--fs-micro, 10px)', fontFamily: 'var(--font-mono)', color: 'var(--dock-text-muted)' }}>system config</span>
+                  <button type="button" onClick={copyConfig} style={{ fontSize: 'var(--fs-micro, 10px)', padding: '2px 8px', borderRadius: 4, border: '1px solid var(--dock-border-default)', background: 'none', cursor: 'pointer', color: tokenState.copiedConfig ? 'var(--dock-success-text)' : 'var(--dock-text-secondary)' }}>
                     {tokenState.copiedConfig ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Icon name="check" size={12} weight="bold" /> Copied</span> : 'Copy config'}
                   </button>
                 </Row>
-                <pre style={{ margin: 0, fontSize: 'var(--fs-tiny, 11px)', fontFamily: 'var(--font-mono)', padding: '8px 12px', lineHeight: 1.6, backgroundColor: 'var(--surface)', color: 'var(--text-primary)' }}>
+                <pre style={{ margin: 0, fontSize: 'var(--fs-tiny, 11px)', fontFamily: 'var(--font-mono)', padding: '8px 12px', lineHeight: 1.6, backgroundColor: 'var(--dock-surface)', color: 'var(--dock-text-primary)' }}>
 {`ELOG_URL   = "${origin}"
 ELOG_TOKEN = "${tokenState.token}"`}
                 </pre>
               </div>
               <Row gap={8} align="center">
-                <span style={{ fontSize: 'var(--fs-micro, 10px)', flex: 1, color: 'var(--text-muted)' }}>Token only:</span>
-                <code style={{ fontSize: 'var(--fs-tiny, 11px)', fontFamily: 'var(--font-mono)', padding: '4px 8px', borderRadius: 4, border: '1px solid var(--border-default)', flexShrink: 1, minWidth: 0, overflowX: 'auto', backgroundColor: 'var(--surface)', color: 'var(--text-primary)' }}>{tokenState.token}</code>
-                <button type="button" onClick={copyToken} style={{ flexShrink: 0, fontSize: 'var(--fs-small, 12px)', padding: '4px 8px', borderRadius: 4, border: '1px solid var(--border-default)', background: 'none', cursor: 'pointer', color: tokenState.copiedToken ? 'var(--success-text)' : 'var(--text-secondary)' }}>
+                <span style={{ fontSize: 'var(--fs-micro, 10px)', flex: 1, color: 'var(--dock-text-muted)' }}>Token only:</span>
+                <code style={{ fontSize: 'var(--fs-tiny, 11px)', fontFamily: 'var(--font-mono)', padding: '4px 8px', borderRadius: 4, border: '1px solid var(--dock-border-default)', flexShrink: 1, minWidth: 0, overflowX: 'auto', backgroundColor: 'var(--dock-surface)', color: 'var(--dock-text-primary)' }}>{tokenState.token}</code>
+                <button type="button" onClick={copyToken} style={{ flexShrink: 0, fontSize: 'var(--fs-small, 12px)', padding: '4px 8px', borderRadius: 4, border: '1px solid var(--dock-border-default)', background: 'none', cursor: 'pointer', color: tokenState.copiedToken ? 'var(--dock-success-text)' : 'var(--dock-text-secondary)' }}>
                   {tokenState.copiedToken ? <Icon name="check" size={12} weight="bold" /> : 'Copy'}
                 </button>
               </Row>
@@ -534,20 +534,20 @@ ELOG_TOKEN = "${tokenState.token}"`}
                 <Row gap={8} align="center">
                   <button type="button" onClick={sendCredentials} disabled={tokenState.sending}
                     style={{ fontSize: 'var(--fs-small, 12px)', padding: '4px 10px', borderRadius: 4, background: 'none', cursor: 'pointer', opacity: tokenState.sending ? 0.5 : 1,
-                      borderWidth: 1, borderStyle: 'solid', borderColor: tokenState.sendResult === 'ok' ? 'var(--success-text)' : tokenState.sendResult === 'err' ? 'var(--danger-text)' : 'var(--border-default)',
-                      color: tokenState.sendResult === 'ok' ? 'var(--success-text)' : tokenState.sendResult === 'err' ? 'var(--danger-text)' : 'var(--text-secondary)' }}>
+                      borderWidth: 1, borderStyle: 'solid', borderColor: tokenState.sendResult === 'ok' ? 'var(--dock-success-text)' : tokenState.sendResult === 'err' ? 'var(--dock-danger-text)' : 'var(--dock-border-default)',
+                      color: tokenState.sendResult === 'ok' ? 'var(--dock-success-text)' : tokenState.sendResult === 'err' ? 'var(--dock-danger-text)' : 'var(--dock-text-secondary)' }}>
                     {tokenState.sending ? '전송 중...'
                       : tokenState.sendResult === 'ok' ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Icon name="check" size={12} weight="bold" /> 전송됨</span>
                       : tokenState.sendResult === 'err' ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Icon name="close" size={12} weight="bold" /> 전송 실패</span>
                       : `Send credentials → ${form.request_url}`}
                   </button>
-                  <span style={{ fontSize: 'var(--fs-micro, 10px)', color: 'var(--text-muted)' }}>Command URL로 ELOG_URL + ELOG_TOKEN 전송</span>
+                  <span style={{ fontSize: 'var(--fs-micro, 10px)', color: 'var(--dock-text-muted)' }}>Command URL로 ELOG_URL + ELOG_TOKEN 전송</span>
                 </Row>
               )}
-              <p style={{ margin: 0, fontSize: 'var(--fs-micro, 10px)', color: 'var(--text-muted)' }}><Icon name="warning" weight="fill" size={12} style={{ verticalAlign: -2 }} /> 지금 복사해두세요 — 이 폼을 닫으면 token을 다시 확인할 수 없습니다.</p>
+              <p style={{ margin: 0, fontSize: 'var(--fs-micro, 10px)', color: 'var(--dock-text-muted)' }}><Icon name="warning" weight="fill" size={12} style={{ verticalAlign: -2 }} /> 지금 복사해두세요 — 이 폼을 닫으면 token을 다시 확인할 수 없습니다.</p>
             </>
           ) : (
-            <p style={{ margin: 0, fontSize: 'var(--fs-small, 12px)', color: 'var(--text-muted)' }}>시스템은 API token으로 elog에 로그를 push합니다. 발급하면 elog 서버 주소와 함께 복사할 수 있습니다.</p>
+            <p style={{ margin: 0, fontSize: 'var(--fs-small, 12px)', color: 'var(--dock-text-muted)' }}>시스템은 API token으로 elog에 로그를 push합니다. 발급하면 elog 서버 주소와 함께 복사할 수 있습니다.</p>
           )}
         </Stack>
       )}
@@ -576,7 +576,7 @@ ELOG_TOKEN = "${tokenState.token}"`}
       <Stack gap={8}>
         <Row gap={8}>
           <input id="svc-req-required" type="checkbox" checked={form.request_required} onChange={e => set('request_required', e.target.checked)} />
-          <label htmlFor="svc-req-required" style={{ fontSize: 'var(--fs-body, 13px)', color: 'var(--text-secondary)' }}>Periodic request required</label>
+          <label htmlFor="svc-req-required" style={{ fontSize: 'var(--fs-body, 13px)', color: 'var(--dock-text-secondary)' }}>Periodic request required</label>
         </Row>
         {form.request_required && (
           <div>
@@ -589,16 +589,16 @@ ELOG_TOKEN = "${tokenState.token}"`}
       <div>
         <label style={fieldLabelStyle}>{t('exp_field_formats')}</label>
         {visibleFormats.length === 0 ? (
-          <p style={{ margin: 0, fontSize: 'var(--fs-small, 12px)', color: 'var(--text-muted)' }}>{t('exp_no_formats')}</p>
+          <p style={{ margin: 0, fontSize: 'var(--fs-small, 12px)', color: 'var(--dock-text-muted)' }}>{t('exp_no_formats')}</p>
         ) : (
-          <Stack gap={4} style={{ maxHeight: 160, overflowY: 'auto', border: '1px solid var(--border-default)', borderRadius: 8, padding: 8 }}>
+          <Stack gap={4} style={{ maxHeight: 160, overflowY: 'auto', border: '1px solid var(--dock-border-default)', borderRadius: 8, padding: 8 }}>
             {visibleFormats.map(f => (
               <label key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 'var(--fs-small, 12px)', cursor: 'pointer' }}>
                 <input type="checkbox" checked={form.format_ids.includes(f.id)} onChange={() => toggleFormat(f.id)} />
-                <span style={{ color: 'var(--text-primary)' }}>{f.name}</span>
-                <span style={{ fontSize: 'var(--fs-micro, 10px)', padding: '2px 4px', borderRadius: 4, fontFamily: 'var(--font-mono)', backgroundColor: f.format_type === 'system' ? 'var(--info-bg)' : 'var(--surface-2)', color: f.format_type === 'system' ? 'var(--info-text)' : 'var(--text-secondary)' }}>{f.format_type || 'user'}</span>
-                {f.task_type && <span style={{ fontSize: 'var(--fs-micro, 10px)', padding: '2px 4px', borderRadius: 4, fontFamily: 'var(--font-mono)', backgroundColor: 'var(--warning-bg)', color: 'var(--warning-text)' }}>{f.task_type.replace(/_/g, ' ')}</span>}
-                {(f.system_id || f.subsystem_id) && <span title="이 포멧은 system 서비스 등록 시 자동 생성됨" style={{ fontSize: 'var(--fs-micro, 10px)', padding: '2px 4px', borderRadius: 4, backgroundColor: 'var(--surface-3)', color: 'var(--text-muted)' }}>auto</span>}
+                <span style={{ color: 'var(--dock-text-primary)' }}>{f.name}</span>
+                <span style={{ fontSize: 'var(--fs-micro, 10px)', padding: '2px 4px', borderRadius: 4, fontFamily: 'var(--font-mono)', backgroundColor: f.format_type === 'system' ? 'var(--dock-info-bg)' : 'var(--dock-surface-2)', color: f.format_type === 'system' ? 'var(--dock-info-text)' : 'var(--dock-text-secondary)' }}>{f.format_type || 'user'}</span>
+                {f.task_type && <span style={{ fontSize: 'var(--fs-micro, 10px)', padding: '2px 4px', borderRadius: 4, fontFamily: 'var(--font-mono)', backgroundColor: 'var(--dock-warning-bg)', color: 'var(--dock-warning-text)' }}>{f.task_type.replace(/_/g, ' ')}</span>}
+                {(f.system_id || f.subsystem_id) && <span title="이 포멧은 system 서비스 등록 시 자동 생성됨" style={{ fontSize: 'var(--fs-micro, 10px)', padding: '2px 4px', borderRadius: 4, backgroundColor: 'var(--dock-surface-3)', color: 'var(--dock-text-muted)' }}>auto</span>}
               </label>
             ))}
           </Stack>
@@ -675,39 +675,39 @@ function ModuleRow({ mod, busy, intervalVal, onIntervalChange, onIntervalSave, o
   )
 
   return (
-    <div style={{ borderWidth: 1, borderStyle: 'solid', borderColor: open ? 'var(--border-focus)' : 'var(--border-default)', borderRadius: 12, overflow: 'hidden' }}>
+    <div style={{ borderWidth: 1, borderStyle: 'solid', borderColor: open ? 'var(--dock-border-focus)' : 'var(--dock-border-default)', borderRadius: 12, overflow: 'hidden' }}>
       {/* Header row */}
       <div style={{ display: 'flex', alignItems: 'stretch' }}>
         <button type="button" onClick={() => setOpen(o => !o)}
-          style={{ flex: 1, textAlign: 'left', padding: 12, cursor: 'pointer', background: 'var(--surface-2)', border: 'none' }}
-          onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-3)'} onMouseLeave={e => e.currentTarget.style.background = 'var(--surface-2)'}>
+          style={{ flex: 1, textAlign: 'left', padding: 12, cursor: 'pointer', background: 'var(--dock-surface-2)', border: 'none' }}
+          onMouseEnter={e => e.currentTarget.style.background = 'var(--dock-surface-3)'} onMouseLeave={e => e.currentTarget.style.background = 'var(--dock-surface-2)'}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Icon name={open ? 'caret-down' : 'caret-right'} size={12} style={{ color: 'var(--text-muted)' }} />
-            <span style={{ fontSize: 'var(--fs-micro, 10px)', fontFamily: 'var(--font-mono)', padding: '1px 6px', borderRadius: 4, textTransform: 'uppercase', backgroundColor: 'var(--surface-3)', color: 'var(--text-muted)' }}>module</span>
-            <span style={{ fontSize: 'var(--fs-medium, 14px)', fontWeight: 500, color: 'var(--text-primary)' }}>{mod.name}</span>
+            <Icon name={open ? 'caret-down' : 'caret-right'} size={12} style={{ color: 'var(--dock-text-muted)' }} />
+            <span style={{ fontSize: 'var(--fs-micro, 10px)', fontFamily: 'var(--font-mono)', padding: '1px 6px', borderRadius: 4, textTransform: 'uppercase', backgroundColor: 'var(--dock-surface-3)', color: 'var(--dock-text-muted)' }}>module</span>
+            <span style={{ fontSize: 'var(--fs-medium, 14px)', fontWeight: 500, color: 'var(--dock-text-primary)' }}>{mod.name}</span>
             {liveActive && <Badge tone="success" mono dot>LIVE</Badge>}
           </div>
         </button>
         <button onClick={() => onToggle()} disabled={busy} title={mod.enabled ? 'Disable' : 'Enable'}
-          style={{ flexShrink: 0, padding: '0 14px', cursor: 'pointer', fontSize: 'var(--fs-small, 12px)', fontFamily: 'var(--font-mono)', borderTop: 'none', borderRight: 'none', borderBottom: 'none', borderLeft: '1px solid var(--border-default)', opacity: busy ? 0.5 : 1,
-            ...(mod.enabled ? { backgroundColor: 'var(--success-bg)', color: 'var(--success-text)' } : { backgroundColor: 'var(--surface-2)', color: 'var(--text-muted)' }) }}>
+          style={{ flexShrink: 0, padding: '0 14px', cursor: 'pointer', fontSize: 'var(--fs-small, 12px)', fontFamily: 'var(--font-mono)', borderTop: 'none', borderRight: 'none', borderBottom: 'none', borderLeft: '1px solid var(--dock-border-default)', opacity: busy ? 0.5 : 1,
+            ...(mod.enabled ? { backgroundColor: 'var(--dock-success-bg)', color: 'var(--dock-success-text)' } : { backgroundColor: 'var(--dock-surface-2)', color: 'var(--dock-text-muted)' }) }}>
           {busy ? '…' : mod.enabled ? 'ON' : 'OFF'}
         </button>
       </div>
 
       {/* Expanded detail */}
       {open && (
-        <Stack gap={12} style={{ padding: 16, borderTop: '1px solid var(--border-subtle)', backgroundColor: 'var(--surface)' }}>
-          <p style={{ margin: 0, fontSize: 'var(--fs-small, 12px)', color: 'var(--text-secondary)' }}>{mod.description}</p>
+        <Stack gap={12} style={{ padding: 16, borderTop: '1px solid var(--dock-border-subtle)', backgroundColor: 'var(--dock-surface)' }}>
+          <p style={{ margin: 0, fontSize: 'var(--fs-small, 12px)', color: 'var(--dock-text-secondary)' }}>{mod.description}</p>
 
-          <dl style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', rowGap: 6, fontSize: 'var(--fs-small, 12px)', color: 'var(--text-secondary)', margin: 0 }}>
+          <dl style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', rowGap: 6, fontSize: 'var(--fs-small, 12px)', color: 'var(--dock-text-secondary)', margin: 0 }}>
             <dt>Interval</dt>
             <dd style={{ margin: 0 }}>
               {isManager ? (
                 <input type="number" min="5" value={intervalVal}
                   onChange={e => onIntervalChange(Number(e.target.value))}
                   onBlur={e => onIntervalSave(parseInt(e.target.value))}
-                  style={{ width: 80, border: '1px solid var(--border-default)', borderRadius: 6, padding: '2px 8px', fontSize: 'var(--fs-small, 12px)', backgroundColor: 'var(--surface-2)', color: 'var(--text-primary)', outline: 'none' }} />
+                  style={{ width: 80, border: '1px solid var(--dock-border-default)', borderRadius: 6, padding: '2px 8px', fontSize: 'var(--fs-small, 12px)', backgroundColor: 'var(--dock-surface-2)', color: 'var(--dock-text-primary)', outline: 'none' }} />
               ) : <span>{mod.interval_sec} s</span>}
             </dd>
             <dt>Last request</dt><dd style={{ margin: 0 }}>{mod.last_run_at ? formatLogStamp(mod.last_run_at) : '—'}</dd>
@@ -716,9 +716,9 @@ function ModuleRow({ mod, busy, intervalVal, onIntervalChange, onIntervalSave, o
 
           {/* Live value + graph */}
           {liveActive && (
-            <Stack gap={8} style={{ borderRadius: 8, border: '1px solid var(--success-text)', padding: 12, backgroundColor: 'var(--success-bg)' }}>
-              {liveData ? bigNumbers(liveData, 'var(--success-text)', 3)
-                : <span style={{ fontSize: 'var(--fs-small, 12px)', color: 'var(--success-text)' }}>측정 중…</span>}
+            <Stack gap={8} style={{ borderRadius: 8, border: '1px solid var(--dock-success-text)', padding: 12, backgroundColor: 'var(--dock-success-bg)' }}>
+              {liveData ? bigNumbers(liveData, 'var(--dock-success-text)', 3)
+                : <span style={{ fontSize: 'var(--fs-small, 12px)', color: 'var(--dock-success-text)' }}>측정 중…</span>}
               {history.length > 1 && liveData && (() => {
                 const numericKeys = Object.keys(liveData).filter(k => { const v = liveData[k]; return typeof v === 'number' || (typeof v === 'object' && v?.value != null) })
                 if (!numericKeys.length) return null
@@ -727,12 +727,12 @@ function ModuleRow({ mod, busy, intervalVal, onIntervalChange, onIntervalSave, o
                 return (
                   <ResponsiveContainer width="100%" height={120}>
                     <LineChart data={chartData} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
-                      <XAxis dataKey="s" tick={{ fontSize: 'var(--fs-micro, 10px)', fill: 'var(--success-text)', opacity: 0.6 }} tickLine={false} axisLine={false} interval="preserveStartEnd"
-                        label={{ value: 's', position: 'insideRight', fontSize: 'var(--fs-micro, 10px)', fill: 'var(--success-text)', opacity: 0.5 }} />
-                      <YAxis tick={{ fontSize: 'var(--fs-micro, 10px)', fill: 'var(--success-text)', opacity: 0.6 }} tickLine={false} axisLine={false} width={40} />
-                      <Tooltip contentStyle={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border-default)', borderRadius: 6, fontSize: 'var(--fs-tiny, 11px)' }} labelFormatter={v => `${v}s`} />
+                      <XAxis dataKey="s" tick={{ fontSize: 'var(--fs-micro, 10px)', fill: 'var(--dock-success-text)', opacity: 0.6 }} tickLine={false} axisLine={false} interval="preserveStartEnd"
+                        label={{ value: 's', position: 'insideRight', fontSize: 'var(--fs-micro, 10px)', fill: 'var(--dock-success-text)', opacity: 0.5 }} />
+                      <YAxis tick={{ fontSize: 'var(--fs-micro, 10px)', fill: 'var(--dock-success-text)', opacity: 0.6 }} tickLine={false} axisLine={false} width={40} />
+                      <Tooltip contentStyle={{ backgroundColor: 'var(--dock-surface)', border: '1px solid var(--dock-border-default)', borderRadius: 6, fontSize: 'var(--fs-tiny, 11px)' }} labelFormatter={v => `${v}s`} />
                       {numericKeys.map((k, i) => (
-                        <Line key={k} type="monotone" dataKey={k} stroke={i === 0 ? 'var(--success-text)' : 'var(--info-text)'} strokeWidth={1.5} dot={false} isAnimationActive={false} />
+                        <Line key={k} type="monotone" dataKey={k} stroke={i === 0 ? 'var(--dock-success-text)' : 'var(--dock-info-text)'} strokeWidth={1.5} dot={false} isAnimationActive={false} />
                       ))}
                     </LineChart>
                   </ResponsiveContainer>
@@ -743,8 +743,8 @@ function ModuleRow({ mod, busy, intervalVal, onIntervalChange, onIntervalSave, o
 
           {/* One-shot result */}
           {liveData && !liveActive && (
-            <div style={{ borderRadius: 8, border: '1px solid var(--border-default)', padding: '8px 16px', backgroundColor: 'var(--surface-2)' }}>
-              {bigNumbers(liveData, 'var(--text-primary)', 2)}
+            <div style={{ borderRadius: 8, border: '1px solid var(--dock-border-default)', padding: '8px 16px', backgroundColor: 'var(--dock-surface-2)' }}>
+              {bigNumbers(liveData, 'var(--dock-text-primary)', 2)}
             </div>
           )}
 
@@ -756,13 +756,13 @@ function ModuleRow({ mod, busy, intervalVal, onIntervalChange, onIntervalSave, o
           </Row>
 
           {logResult && (
-            <div style={{ fontSize: 'var(--fs-small, 12px)', padding: '6px 12px', borderRadius: 6, border: '1px solid var(--success-text)', backgroundColor: 'var(--success-bg)', color: 'var(--success-text)', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ fontSize: 'var(--fs-small, 12px)', padding: '6px 12px', borderRadius: 6, border: '1px solid var(--dock-success-text)', backgroundColor: 'var(--dock-success-bg)', color: 'var(--dock-success-text)', display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Icon name="check" size={12} weight="bold" /> Log #{logResult.log_index} created</span>
               <button onClick={() => onOpenLog(logResult.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', opacity: 0.8, color: 'inherit' }}>view</button>
             </div>
           )}
           {liveError && (
-            <div style={{ fontSize: 'var(--fs-small, 12px)', padding: '6px 12px', borderRadius: 6, border: '1px solid var(--danger-text)', backgroundColor: 'var(--danger-bg)', color: 'var(--danger-text)' }}>{liveError}</div>
+            <div style={{ fontSize: 'var(--fs-small, 12px)', padding: '6px 12px', borderRadius: 6, border: '1px solid var(--dock-danger-text)', backgroundColor: 'var(--dock-danger-bg)', color: 'var(--dock-danger-text)' }}>{liveError}</div>
           )}
         </Stack>
       )}
@@ -773,10 +773,10 @@ function ModuleRow({ mod, busy, intervalVal, onIntervalChange, onIntervalSave, o
 // ── Service row (collapsed list item) ────────────────────────────────────────
 function ServiceRow({ svc, onOpen, isOpen, onToggleActive, t }) {
   const typeBadge = svc.is_main_system
-    ? { label: 'MAIN', style: { backgroundColor: 'var(--border-focus)', color: '#fff' } }
+    ? { label: 'MAIN', style: { backgroundColor: 'var(--dock-border-focus)', color: '#fff' } }
     : (svc.is_system || svc.is_subsystem)
-      ? { label: 'system', style: { backgroundColor: 'var(--warning-bg)', color: 'var(--warning-text)' } }
-      : { label: 'service', style: { backgroundColor: 'var(--info-bg)', color: 'var(--info-text)' } }
+      ? { label: 'system', style: { backgroundColor: 'var(--dock-warning-bg)', color: 'var(--dock-warning-text)' } }
+      : { label: 'service', style: { backgroundColor: 'var(--dock-info-bg)', color: 'var(--dock-info-text)' } }
   return (
     <div style={{ display: 'flex', alignItems: 'stretch' }}>
       <button onClick={() => onOpen(svc.id)}
@@ -785,18 +785,18 @@ function ServiceRow({ svc, onOpen, isOpen, onToggleActive, t }) {
         // already sets it, but that is useless while the chain is broken HERE — one
         // long unbreakable path or URL below stretched this button, and the whole
         // card with it, instead of being truncated.
-        style={{ flex: 1, minWidth: 0, textAlign: 'left', cursor: 'pointer', padding: 12, background: 'var(--surface)', color: 'var(--text-primary)',
-          borderWidth: 1, borderStyle: 'solid', borderColor: isOpen ? 'var(--border-focus)' : 'var(--border-default)', borderRightWidth: 0, borderRadius: '12px 0 0 12px',
-          boxShadow: isOpen ? '0 0 0 1px var(--border-focus)' : undefined }}>
+        style={{ flex: 1, minWidth: 0, textAlign: 'left', cursor: 'pointer', padding: 12, background: 'var(--dock-surface)', color: 'var(--dock-text-primary)',
+          borderWidth: 1, borderStyle: 'solid', borderColor: isOpen ? 'var(--dock-border-focus)' : 'var(--dock-border-default)', borderRightWidth: 0, borderRadius: '12px 0 0 12px',
+          boxShadow: isOpen ? '0 0 0 1px var(--dock-border-focus)' : undefined }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
           <span style={{ fontSize: 'var(--fs-micro, 10px)', fontFamily: 'var(--font-mono)', padding: '1px 6px', borderRadius: 4, flexShrink: 0, textTransform: 'uppercase', ...typeBadge.style }}>{typeBadge.label}</span>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
-              <span style={{ fontWeight: 600, fontSize: 'var(--fs-medium, 14px)', color: 'var(--text-primary)' }}>{svc.name}</span>
+              <span style={{ fontWeight: 600, fontSize: 'var(--fs-medium, 14px)', color: 'var(--dock-text-primary)' }}>{svc.name}</span>
               {svc.realtime_enabled && <Badge tone="success" mono>{t('exp_realtime')}</Badge>}
             </div>
-            {svc.description && <p title={svc.description} style={{ margin: '2px 0 0', fontSize: 'var(--fs-small, 12px)', color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{svc.description}</p>}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 'var(--fs-tiny, 11px)', marginTop: 4, flexWrap: 'wrap', color: 'var(--text-muted)' }}>
+            {svc.description && <p title={svc.description} style={{ margin: '2px 0 0', fontSize: 'var(--fs-small, 12px)', color: 'var(--dock-text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{svc.description}</p>}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 'var(--fs-tiny, 11px)', marginTop: 4, flexWrap: 'wrap', color: 'var(--dock-text-muted)' }}>
               {(svc.hostname || svc.ip) && <span>📡 {svc.hostname || svc.ip}</span>}
               {/* A directory list can be hundreds of characters with no space in it.
                   The row is a glance; the full value is in the opened panel below. */}
@@ -809,8 +809,8 @@ function ServiceRow({ svc, onOpen, isOpen, onToggleActive, t }) {
       <button onClick={e => { e.stopPropagation(); onToggleActive(svc) }} title={svc.is_active ? 'Disable' : 'Enable'}
         style={{ flexShrink: 0, padding: '0 14px', cursor: 'pointer', fontSize: 'var(--fs-small, 12px)', fontFamily: 'var(--font-mono)', borderWidth: 1, borderStyle: 'solid', borderRadius: '0 12px 12px 0',
           ...(svc.is_active
-            ? { backgroundColor: 'var(--success-bg)', borderColor: 'var(--success-text)', color: 'var(--success-text)' }
-            : { backgroundColor: 'var(--surface-2)', borderColor: 'var(--border-default)', color: 'var(--text-muted)' }) }}>
+            ? { backgroundColor: 'var(--dock-success-bg)', borderColor: 'var(--dock-success-text)', color: 'var(--dock-success-text)' }
+            : { backgroundColor: 'var(--dock-surface-2)', borderColor: 'var(--dock-border-default)', color: 'var(--dock-text-muted)' }) }}>
         {svc.is_active ? 'ON' : 'OFF'}
       </button>
     </div>
@@ -905,15 +905,15 @@ function ServiceDetail({ svc, formats, modules, onEdit, onDelete, onClose, onCha
       <dd style={{ margin: 0, minWidth: 0, fontFamily: mono ? 'var(--font-mono)' : undefined,
                    overflowWrap: 'anywhere' }}>{value}</dd></>)
   return (
-    <Stack gap={12} style={{ border: '1px solid var(--border-focus)', borderRadius: 12, padding: 16, backgroundColor: 'var(--surface)' }}>
+    <Stack gap={12} style={{ border: '1px solid var(--dock-border-focus)', borderRadius: 12, padding: 16, backgroundColor: 'var(--dock-surface)' }}>
       <Row justify="between" align="center">
-        <h3 style={{ margin: 0, fontWeight: 600, color: 'var(--text-primary)' }}>{svc.name}</h3>
-        <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 'var(--fs-body, 13px)', color: 'var(--text-muted)' }}>{t('exp_btn_close')}</button>
+        <h3 style={{ margin: 0, fontWeight: 600, color: 'var(--dock-text-primary)' }}>{svc.name}</h3>
+        <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 'var(--fs-body, 13px)', color: 'var(--dock-text-muted)' }}>{t('exp_btn_close')}</button>
       </Row>
 
-      {svc.description && <p style={{ margin: 0, fontSize: 'var(--fs-body, 13px)', color: 'var(--text-secondary)', overflowWrap: 'anywhere' }}>{svc.description}</p>}
+      {svc.description && <p style={{ margin: 0, fontSize: 'var(--fs-body, 13px)', color: 'var(--dock-text-secondary)', overflowWrap: 'anywhere' }}>{svc.description}</p>}
 
-      <dl style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', rowGap: 6, fontSize: 'var(--fs-small, 12px)', color: 'var(--text-secondary)', margin: 0 }}>
+      <dl style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', rowGap: 6, fontSize: 'var(--fs-small, 12px)', color: 'var(--dock-text-secondary)', margin: 0 }}>
         {dtdd(t('exp_field_hostname') || 'Host name', svc.hostname || svc.ip || '—', true)}
         {dtdd(t('exp_detail_directory'), svc.directory || '—', true)}
         {dtdd(t('exp_field_request_url').split(' ')[0], svc.request_url || '—', true)}
@@ -924,17 +924,17 @@ function ServiceDetail({ svc, formats, modules, onEdit, onDelete, onClose, onCha
       </dl>
 
       <div>
-        <p style={{ margin: '0 0 6px', fontSize: 'var(--fs-small, 12px)', color: 'var(--text-muted)' }}>{t('exp_detail_formats')}</p>
+        <p style={{ margin: '0 0 6px', fontSize: 'var(--fs-small, 12px)', color: 'var(--dock-text-muted)' }}>{t('exp_detail_formats')}</p>
         {(svc.format_ids ?? []).length === 0 ? (
-          <p style={{ margin: 0, fontSize: 'var(--fs-small, 12px)', color: 'var(--text-muted)' }}>{t('exp_detail_none')}</p>
+          <p style={{ margin: 0, fontSize: 'var(--fs-small, 12px)', color: 'var(--dock-text-muted)' }}>{t('exp_detail_none')}</p>
         ) : (
           <Stack gap={4}>
             {(svc.format_ids ?? []).map(id => {
               const f = fmtMap[id]
               return (
-                <Row key={id} justify="between" gap={8} style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid var(--border-subtle)', backgroundColor: 'var(--surface-2)' }}>
+                <Row key={id} justify="between" gap={8} style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid var(--dock-border-subtle)', backgroundColor: 'var(--dock-surface-2)' }}>
                   <Row gap={8} style={{ minWidth: 0 }}>
-                    <span style={{ fontSize: 'var(--fs-medium, 14px)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-primary)' }}>{f?.name || `format#${id}`}</span>
+                    <span style={{ fontSize: 'var(--fs-medium, 14px)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--dock-text-primary)' }}>{f?.name || `format#${id}`}</span>
                     {f?.task_type && <Badge tone="warning" mono>{f.task_type.replace(/_/g, ' ')}</Badge>}
                   </Row>
                   {isManager && f && (
@@ -962,7 +962,7 @@ function ServiceDetail({ svc, formats, modules, onEdit, onDelete, onClose, onCha
       )}
 
       {/* Actions */}
-      <Stack gap={8} style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 12 }}>
+      <Stack gap={8} style={{ borderTop: '1px solid var(--dock-border-subtle)', paddingTop: 12 }}>
         <Row gap={8} wrap>
           <Button variant="secondary" size="md" disabled={busy === 'now' || !svc.request_url} onClick={doRequestNow}
             title={!svc.request_url ? 'No request_url configured' : t('exp_action_request_now_hint')}>{busy === 'now' ? '…' : t('exp_action_request_now')}</Button>
@@ -977,9 +977,9 @@ function ServiceDetail({ svc, formats, modules, onEdit, onDelete, onClose, onCha
 
         {testResult && (
           <div style={{ fontSize: 'var(--fs-small, 12px)', padding: '6px 12px', borderRadius: 8,
-            border: `1px solid ${testResult.ok ? 'var(--success-text)' : 'var(--danger-text)'}`,
-            backgroundColor: testResult.ok ? 'var(--success-bg)' : 'var(--danger-bg)',
-            color: testResult.ok ? 'var(--success-text)' : 'var(--danger-text)' }}>
+            border: `1px solid ${testResult.ok ? 'var(--dock-success-text)' : 'var(--dock-danger-text)'}`,
+            backgroundColor: testResult.ok ? 'var(--dock-success-bg)' : 'var(--dock-danger-bg)',
+            color: testResult.ok ? 'var(--dock-success-text)' : 'var(--dock-danger-text)' }}>
             <Icon name={testResult.ok ? 'check' : 'close'} size={13} weight="bold" style={{ verticalAlign: -2 }} />
             {testResult.ok
               ? ` 연결됨${testResult.status ? ` · HTTP ${testResult.status}` : ''}${testResult.ms != null ? ` · ${testResult.ms}ms` : ''}`
@@ -987,18 +987,18 @@ function ServiceDetail({ svc, formats, modules, onEdit, onDelete, onClose, onCha
           </div>
         )}
 
-        {actionError && <div style={{ fontSize: 'var(--fs-small, 12px)', padding: '6px 12px', borderRadius: 8, border: '1px solid var(--danger-text)', backgroundColor: 'var(--danger-bg)', color: 'var(--danger-text)' }}>{actionError}</div>}
-        {createdLogId && <div style={{ fontSize: 'var(--fs-small, 12px)', padding: '6px 12px', borderRadius: 8, backgroundColor: 'var(--success-bg)', color: 'var(--success-text)' }}><Icon name="check" size={13} weight="bold" style={{ verticalAlign: -2 }} /> Created log #{createdLogId}</div>}
+        {actionError && <div style={{ fontSize: 'var(--fs-small, 12px)', padding: '6px 12px', borderRadius: 8, border: '1px solid var(--dock-danger-text)', backgroundColor: 'var(--dock-danger-bg)', color: 'var(--dock-danger-text)' }}>{actionError}</div>}
+        {createdLogId && <div style={{ fontSize: 'var(--fs-small, 12px)', padding: '6px 12px', borderRadius: 8, backgroundColor: 'var(--dock-success-bg)', color: 'var(--dock-success-text)' }}><Icon name="check" size={13} weight="bold" style={{ verticalAlign: -2 }} /> Created log #{createdLogId}</div>}
         {snapshot && (
-          <details open style={{ fontSize: 'var(--fs-small, 12px)', border: '1px solid var(--border-default)', borderRadius: 8 }}>
-            <summary style={{ padding: '6px 12px', cursor: 'pointer', userSelect: 'none', color: 'var(--text-secondary)' }}>Snapshot {svc.realtime_enabled && '(live)'}</summary>
-            <pre style={{ margin: 0, padding: '8px 12px', overflowX: 'auto', fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-tiny, 11px)', borderTop: '1px solid var(--border-subtle)', backgroundColor: 'var(--surface-2)', color: 'var(--text-primary)' }}>{JSON.stringify(snapshot, null, 2)}</pre>
+          <details open style={{ fontSize: 'var(--fs-small, 12px)', border: '1px solid var(--dock-border-default)', borderRadius: 8 }}>
+            <summary style={{ padding: '6px 12px', cursor: 'pointer', userSelect: 'none', color: 'var(--dock-text-secondary)' }}>Snapshot {svc.realtime_enabled && '(live)'}</summary>
+            <pre style={{ margin: 0, padding: '8px 12px', overflowX: 'auto', fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-tiny, 11px)', borderTop: '1px solid var(--dock-border-subtle)', backgroundColor: 'var(--dock-surface-2)', color: 'var(--dock-text-primary)' }}>{JSON.stringify(snapshot, null, 2)}</pre>
           </details>
         )}
       </Stack>
 
       {isManager && (
-        <Row gap={8} style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 12 }}>
+        <Row gap={8} style={{ borderTop: '1px solid var(--dock-border-subtle)', paddingTop: 12 }}>
           <Button variant="secondary" onClick={() => onEdit(svc)}>{t('exp_btn_edit')}</Button>
           <Button variant="dangerSoft" onClick={() => onDelete(svc.id)}>{t('exp_btn_delete')}</Button>
         </Row>
@@ -1137,7 +1137,7 @@ export default function ExperimentPage() {
   return (
     <div style={{ maxWidth: 768, margin: '0 auto', padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
       <Row gap={8} justify="between" wrap>
-        <h2 style={{ margin: 0, fontSize: 'var(--fs-xlarge, 18px)', fontWeight: 600, color: 'var(--text-primary)' }}>{t('exp_title')}</h2>
+        <h2 style={{ margin: 0, fontSize: 'var(--fs-xlarge, 18px)', fontWeight: 600, color: 'var(--dock-text-primary)' }}>{t('exp_title')}</h2>
         <Row gap={8}>
           {/* Manual is visible to everyone. */}
           <Button variant="secondary" size="md" onClick={() => setManualOpen(true)} title={t('exp_manual_btn_hint')}>{t('exp_manual_btn')}</Button>
@@ -1148,7 +1148,7 @@ export default function ExperimentPage() {
       </Row>
 
       {error && (
-        <div style={{ border: '1px solid var(--danger-text)', backgroundColor: 'var(--danger-bg)', color: 'var(--danger-text)', fontSize: 'var(--fs-body, 13px)', padding: '8px 16px', borderRadius: 8 }}>{error}</div>
+        <div style={{ border: '1px solid var(--dock-danger-text)', backgroundColor: 'var(--dock-danger-bg)', color: 'var(--dock-danger-text)', fontSize: 'var(--fs-body, 13px)', padding: '8px 16px', borderRadius: 8 }}>{error}</div>
       )}
 
       {/* ── 시스템 등록 완료 결과 ── */}
@@ -1175,9 +1175,9 @@ export default function ExperimentPage() {
 
       {/* List */}
       {loading ? (
-        <p style={{ textAlign: 'center', padding: '40px 0', fontSize: 'var(--fs-body, 13px)', color: 'var(--text-muted)' }}>{t('home_loading')}</p>
+        <p style={{ textAlign: 'center', padding: '40px 0', fontSize: 'var(--fs-body, 13px)', color: 'var(--dock-text-muted)' }}>{t('home_loading')}</p>
       ) : services.length === 0 ? (
-        <p style={{ textAlign: 'center', padding: '40px 0', fontSize: 'var(--fs-body, 13px)', color: 'var(--text-muted)' }}>{t('exp_empty')}</p>
+        <p style={{ textAlign: 'center', padding: '40px 0', fontSize: 'var(--fs-body, 13px)', color: 'var(--dock-text-muted)' }}>{t('exp_empty')}</p>
       ) : (
         <Stack gap={8}>
           {services.map(svc => (
@@ -1213,16 +1213,16 @@ export default function ExperimentPage() {
       {/* ── Modules section ─────────────────────────────────────────────── */}
       <Stack gap={8} style={{ paddingTop: 16 }}>
         <Row gap={8} align="baseline">
-          <h3 style={{ margin: 0, fontWeight: 600, fontSize: 'var(--fs-large, 16px)', color: 'var(--text-primary)' }}>{t('modules_title')}</h3>
-          <span style={{ fontSize: 'var(--fs-small, 12px)', color: 'var(--text-muted)' }}>{t('modules_desc')}</span>
+          <h3 style={{ margin: 0, fontWeight: 600, fontSize: 'var(--fs-large, 16px)', color: 'var(--dock-text-primary)' }}>{t('modules_title')}</h3>
+          <span style={{ fontSize: 'var(--fs-small, 12px)', color: 'var(--dock-text-muted)' }}>{t('modules_desc')}</span>
         </Row>
 
         {modulesError && (
-          <div style={{ border: '1px solid var(--danger-text)', backgroundColor: 'var(--danger-bg)', color: 'var(--danger-text)', fontSize: 'var(--fs-small, 12px)', padding: '6px 12px', borderRadius: 8 }}>{modulesError}</div>
+          <div style={{ border: '1px solid var(--dock-danger-text)', backgroundColor: 'var(--dock-danger-bg)', color: 'var(--dock-danger-text)', fontSize: 'var(--fs-small, 12px)', padding: '6px 12px', borderRadius: 8 }}>{modulesError}</div>
         )}
 
         {modules.length === 0 ? (
-          <p style={{ fontSize: 'var(--fs-small, 12px)', color: 'var(--text-muted)' }}>—</p>
+          <p style={{ fontSize: 'var(--fs-small, 12px)', color: 'var(--dock-text-muted)' }}>—</p>
         ) : (
           <Stack gap={8}>
             {modules.map(mod => (

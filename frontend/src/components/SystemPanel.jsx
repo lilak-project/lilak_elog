@@ -21,9 +21,9 @@ function Chip({ active, onClick, children, title }) {
       style={{
         height: 30, padding: '0 12px', borderRadius: 8, cursor: 'pointer', fontSize: 'var(--fs-small, 12px)',
         borderWidth: 1, borderStyle: 'solid',
-        borderColor: active ? 'var(--nav-text-muted)' : 'var(--nav-border)',
-        backgroundColor: active ? 'var(--nav-text)' : 'var(--nav-accent)',
-        color: active ? 'var(--nav-bg)' : 'var(--nav-text)',
+        borderColor: active ? 'var(--dock-nav-text-muted)' : 'var(--dock-nav-border)',
+        backgroundColor: active ? 'var(--dock-nav-text)' : 'var(--dock-nav-accent)',
+        color: active ? 'var(--dock-nav-bg)' : 'var(--dock-nav-text)',
         transition: 'background-color .12s, border-color .12s, color .12s',
       }}
     >{children}</button>
@@ -33,7 +33,7 @@ function Chip({ active, onClick, children, title }) {
 function Section({ label, children }) {
   return (
     <Stack gap={8}>
-      <div style={{ fontSize: 'var(--fs-micro, 10px)', textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--nav-text-muted)' }}>{label}</div>
+      <div style={{ fontSize: 'var(--fs-micro, 10px)', textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--dock-nav-text-muted)' }}>{label}</div>
       {children}
     </Stack>
   )
@@ -71,8 +71,8 @@ function NotificationsView({ onClose }) {
     run: () => click(n),
   })), [notifs])
 
-  if (loading) return <div style={{ padding: 24, textAlign: 'center', color: 'var(--nav-text-muted)', fontSize: 'var(--fs-body, 13px)' }}>{t('home_loading') || 'Loading…'}</div>
-  if (!notifs.length) return <div style={{ padding: 24, textAlign: 'center', color: 'var(--nav-text-muted)', fontSize: 'var(--fs-body, 13px)' }}>{t('notif_empty') || 'No notifications'}</div>
+  if (loading) return <div style={{ padding: 24, textAlign: 'center', color: 'var(--dock-nav-text-muted)', fontSize: 'var(--fs-body, 13px)' }}>{t('home_loading') || 'Loading…'}</div>
+  if (!notifs.length) return <div style={{ padding: 24, textAlign: 'center', color: 'var(--dock-nav-text-muted)', fontSize: 'var(--fs-body, 13px)' }}>{t('notif_empty') || 'No notifications'}</div>
 
   return (
     <Stack gap={6}>
@@ -80,16 +80,16 @@ function NotificationsView({ onClose }) {
       {notifs.map((n) => (
         <button key={n.id} onClick={() => click(n)} style={{
           textAlign: 'left', padding: '10px 12px', borderRadius: 8, cursor: 'pointer',
-          borderWidth: 1, borderStyle: 'solid', borderColor: 'var(--nav-border)',
-          backgroundColor: n.is_read ? 'transparent' : 'var(--nav-accent)', color: 'var(--nav-text)',
+          borderWidth: 1, borderStyle: 'solid', borderColor: 'var(--dock-nav-border)',
+          backgroundColor: n.is_read ? 'transparent' : 'var(--dock-nav-accent)', color: 'var(--dock-nav-text)',
         }}>
           <div style={{ fontSize: 'var(--fs-small, 12px)' }}>
             <span style={{ fontWeight: 600 }}>{n.from_user_name}</span>{' '}
             {n.notif_type === 'mention' ? (t('notif_mentioned_you') || 'mentioned you')
               : <>{t('notif_commented_on') || 'commented on'} <span>#{n.log_id}</span> {n.log_title}</>}
           </div>
-          {n.comment_excerpt && <div style={{ fontSize: 'var(--fs-small, 12px)', color: 'var(--nav-text-muted)', marginTop: 2 }}>"{n.comment_excerpt}"</div>}
-          <div style={{ fontSize: 'var(--fs-micro, 10px)', color: 'var(--nav-text-muted)', marginTop: 4 }}>{formatLogStamp(n.created_at)}</div>
+          {n.comment_excerpt && <div style={{ fontSize: 'var(--fs-small, 12px)', color: 'var(--dock-nav-text-muted)', marginTop: 2 }}>"{n.comment_excerpt}"</div>}
+          <div style={{ fontSize: 'var(--fs-micro, 10px)', color: 'var(--dock-nav-text-muted)', marginTop: 4 }}>{formatLogStamp(n.created_at)}</div>
         </button>
       ))}
     </Stack>
@@ -112,20 +112,20 @@ export default function SystemPanel({ onClose }) {
         <Section label={t('notif_title') || 'Notifications'}>
           {user
             ? <NotificationsView onClose={onClose} />
-            : <div style={{ padding: 24, textAlign: 'center', color: 'var(--nav-text-muted)', fontSize: 'var(--fs-body, 13px)' }}>{t('login_read_only') || 'Log in to see notifications.'}</div>}
+            : <div style={{ padding: 24, textAlign: 'center', color: 'var(--dock-nav-text-muted)', fontSize: 'var(--fs-body, 13px)' }}>{t('login_read_only') || 'Log in to see notifications.'}</div>}
         </Section>
       </div>
 
       {/* ── Right 1/3 — account + the two lightweight settings (theme/language) ── */}
-      <div style={{ flex: 1, minWidth: 0, paddingLeft: 18, borderLeft: '1px solid var(--nav-border)' }}>
+      <div style={{ flex: 1, minWidth: 0, paddingLeft: 18, borderLeft: '1px solid var(--dock-nav-border)' }}>
         <Stack gap={14}>
           {/* Account */}
           <Section label={t('nav_account') || 'Account'}>
             {user ? (
               <Stack gap={8}>
                 <Stack gap={2}>
-                  <span style={{ fontSize: 'var(--fs-medium, 14px)', fontWeight: 600, color: 'var(--nav-text)' }}>{user.username}</span>
-                  <span style={{ fontSize: 'var(--fs-tiny, 11px)', color: 'var(--nav-text-muted)' }}>{user.role}</span>
+                  <span style={{ fontSize: 'var(--fs-medium, 14px)', fontWeight: 600, color: 'var(--dock-nav-text)' }}>{user.username}</span>
+                  <span style={{ fontSize: 'var(--fs-tiny, 11px)', color: 'var(--dock-nav-text-muted)' }}>{user.role}</span>
                 </Stack>
                 <Row gap={6} wrap>
                   <Chip onClick={() => go('account')}>{t('settings_account') || '계정 설정'}</Chip>

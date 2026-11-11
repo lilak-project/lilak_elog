@@ -244,13 +244,13 @@ export default function Shell() {
   // Command-mode indicator (#8): only the lilak *logo mark* dims — and only while
   // a bar/input is open (keyboard commands are suspended). Tab switches keep
   // command mode, so the logo stays bright. The "lilak" wordmark never changes.
-  const logoColor = barOpen ? 'var(--nav-text-muted)' : 'var(--nav-text)'
+  const logoColor = barOpen ? 'var(--dock-nav-text-muted)' : 'var(--dock-nav-text)'
 
   // Brand wordmark: "lilak"/"라일락" (top-left) over "elog" (bottom-right), two lines.
   const brand = (
     <span style={{ display: 'inline-flex', flexDirection: 'column', lineHeight: 1.0, minWidth: 46, letterSpacing: '0.01em' }}>
-      <span style={{ textAlign: 'left', fontWeight: 700, color: 'var(--nav-text)' }}>{lang === 'ko' ? '라일락' : 'lilak'}</span>
-      <span style={{ textAlign: 'right', fontWeight: 500, fontSize: '0.78em', letterSpacing: '0.06em', color: 'var(--nav-text-muted)' }}>elog</span>
+      <span style={{ textAlign: 'left', fontWeight: 700, color: 'var(--dock-nav-text)' }}>{lang === 'ko' ? '라일락' : 'lilak'}</span>
+      <span style={{ textAlign: 'right', fontWeight: 500, fontSize: '0.78em', letterSpacing: '0.06em', color: 'var(--dock-nav-text-muted)' }}>elog</span>
     </span>
   )
   const experiment = getExperiment()
@@ -267,7 +267,7 @@ export default function Shell() {
       onClick={(e) => { e.stopPropagation(); goToList() }}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); goToList() } }}
       style={{ marginLeft: 2, padding: '3px 8px', borderRadius: 999, fontFamily: 'var(--font-mono)', fontWeight: 500, cursor: 'pointer',
-      fontSize: 'var(--fs-micro, 10px)', lineHeight: 1.2, backgroundColor: 'var(--nav-accent)', color: 'var(--nav-text-muted)' }}>{experiment}</span>
+      fontSize: 'var(--fs-micro, 10px)', lineHeight: 1.2, backgroundColor: 'var(--dock-nav-accent)', color: 'var(--dock-nav-text-muted)' }}>{experiment}</span>
   ) : null
   const TAB_ICONS = { experiment: 'plug', logs: 'logs', browse: 'browse', community: 'community', infography: 'infography', schedule: 'schedule', settings: 'settings' }
   const tabItems = tabs.map((tb) => ({ id: tb.id, label: t('tab_' + tb.type) || tb.label, icon: TAB_ICONS[tb.type] }))
@@ -275,8 +275,8 @@ export default function Shell() {
   // Run status (idle / run#N) — shown left of the account button. Same text
   // colour as the rest of the top bar for now (refine the colours later).
   const statusEl = (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-tiny, 11px)', color: 'var(--nav-text)' }}>
-      <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: 'var(--nav-text-muted)' }} />
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-tiny, 11px)', color: 'var(--dock-nav-text)' }}>
+      <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: 'var(--dock-nav-text-muted)' }} />
       {runStatus.state === 'running' && runStatus.run_number != null ? `run#${runStatus.run_number}` : 'idle'}
     </span>
   )
@@ -289,9 +289,9 @@ export default function Shell() {
       style={{
         position: 'relative', display: 'inline-flex', alignItems: 'center', gap: 6, height: 28, padding: '0 10px',
         borderRadius: 8, background: 'transparent', border: 'none', cursor: 'pointer',
-        color: 'var(--nav-text)', fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-tiny, 11px)',
+        color: 'var(--dock-nav-text)', fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-tiny, 11px)',
       }}
-      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--nav-accent)' }}
+      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--dock-nav-accent)' }}
       onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent' }}
       title={`${t('nav_system') || 'System'}  ( \\ )`}
     >
@@ -299,13 +299,13 @@ export default function Shell() {
       <span>{user ? user.username : 'login'}</span>
       {unread > 0 && (
         <span style={{ position: 'absolute', top: 2, right: 4, minWidth: 14, height: 14, padding: '0 3px', borderRadius: 999,
-          backgroundColor: 'var(--danger-text)', color: '#fff', fontSize: 'var(--fs-micro, 10px)', fontWeight: 700, lineHeight: '14px', textAlign: 'center' }}>{unread > 9 ? '9+' : unread}</span>
+          backgroundColor: 'var(--dock-danger-text)', color: '#fff', fontSize: 'var(--fs-micro, 10px)', fontWeight: 700, lineHeight: '14px', textAlign: 'center' }}>{unread > 9 ? '9+' : unread}</span>
       )}
     </button>
   )
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'var(--surface)' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'var(--dock-surface)' }}>
       <TopBar
         brand={brand}
         brandIcon={<Icon name="lilak" size={30} color={logoColor} style={{ height: 30, width: 'auto', display: 'block', transition: 'color .15s' }} />}

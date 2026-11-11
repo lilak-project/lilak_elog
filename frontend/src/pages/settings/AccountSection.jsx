@@ -25,7 +25,7 @@ import api from '../../api'
 function Field({ label, children }) {
   return (
     <label style={{ display: 'block' }}>
-      <span style={{ display: 'block', fontSize: 'var(--fs-tiny, 11px)', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 4 }}>{label}</span>
+      <span style={{ display: 'block', fontSize: 'var(--fs-tiny, 11px)', fontWeight: 500, color: 'var(--dock-text-secondary)', marginBottom: 4 }}>{label}</span>
       {children}
     </label>
   )
@@ -38,7 +38,7 @@ function PwField({ value, onChange, placeholder, required, autoFocus, inputRef }
       <Input ref={inputRef} type={show ? 'text' : 'password'} value={value} onChange={onChange}
         placeholder={placeholder} required={required} autoFocus={autoFocus} size="md" style={{ paddingRight: 34 }} />
       <button type="button" tabIndex={-1} onClick={() => setShow(s => !s)}
-        style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'inline-flex' }}>
+        style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--dock-text-muted)', display: 'inline-flex' }}>
         <Icon name={show ? 'eye-off' : 'eye'} size={16} />
       </button>
     </div>
@@ -47,11 +47,11 @@ function PwField({ value, onChange, placeholder, required, autoFocus, inputRef }
 
 function ErrorBanner({ children }) {
   return (
-    <div style={{ border: '1px solid var(--danger-text)', backgroundColor: 'var(--danger-bg)', color: 'var(--danger-text)', fontSize: 'var(--fs-body, 13px)', padding: '8px 12px', borderRadius: 8 }}>{children}</div>
+    <div style={{ border: '1px solid var(--dock-danger-text)', backgroundColor: 'var(--dock-danger-bg)', color: 'var(--dock-danger-text)', fontSize: 'var(--fs-body, 13px)', padding: '8px 12px', borderRadius: 8 }}>{children}</div>
   )
 }
 
-const card = { border: '1px solid var(--border-default)', backgroundColor: 'var(--surface)', borderRadius: 12, boxShadow: '0 1px 2px rgba(0,0,0,.04)', padding: 20 }
+const card = { border: '1px solid var(--dock-border-default)', backgroundColor: 'var(--dock-surface)', borderRadius: 12, boxShadow: '0 1px 2px rgba(0,0,0,.04)', padding: 20 }
 
 const EMPTY_SET = new Set()
 
@@ -66,8 +66,8 @@ function ProfilePicker({ shape, color, username, isManager = false, locked = fal
       <Row gap={12} align="center">
         <Avatar icon={shape} color={effColor} seed={username} size={size} />
         <div style={{ flex: 1, minWidth: 0 }}>
-          {label && <div style={{ fontSize: 'var(--fs-small, 12px)', color: 'var(--text-secondary)', marginBottom: 4 }}>{label}</div>}
-          <div style={{ fontSize: 'var(--fs-tiny, 11px)', color: 'var(--text-muted)' }}>{lockedNote || '고정된 프로필입니다.'}</div>
+          {label && <div style={{ fontSize: 'var(--fs-small, 12px)', color: 'var(--dock-text-secondary)', marginBottom: 4 }}>{label}</div>}
+          <div style={{ fontSize: 'var(--fs-tiny, 11px)', color: 'var(--dock-text-muted)' }}>{lockedNote || '고정된 프로필입니다.'}</div>
         </div>
       </Row>
     )
@@ -78,7 +78,7 @@ function ProfilePicker({ shape, color, username, isManager = false, locked = fal
       <Row gap={12} align="center">
         <Avatar icon={shape} color={effColor} seed={username} size={size} />
         <div style={{ flex: 1, minWidth: 0 }}>
-          {label && <div style={{ fontSize: 'var(--fs-small, 12px)', color: 'var(--text-secondary)', marginBottom: 4 }}>{label}</div>}
+          {label && <div style={{ fontSize: 'var(--fs-small, 12px)', color: 'var(--dock-text-secondary)', marginBottom: 4 }}>{label}</div>}
           <Row gap={6} align="center" as="span">
             <Button variant="secondary" type="button" onClick={onRoll} disabled={busy}>
               <Row gap={5} align="center" as="span"><Icon name="refresh" size={13} />{busy ? '…' : '랜덤'}</Row>
@@ -93,7 +93,7 @@ function ProfilePicker({ shape, color, username, isManager = false, locked = fal
       </Row>
 
       {onPick && open && (
-        <div style={{ border: '1px solid var(--border-default)', borderRadius: 10, padding: 10, backgroundColor: 'var(--surface-2)' }}>
+        <div style={{ border: '1px solid var(--dock-border-default)', borderRadius: 10, padding: 10, backgroundColor: 'var(--dock-surface-2)' }}>
           {/* all available icons — ones already used by others are disabled */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(34px, 1fr))', gap: 6, maxHeight: 168, overflowY: 'auto' }}>
             {AVATAR_ICONS.map(ic => {
@@ -103,7 +103,7 @@ function ProfilePicker({ shape, color, username, isManager = false, locked = fal
                   onClick={() => { if (!used) onPick(ic, effColor) }}
                   style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: 2, borderRadius: 8,
                     cursor: used ? 'not-allowed' : 'pointer', opacity: used ? 0.3 : 1, background: 'none',
-                    border: ic === shape ? '2px solid var(--border-focus)' : '1px solid var(--border-default)' }}>
+                    border: ic === shape ? '2px solid var(--dock-border-focus)' : '1px solid var(--dock-border-default)' }}>
                   <Avatar icon={ic} color={effColor} size={26} />
                 </button>
               )
@@ -111,13 +111,13 @@ function ProfilePicker({ shape, color, username, isManager = false, locked = fal
           </div>
           {/* all available colours — managers are locked to black */}
           {isManager ? (
-            <div style={{ marginTop: 8, fontSize: 'var(--fs-tiny, 11px)', color: 'var(--text-muted)' }}>매니저 프로필 색상은 검은색으로 고정됩니다.</div>
+            <div style={{ marginTop: 8, fontSize: 'var(--fs-tiny, 11px)', color: 'var(--dock-text-muted)' }}>매니저 프로필 색상은 검은색으로 고정됩니다.</div>
           ) : (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
               {AVATAR_COLORS.map(c => (
                 <button key={c} type="button" title={c} onClick={() => onPick(shape, c)}
                   style={{ width: 22, height: 22, borderRadius: '50%', backgroundColor: c, cursor: 'pointer',
-                    border: c === color ? '2px solid var(--text-primary)' : '1px solid var(--border-default)' }} />
+                    border: c === color ? '2px solid var(--dock-text-primary)' : '1px solid var(--dock-border-default)' }} />
               ))}
             </div>
           )}
@@ -178,7 +178,7 @@ function LoginForm({ onSuccess }) {
       {error && <ErrorBanner>{error}</ErrorBanner>}
       <form onSubmit={handleSubmit} onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); document.activeElement?.blur() } }}>
         <Stack gap={14} style={card}>
-          <h3 style={{ margin: 0, fontWeight: 600, color: 'var(--text-secondary)' }}>{t('login_tab')}</h3>
+          <h3 style={{ margin: 0, fontWeight: 600, color: 'var(--dock-text-secondary)' }}>{t('login_tab')}</h3>
           <Field label={t('login_username')}>
             <Input value={form.username} onChange={e => setForm(p => ({ ...p, username: e.target.value }))} required size="md" />
           </Field>
@@ -194,20 +194,20 @@ function LoginForm({ onSuccess }) {
       {/* Members quick-select */}
       {members.length > 0 && (
         <div style={{ ...card, padding: 0, overflow: 'hidden' }}>
-          <div style={{ padding: '10px 16px', borderBottom: '1px solid var(--border-subtle)', backgroundColor: 'var(--surface-2)', fontSize: 'var(--fs-tiny, 11px)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-secondary)' }}>
+          <div style={{ padding: '10px 16px', borderBottom: '1px solid var(--dock-border-subtle)', backgroundColor: 'var(--dock-surface-2)', fontSize: 'var(--fs-tiny, 11px)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--dock-text-secondary)' }}>
             {t('login_members')}
           </div>
           <div>
             {members.map(m => (
               <Row key={m.username} gap={12} align="center"
                 onClick={() => { setForm(p => ({ ...p, username: m.username })); requestAnimationFrame(() => pwRef.current?.focus()) }}
-                style={{ padding: '8px 16px', cursor: 'pointer', borderTop: '1px solid var(--border-subtle)' }}
-                onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--info-bg)'}
+                style={{ padding: '8px 16px', cursor: 'pointer', borderTop: '1px solid var(--dock-border-subtle)' }}
+                onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--dock-info-bg)'}
                 onMouseLeave={e => e.currentTarget.style.backgroundColor = ''}>
                 <Avatar {...displayAvatar(m)} seed={m.username} size={28} />
                 <div style={{ minWidth: 0 }}>
-                  <p style={{ margin: 0, fontSize: 'var(--fs-medium, 14px)', fontWeight: 500, color: 'var(--text-primary)' }}>{m.username}</p>
-                  {m.email && <p style={{ margin: 0, fontSize: 'var(--fs-small, 12px)', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.email}</p>}
+                  <p style={{ margin: 0, fontSize: 'var(--fs-medium, 14px)', fontWeight: 500, color: 'var(--dock-text-primary)' }}>{m.username}</p>
+                  {m.email && <p style={{ margin: 0, fontSize: 'var(--fs-small, 12px)', color: 'var(--dock-text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.email}</p>}
                 </div>
               </Row>
             ))}
@@ -265,16 +265,16 @@ function RegisterForm({ onSuccess }) {
     } finally { setLoading(false) }
   }
 
-  const req = <span style={{ color: 'var(--danger-text)' }}>*</span>
-  const hint = (text) => <span style={{ marginLeft: 4, color: 'var(--text-muted)' }}>({text})</span>
+  const req = <span style={{ color: 'var(--dock-danger-text)' }}>*</span>
+  const hint = (text) => <span style={{ marginLeft: 4, color: 'var(--dock-text-muted)' }}>({text})</span>
 
   if (pending) {
     return (
       <div style={{ maxWidth: 384 }}>
         <Stack gap={10} style={card}>
-          <h3 style={{ margin: 0, fontWeight: 600, color: 'var(--text-secondary)' }}>{t('register_tab')}</h3>
-          <p style={{ margin: 0, fontSize: 'var(--fs-body, 13px)', color: 'var(--text-primary)' }}>{t('reg_pending')}</p>
-          <p style={{ margin: 0, fontSize: 'var(--fs-small, 12px)', color: 'var(--text-muted)' }}>{t('reg_pending_hint')}</p>
+          <h3 style={{ margin: 0, fontWeight: 600, color: 'var(--dock-text-secondary)' }}>{t('register_tab')}</h3>
+          <p style={{ margin: 0, fontSize: 'var(--fs-body, 13px)', color: 'var(--dock-text-primary)' }}>{t('reg_pending')}</p>
+          <p style={{ margin: 0, fontSize: 'var(--fs-small, 12px)', color: 'var(--dock-text-muted)' }}>{t('reg_pending_hint')}</p>
         </Stack>
       </div>
     )
@@ -285,9 +285,9 @@ function RegisterForm({ onSuccess }) {
       {error && <div style={{ marginBottom: 12 }}><ErrorBanner>{error}</ErrorBanner></div>}
       <form onSubmit={handleSubmit} onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); document.activeElement?.blur() } }}>
         <Stack gap={12} style={card}>
-          <h3 style={{ margin: 0, fontWeight: 600, color: 'var(--text-secondary)' }}>{t('register_tab')}</h3>
+          <h3 style={{ margin: 0, fontWeight: 600, color: 'var(--dock-text-secondary)' }}>{t('register_tab')}</h3>
 
-          <div style={{ paddingBottom: 12, borderBottom: '1px solid var(--border-subtle)' }}>
+          <div style={{ paddingBottom: 12, borderBottom: '1px solid var(--dock-border-subtle)' }}>
             <ProfilePicker shape={form.profile_shape} color={form.profile_color} username={form.username} takenIcons={taken}
               onRoll={rollProfile} onPick={(s, c) => setForm(p => ({ ...p, profile_shape: s, profile_color: c }))} label={t('reg_profile')} />
           </div>
@@ -305,8 +305,8 @@ function RegisterForm({ onSuccess }) {
             <PwField value={form.passwordConfirm} onChange={e => setForm(p => ({ ...p, passwordConfirm: e.target.value }))} required />
           </Field>
 
-          <div style={{ paddingTop: 8, borderTop: '1px solid var(--border-subtle)' }}>
-            <p style={{ margin: '0 0 8px', fontSize: 'var(--fs-tiny, 11px)', color: 'var(--text-muted)' }}>선택 항목 — 가능하면 입력해 주세요</p>
+          <div style={{ paddingTop: 8, borderTop: '1px solid var(--dock-border-subtle)' }}>
+            <p style={{ margin: '0 0 8px', fontSize: 'var(--fs-tiny, 11px)', color: 'var(--dock-text-muted)' }}>선택 항목 — 가능하면 입력해 주세요</p>
             <Stack gap={8}>
               <Field label="전화번호">
                 <Input value={form.phone} onChange={e => setForm(p => ({ ...p, phone: e.target.value }))} placeholder="010-1234-5678" size="md" />
@@ -423,11 +423,11 @@ function AccountInfo() {
       <Stack gap={16} style={card}>
         {/* Header — username + role */}
         <Row gap={10} align="center">
-          <p style={{ margin: 0, fontWeight: 600, fontSize: 'var(--fs-large, 16px)', color: 'var(--text-primary)' }}>{user.username}</p>
+          <p style={{ margin: 0, fontWeight: 600, fontSize: 'var(--fs-large, 16px)', color: 'var(--dock-text-primary)' }}>{user.username}</p>
           <span style={{ fontSize: 'var(--fs-small, 12px)', padding: '1px 8px', borderRadius: 999, fontWeight: 500,
             ...(isManager
-              ? { backgroundColor: 'var(--warning-bg)', color: 'var(--warning-text)' }
-              : { backgroundColor: 'var(--surface-2)', color: 'var(--text-secondary)' }) }}>
+              ? { backgroundColor: 'var(--dock-warning-bg)', color: 'var(--dock-warning-text)' }
+              : { backgroundColor: 'var(--dock-surface-2)', color: 'var(--dock-text-secondary)' }) }}>
             {user.role}
           </span>
         </Row>
@@ -440,7 +440,7 @@ function AccountInfo() {
           takenIcons={taken} onRoll={rollProfile} onPick={pickProfile} size={56} />
 
         {/* Editable fields */}
-        <Stack gap={12} style={{ paddingTop: 12, borderTop: '1px solid var(--border-subtle)' }}>
+        <Stack gap={12} style={{ paddingTop: 12, borderTop: '1px solid var(--dock-border-subtle)' }}>
           <Field label={t('reg_email')}>
             <Input type="email" value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} placeholder="name@example.com" size="md" />
           </Field>
@@ -461,7 +461,7 @@ function AccountInfo() {
         </Stack>
 
         {error && <ErrorBanner>{error}</ErrorBanner>}
-        {savedMsg && <div style={{ fontSize: 'var(--fs-small, 12px)', textAlign: 'center', color: 'var(--info-text)' }}>{savedMsg}</div>}
+        {savedMsg && <div style={{ fontSize: 'var(--fs-small, 12px)', textAlign: 'center', color: 'var(--dock-info-text)' }}>{savedMsg}</div>}
 
         <Button type="button" onClick={save} disabled={!dirty || saving} style={{ width: '100%', padding: '9px 0', opacity: (!dirty || saving) ? 0.5 : 1 }}>
           {saving ? t('settings_saving') : t('settings_save')}
@@ -473,7 +473,7 @@ function AccountInfo() {
 
       {/* Change password */}
       <Stack gap={12} style={card}>
-        <p style={{ margin: 0, fontWeight: 600, fontSize: 'var(--fs-body, 13px)', color: 'var(--text-primary)' }}>{t('projects_change_pw')}</p>
+        <p style={{ margin: 0, fontWeight: 600, fontSize: 'var(--fs-body, 13px)', color: 'var(--dock-text-primary)' }}>{t('projects_change_pw')}</p>
         <Field label={t('projects_pw_current')}>
           <PwField value={pw.current} onChange={e => setPw(p => ({ ...p, current: e.target.value }))} />
         </Field>
@@ -481,7 +481,7 @@ function AccountInfo() {
           <PwField value={pw.next} onChange={e => setPw(p => ({ ...p, next: e.target.value }))} />
         </Field>
         {pwErr && <ErrorBanner>{pwErr}</ErrorBanner>}
-        {pwMsg && <div style={{ fontSize: 'var(--fs-small, 12px)', textAlign: 'center', color: 'var(--info-text)' }}>{pwMsg}</div>}
+        {pwMsg && <div style={{ fontSize: 'var(--fs-small, 12px)', textAlign: 'center', color: 'var(--dock-info-text)' }}>{pwMsg}</div>}
         <Button type="button" onClick={changePassword} disabled={pwBusy || !pw.current || !pw.next}
           style={{ width: '100%', padding: '9px 0', opacity: (pwBusy || !pw.current || !pw.next) ? 0.5 : 1 }}>
           {t('projects_pw_submit')}

@@ -29,8 +29,8 @@ export default function AdminTokens() {
 
   const statusBadge = (active) => (
     <span style={{ fontSize: 'var(--fs-tiny, 11px)', padding: '1px 8px', borderRadius: 999, whiteSpace: 'nowrap',
-      backgroundColor: active ? 'var(--success-bg)' : 'var(--danger-bg)',
-      color: active ? 'var(--success-text)' : 'var(--danger-text)' }}>
+      backgroundColor: active ? 'var(--dock-success-bg)' : 'var(--dock-danger-bg)',
+      color: active ? 'var(--dock-success-text)' : 'var(--dock-danger-text)' }}>
       {active ? t('tokens_active') : t('tokens_revoked')}
     </span>
   )
@@ -39,10 +39,10 @@ export default function AdminTokens() {
     <div className="max-w-3xl mx-auto">
       {/* Usage hint */}
       <div className="border rounded-xl px-5 py-4 text-sm mb-5"
-           style={{ backgroundColor: 'var(--info-bg)', borderColor: 'var(--border-focus)', color: 'var(--info-text)' }}>
+           style={{ backgroundColor: 'var(--dock-info-bg)', borderColor: 'var(--dock-border-focus)', color: 'var(--dock-info-text)' }}>
         <strong>{t('tokens_usage_title')}:</strong>
         <pre className="mt-2 rounded p-3 text-xs overflow-x-auto"
-             style={{ backgroundColor: 'var(--surface)', color: 'var(--text-primary)' }}>
+             style={{ backgroundColor: 'var(--dock-surface)', color: 'var(--dock-text-primary)' }}>
 {`curl -X POST ${window.location.origin}/api/logs \\
   -H "Authorization: Bearer <token>" \\
   -H "Content-Type: application/json" \\
@@ -53,14 +53,14 @@ export default function AdminTokens() {
       {/* New token revealed once */}
       {newToken && (
         <div className="border rounded-xl px-5 py-4 mb-5"
-             style={{ backgroundColor: 'var(--success-bg)', borderColor: 'var(--success-text)' }}>
-          <p className="text-sm font-semibold mb-2" style={{ color: 'var(--success-text)' }}>{t('tokens_created_msg')}</p>
+             style={{ backgroundColor: 'var(--dock-success-bg)', borderColor: 'var(--dock-success-text)' }}>
+          <p className="text-sm font-semibold mb-2" style={{ color: 'var(--dock-success-text)' }}>{t('tokens_created_msg')}</p>
           <code className="block text-xs border rounded px-3 py-2 break-all"
-                style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--success-text)', color: 'var(--text-primary)' }}>
+                style={{ backgroundColor: 'var(--dock-surface)', borderColor: 'var(--dock-success-text)', color: 'var(--dock-text-primary)' }}>
             {newToken}
           </code>
           <button onClick={() => { navigator.clipboard.writeText(newToken); alert(t('tokens_copied')) }}
-            className="mt-2 text-xs hover:underline" style={{ color: 'var(--success-text)' }}>{t('tokens_copy')}</button>
+            className="mt-2 text-xs hover:underline" style={{ color: 'var(--dock-success-text)' }}>{t('tokens_copy')}</button>
         </div>
       )}
 

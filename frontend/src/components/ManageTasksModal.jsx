@@ -1,3 +1,4 @@
+import Select from 'lilak-ui/components/Select.jsx'
 import { useState, useEffect, useCallback } from 'react'
 import { confirm } from './dialog'
 import { Icon, Modal, Button, Badge, Stack } from 'lilak-ui'
@@ -124,12 +125,12 @@ export default function ManageTasksModal({ motherId, formatId, formatName, onClo
   const reqServices = services.filter(s => s.request_url)
 
   const labelStyle = { fontSize: 'var(--fs-tiny, 11px)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }
-  const inputStyle = { backgroundColor: 'var(--surface)', borderWidth: 1, borderStyle: 'solid', borderColor: 'var(--border-default)', color: 'var(--text-primary)', outline: 'none', borderRadius: 8, padding: '6px 8px', fontSize: 'var(--fs-body, 13px)' }
+  const inputStyle = { backgroundColor: 'var(--dock-surface)', borderWidth: 1, borderStyle: 'solid', borderColor: 'var(--dock-border-default)', color: 'var(--dock-text-primary)', outline: 'none', borderRadius: 8, padding: '6px 8px', fontSize: 'var(--fs-body, 13px)' }
 
   function renderRow(it, idx) {
     if (isTemplate) {
       return (
-        <div key={idx} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, paddingLeft:10, paddingRight:10, paddingTop:6, paddingBottom:6, borderRadius:8, fontSize: 'var(--fs-body, 13px)', backgroundColor: 'var(--surface-2)', color: 'var(--text-primary)' }}>
+        <div key={idx} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, paddingLeft:10, paddingRight:10, paddingTop:6, paddingBottom:6, borderRadius:8, fontSize: 'var(--fs-body, 13px)', backgroundColor: 'var(--dock-surface-2)', color: 'var(--dock-text-primary)' }}>
           <span style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
             {it.kind === 'module'
               ? <span style={{ display:'inline-flex', alignItems:'center', gap:4 }}><Icon name="refresh" size={12} /> {modMap[it.module_id]?.name || it.module_id}{it.delay_min ? ` · ${it.delay_min}분 뒤` : ''}{it.interval_min ? ` · ${it.interval_min}분마다` : ' · 1회'}</span>
@@ -140,27 +141,27 @@ export default function ManageTasksModal({ motherId, formatId, formatName, onClo
                   else if (it.on_start !== false) parts.push('시작')
                   if (it.interval_min) parts.push(`${it.interval_min}분마다`)
                   if (it.on_end) parts.push('끝')
-                  return <>🌐 {it.title}{' '}<span style={{ fontSize: 'var(--fs-small, 12px)', color: 'var(--text-muted)' }}>({svcMap[it.service_id]?.name || `service#${it.service_id}`} · {parts.length ? parts.join(' · ') : '수동'})</span></>
+                  return <>🌐 {it.title}{' '}<span style={{ fontSize: 'var(--fs-small, 12px)', color: 'var(--dock-text-muted)' }}>({svcMap[it.service_id]?.name || `service#${it.service_id}`} · {parts.length ? parts.join(' · ') : '수동'})</span></>
                 })()
-              : <>📝 {it.title}{' '}<span style={{ fontSize: 'var(--fs-small, 12px)', color: 'var(--text-muted)' }}>({fmtMap[it.format_id]?.name})</span></>}
+              : <>📝 {it.title}{' '}<span style={{ fontSize: 'var(--fs-small, 12px)', color: 'var(--dock-text-muted)' }}>({fmtMap[it.format_id]?.name})</span></>}
           </span>
-          <button onClick={() => removeAt(idx)} disabled={busy} style={{ fontSize: 'var(--fs-small, 12px)', flexShrink:0, color: 'var(--danger-text)' }}><Icon name="close" size={13} /></button>
+          <button onClick={() => removeAt(idx)} disabled={busy} style={{ fontSize: 'var(--fs-small, 12px)', flexShrink:0, color: 'var(--dock-danger-text)' }}><Icon name="close" size={13} /></button>
         </div>
       )
     }
     return (
-      <div key={it.id} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, paddingLeft:10, paddingRight:10, paddingTop:6, paddingBottom:6, borderRadius:8, fontSize: 'var(--fs-body, 13px)', backgroundColor: 'var(--surface-2)', color: 'var(--text-primary)' }}>
+      <div key={it.id} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, paddingLeft:10, paddingRight:10, paddingTop:6, paddingBottom:6, borderRadius:8, fontSize: 'var(--fs-body, 13px)', backgroundColor: 'var(--dock-surface-2)', color: 'var(--dock-text-primary)' }}>
         <span style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', display:'flex', alignItems:'center', gap:6 }}>
-          <span style={{ fontFamily:'var(--font-mono)', fontSize: 'var(--fs-small, 12px)', color: 'var(--text-muted)' }}>#{it.log_index}</span>
+          <span style={{ fontFamily:'var(--font-mono)', fontSize: 'var(--fs-small, 12px)', color: 'var(--dock-text-muted)' }}>#{it.log_index}</span>
           <span style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{it.title}</span>
           {it.task_status === 'pending' && (
-            <span style={{ fontSize: 'var(--fs-micro, 10px)', paddingLeft:4, paddingRight:4, paddingTop:2, paddingBottom:2, borderRadius:4, flexShrink:0, backgroundColor: 'var(--warning-bg)', color: 'var(--warning-text)' }}>pending</span>
+            <span style={{ fontSize: 'var(--fs-micro, 10px)', paddingLeft:4, paddingRight:4, paddingTop:2, paddingBottom:2, borderRadius:4, flexShrink:0, backgroundColor: 'var(--dock-warning-bg)', color: 'var(--dock-warning-text)' }}>pending</span>
           )}
           {it.task_module && it.task_interval_min > 0 && (
-            <span style={{ fontSize: 'var(--fs-micro, 10px)', paddingLeft:4, paddingRight:4, paddingTop:2, paddingBottom:2, borderRadius:4, flexShrink:0, display:'inline-flex', alignItems:'center', gap:4, backgroundColor: 'var(--success-bg)', color: 'var(--success-text)' }}><Icon name="refresh" size={10} /> {it.task_interval_min}m</span>
+            <span style={{ fontSize: 'var(--fs-micro, 10px)', paddingLeft:4, paddingRight:4, paddingTop:2, paddingBottom:2, borderRadius:4, flexShrink:0, display:'inline-flex', alignItems:'center', gap:4, backgroundColor: 'var(--dock-success-bg)', color: 'var(--dock-success-text)' }}><Icon name="refresh" size={10} /> {it.task_interval_min}m</span>
           )}
         </span>
-        <button onClick={() => removeAt(idx, it)} disabled={busy} style={{ fontSize: 'var(--fs-small, 12px)', flexShrink:0, color: 'var(--danger-text)' }}><Icon name="close" size={13} /></button>
+        <button onClick={() => removeAt(idx, it)} disabled={busy} style={{ fontSize: 'var(--fs-small, 12px)', flexShrink:0, color: 'var(--dock-danger-text)' }}><Icon name="close" size={13} /></button>
       </div>
     )
   }
@@ -172,68 +173,68 @@ export default function ManageTasksModal({ motherId, formatId, formatName, onClo
       footer={<Button variant="secondary" onClick={onClose} style={{ width: '100%' }}>닫기</Button>}>
       <Stack gap={16}>
         {isTemplate && (
-          <p style={{ fontSize: 'var(--fs-small, 12px)', color: 'var(--text-secondary)' }}>
+          <p style={{ fontSize: 'var(--fs-small, 12px)', color: 'var(--dock-text-secondary)' }}>
             이 포멧으로 작성되는 <b>다음 로그부터</b> 아래 task들이 자동으로 등록됩니다.
           </p>
         )}
 
         {/* Current items */}
         <div style={{ display:'flex', flexDirection:'column', gap:4 }}>
-          <p style={{ ...labelStyle, color: 'var(--text-muted)' }}>
+          <p style={{ ...labelStyle, color: 'var(--dock-text-muted)' }}>
             {isTemplate ? `task 템플릿 (${items.length})` : `현재 task log (${items.length})`}
           </p>
           {items.length === 0
-            ? <p style={{ fontSize: 'var(--fs-small, 12px)', color: 'var(--text-muted)' }}>없음</p>
+            ? <p style={{ fontSize: 'var(--fs-small, 12px)', color: 'var(--dock-text-muted)' }}>없음</p>
             : items.map(renderRow)}
         </div>
 
         {/* Add module */}
-        <div style={{ display:'flex', flexDirection:'column', gap:6, borderWidth:1, borderStyle:'solid', borderRadius:8, padding:12, borderColor: 'var(--border-subtle)' }}>
-          <p style={{ ...labelStyle, color: 'var(--text-muted)' }}>자동 모듈 추가</p>
+        <div style={{ display:'flex', flexDirection:'column', gap:6, borderWidth:1, borderStyle:'solid', borderRadius:8, padding:12, borderColor: 'var(--dock-border-subtle)' }}>
+          <p style={{ ...labelStyle, color: 'var(--dock-text-muted)' }}>자동 모듈 추가</p>
           <div style={{ display:'flex', flexWrap:'wrap', gap:8, alignItems:'center' }}>
-            <select value={moduleSel} onChange={e => setModuleSel(e.target.value)} style={inputStyle}>
+            <Select value={moduleSel} onChange={e => setModuleSel(e.target.value)} style={inputStyle}>
               <option value="">모듈 선택…</option>
               {modules.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-            </select>
+            </Select>
             <input type="number" min="0" value={moduleDelay} onChange={e => setModuleDelay(e.target.value)}
                    placeholder="N분 뒤" title="N분 뒤에 첫 수집" style={{ ...inputStyle, width: 74 }} />
             <input type="number" min="0" value={moduleInterval} onChange={e => setModuleInterval(e.target.value)}
                    placeholder="자동요청(분)" style={{ ...inputStyle, width: 110 }} />
             <button onClick={addModule} disabled={!moduleSel || busy}
-                    style={{ fontSize: 'var(--fs-small, 12px)', paddingLeft:12, paddingRight:12, paddingTop:6, paddingBottom:6, borderRadius:8, fontWeight:500, backgroundColor: 'var(--info-bg)', color: 'var(--info-text)' }}>추가</button>
+                    style={{ fontSize: 'var(--fs-small, 12px)', paddingLeft:12, paddingRight:12, paddingTop:6, paddingBottom:6, borderRadius:8, fontWeight:500, backgroundColor: 'var(--dock-info-bg)', color: 'var(--dock-info-text)' }}>추가</button>
           </div>
         </div>
 
         {/* Add format */}
-        <div style={{ display:'flex', flexDirection:'column', gap:6, borderWidth:1, borderStyle:'solid', borderRadius:8, padding:12, borderColor: 'var(--border-subtle)' }}>
-          <p style={{ ...labelStyle, color: 'var(--text-muted)' }}>로그 포멧 추가 (나중에 Go로 채움)</p>
+        <div style={{ display:'flex', flexDirection:'column', gap:6, borderWidth:1, borderStyle:'solid', borderRadius:8, padding:12, borderColor: 'var(--dock-border-subtle)' }}>
+          <p style={{ ...labelStyle, color: 'var(--dock-text-muted)' }}>로그 포멧 추가 (나중에 Go로 채움)</p>
           <div style={{ display:'flex', flexWrap:'wrap', gap:8, alignItems:'center' }}>
-            <select value={formatSel} onChange={e => setFormatSel(e.target.value)} style={inputStyle}>
+            <Select value={formatSel} onChange={e => setFormatSel(e.target.value)} style={inputStyle}>
               <option value="">포멧 선택…</option>
               {formats.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
-            </select>
+            </Select>
             <input value={formatTitle} onChange={e => setFormatTitle(e.target.value)} placeholder="타이틀"
                    style={{ ...inputStyle, flex: 1, minWidth: 120 }} />
             <button onClick={addFormat} disabled={!formatSel || busy}
-                    style={{ fontSize: 'var(--fs-small, 12px)', paddingLeft:12, paddingRight:12, paddingTop:6, paddingBottom:6, borderRadius:8, fontWeight:500, backgroundColor: 'var(--surface-2)', color: 'var(--text-primary)', border: '1px solid var(--border-default)' }}>추가</button>
+                    style={{ fontSize: 'var(--fs-small, 12px)', paddingLeft:12, paddingRight:12, paddingTop:6, paddingBottom:6, borderRadius:8, fontWeight:500, backgroundColor: 'var(--dock-surface-2)', color: 'var(--dock-text-primary)', border: '1px solid var(--dock-border-default)' }}>추가</button>
           </div>
         </div>
 
         {/* Add service (auto-fill from request_url) */}
-        <div style={{ display:'flex', flexDirection:'column', gap:6, borderWidth:1, borderStyle:'solid', borderRadius:8, padding:12, borderColor: 'var(--border-subtle)' }}>
-          <p style={{ ...labelStyle, color: 'var(--text-muted)' }}>서비스 자동 fill 추가</p>
+        <div style={{ display:'flex', flexDirection:'column', gap:6, borderWidth:1, borderStyle:'solid', borderRadius:8, padding:12, borderColor: 'var(--dock-border-subtle)' }}>
+          <p style={{ ...labelStyle, color: 'var(--dock-text-muted)' }}>서비스 자동 fill 추가</p>
           <div style={{ display:'flex', flexWrap:'wrap', gap:8, alignItems:'center' }}>
-            <select value={serviceSel} onChange={e => setServiceSel(e.target.value)} style={inputStyle}>
+            <Select value={serviceSel} onChange={e => setServiceSel(e.target.value)} style={inputStyle}>
               <option value="">서비스 선택…</option>
               {reqServices.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-            </select>
+            </Select>
             <input value={serviceTitle} onChange={e => setServiceTitle(e.target.value)} placeholder="타이틀"
                    style={{ ...inputStyle, flex: 1, minWidth: 100 }} />
             <button onClick={addService} disabled={!serviceSel || busy}
-                    style={{ fontSize: 'var(--fs-small, 12px)', paddingLeft:12, paddingRight:12, paddingTop:6, paddingBottom:6, borderRadius:8, fontWeight:500, backgroundColor: 'var(--info-bg)', color: 'var(--info-text)' }}>추가</button>
+                    style={{ fontSize: 'var(--fs-small, 12px)', paddingLeft:12, paddingRight:12, paddingTop:6, paddingBottom:6, borderRadius:8, fontWeight:500, backgroundColor: 'var(--dock-info-bg)', color: 'var(--dock-info-text)' }}>추가</button>
           </div>
           {/* 요청 빈도 — 시작할때 / N분마다 / 끝날때 (복수 선택 가능) */}
-          <div style={{ display:'flex', flexWrap:'wrap', gap:'4px 14px', alignItems:'center', fontSize: 'var(--fs-small, 12px)', color: 'var(--text-secondary)' }}>
+          <div style={{ display:'flex', flexWrap:'wrap', gap:'4px 14px', alignItems:'center', fontSize: 'var(--fs-small, 12px)', color: 'var(--dock-text-secondary)' }}>
             <label style={{ display:'inline-flex', alignItems:'center', gap:5, cursor:'pointer' }}>
               <input type="checkbox" checked={serviceOnStart} onChange={e => setServiceOnStart(e.target.checked)} /> 시작할때
             </label>
@@ -256,14 +257,14 @@ export default function ManageTasksModal({ motherId, formatId, formatName, onClo
             </label>
           </div>
           {reqServices.length === 0 && (
-            <p style={{ fontSize: 'var(--fs-tiny, 11px)', color: 'var(--text-muted)' }}>
+            <p style={{ fontSize: 'var(--fs-tiny, 11px)', color: 'var(--dock-text-muted)' }}>
               request_url이 등록된 서비스가 없습니다. 핸드셰이크로 서비스를 먼저 등록하세요.
             </p>
           )}
         </div>
 
         {error && (
-          <div style={{ fontSize: 'var(--fs-small, 12px)', paddingLeft:12, paddingRight:12, paddingTop:8, paddingBottom:8, borderRadius:8, borderWidth:1, borderStyle:'solid', backgroundColor: 'var(--danger-bg)', borderColor: 'var(--danger-text)', color: 'var(--danger-text)' }}>
+          <div style={{ fontSize: 'var(--fs-small, 12px)', paddingLeft:12, paddingRight:12, paddingTop:8, paddingBottom:8, borderRadius:8, borderWidth:1, borderStyle:'solid', backgroundColor: 'var(--dock-danger-bg)', borderColor: 'var(--dock-danger-text)', color: 'var(--dock-danger-text)' }}>
             {error}
           </div>
         )}

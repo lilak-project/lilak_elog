@@ -36,15 +36,15 @@ export default function AdminAiBots() {
     <span style={{
       width: 34, height: 34, borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
       fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-medium, 14px)', flexShrink: 0,
-      backgroundColor: provider === 'openai' ? 'var(--success-bg)' : 'var(--warning-bg)',
-      color: provider === 'openai' ? 'var(--success-text)' : 'var(--warning-text)',
+      backgroundColor: provider === 'openai' ? 'var(--dock-success-bg)' : 'var(--dock-warning-bg)',
+      color: provider === 'openai' ? 'var(--dock-success-text)' : 'var(--dock-warning-text)',
     }}>{provider === 'openai' ? 'G' : 'C'}</span>
   )
 
   return (
     <div style={{ maxWidth: 720 }}>
-      <p style={{ fontSize: 'var(--fs-small, 12px)', color: 'var(--text-secondary)', margin: '0 0 12px' }}>
-        커뮤니티 채팅에서 <code style={{ padding: '0 4px', borderRadius: 4, backgroundColor: 'var(--surface-2)' }}>@이름</code> 으로 호출할 수 있는 AI 봇을 등록합니다.
+      <p style={{ fontSize: 'var(--fs-small, 12px)', color: 'var(--dock-text-secondary)', margin: '0 0 12px' }}>
+        커뮤니티 채팅에서 <code style={{ padding: '0 4px', borderRadius: 4, backgroundColor: 'var(--dock-surface-2)' }}>@이름</code> 으로 호출할 수 있는 AI 봇을 등록합니다.
       </p>
       <CrudTable
         rows={bots}
@@ -57,13 +57,13 @@ export default function AdminAiBots() {
               <Avatar provider={bot.provider} />
               <span style={{ minWidth: 0 }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-primary)' }}>@{bot.name}</span>
+                  <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--dock-text-primary)' }}>@{bot.name}</span>
                   {bot.display_name && bot.display_name !== bot.name && (
-                    <span style={{ fontSize: 'var(--fs-small, 12px)', color: 'var(--text-secondary)' }}>{bot.display_name}</span>
+                    <span style={{ fontSize: 'var(--fs-small, 12px)', color: 'var(--dock-text-secondary)' }}>{bot.display_name}</span>
                   )}
                   {!bot.enabled && <Badge tone="neutral">비활성</Badge>}
                 </span>
-                <span style={{ display: 'flex', gap: 10, fontSize: 'var(--fs-tiny, 11px)', color: 'var(--text-muted)', marginTop: 2 }}>
+                <span style={{ display: 'flex', gap: 10, fontSize: 'var(--fs-tiny, 11px)', color: 'var(--dock-text-muted)', marginTop: 2 }}>
                   <span>{bot.provider === 'openai' ? 'OpenAI' : 'Anthropic'}</span>
                   {bot.model && <span>{bot.model}</span>}
                   <span>컨텍스트 {bot.context_count}개</span>

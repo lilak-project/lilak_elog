@@ -32,7 +32,7 @@ export default function ProfileColorPicker({ value, onChange, label }) {
   return (
     <div>
       {label && (
-        <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>
+        <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--dock-text-secondary)' }}>
           {label}
         </label>
       )}
@@ -43,13 +43,13 @@ export default function ProfileColorPicker({ value, onChange, label }) {
           onClick={() => onChange(null)}
           className="h-7 w-7 rounded-full border-2 flex items-center justify-center transition-transform"
           style={{
-            backgroundColor: 'var(--surface)',
-            borderColor: !v ? 'var(--info-text)' : 'var(--border-default)',
+            backgroundColor: 'var(--dock-surface)',
+            borderColor: !v ? 'var(--dock-info-text)' : 'var(--dock-border-default)',
             transform: !v ? 'scale(1.1)' : undefined,
           }}
           title="기본"
         >
-          <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>—</span>
+          <span className="text-[10px]" style={{ color: 'var(--dock-text-muted)' }}>—</span>
         </button>
 
         {PROFILE_COLOR_PRESETS.map(c => {
@@ -62,7 +62,7 @@ export default function ProfileColorPicker({ value, onChange, label }) {
               className="h-7 w-7 rounded-full border-2 transition-transform"
               style={{
                 backgroundColor: c,
-                borderColor: sel ? 'var(--text-primary)' : 'transparent',
+                borderColor: sel ? 'var(--dock-text-primary)' : 'transparent',
                 transform: sel ? 'scale(1.1)' : undefined,
               }}
               title={c}

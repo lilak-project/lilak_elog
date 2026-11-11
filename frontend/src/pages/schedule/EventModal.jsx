@@ -1,3 +1,4 @@
+import Select from 'lilak-ui/components/Select.jsx'
 import { useState, useEffect } from 'react'
 import { confirm } from '../../components/dialog'
 import api from '../../api'
@@ -10,19 +11,19 @@ import {
 } from '../../theme/uiStyles'
 
 // Shared input style: matches all other forms across the app.
-const fieldInputCls = 'border rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-[var(--input-focus-border)]'
+const fieldInputCls = 'border rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-[var(--dock-input-focus-border)]'
 const fieldLabelCls = 'text-xs text-right'
-const fieldLabelStyle = { color: 'var(--text-secondary)' }
+const fieldLabelStyle = { color: 'var(--dock-text-secondary)' }
 
 // Pill button for type / slot / role selectors.
 function pillStyle(active, accent = 'primary') {
   if (active && accent === 'success') {
-    return { backgroundColor: 'var(--success-text)', color: 'var(--btn-primary-text)' }
+    return { backgroundColor: 'var(--dock-success-text)', color: 'var(--dock-btn-primary-text)' }
   }
   if (active) {
-    return { backgroundColor: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)' }
+    return { backgroundColor: 'var(--dock-btn-primary-bg)', color: 'var(--dock-btn-primary-text)' }
   }
-  return { backgroundColor: 'var(--surface-2)', color: 'var(--text-secondary)' }
+  return { backgroundColor: 'var(--dock-surface-2)', color: 'var(--dock-text-secondary)' }
 }
 
 function toLocalInput(d) {
@@ -162,20 +163,20 @@ export default function EventModal({
         style={modalFrame}
         onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between px-6 py-4 border-b"
-             style={{ borderColor: 'var(--border-subtle)' }}>
-          <h2 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+             style={{ borderColor: 'var(--dock-border-subtle)' }}>
+          <h2 className="text-sm font-semibold" style={{ color: 'var(--dock-text-primary)' }}>
             {isNew ? t('sched_evt_new') : `${t('sched_evt_edit')} — ${initial.title}`}
           </h2>
           <button onClick={onClose} className="text-xl transition-colors"
-                  style={{ color: 'var(--text-muted)' }}
-                  onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
-                  onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}>×</button>
+                  style={{ color: 'var(--dock-text-muted)' }}
+                  onMouseEnter={e => e.currentTarget.style.color = 'var(--dock-text-primary)'}
+                  onMouseLeave={e => e.currentTarget.style.color = 'var(--dock-text-muted)'}>×</button>
         </div>
 
         <div className="p-6 space-y-4">
           {err && (
             <div className="border text-xs px-3 py-2 rounded-lg"
-                 style={{ backgroundColor: 'var(--danger-bg)', borderColor: 'var(--danger-text)', color: 'var(--danger-text)' }}>
+                 style={{ backgroundColor: 'var(--dock-danger-bg)', borderColor: 'var(--dock-danger-text)', color: 'var(--dock-danger-text)' }}>
               {err}
             </div>
           )}
@@ -218,13 +219,13 @@ export default function EventModal({
             <>
               <div className="grid grid-cols-[6rem_1fr] items-center gap-3">
                 <label className={fieldLabelCls} style={fieldLabelStyle}>{t('sched_evt_pattern')}</label>
-                <select value={patternId} onChange={e => { setPatternId(e.target.value); setSlotLabel(''); setShiftRole('') }}
+                <Select value={patternId} onChange={e => { setPatternId(e.target.value); setSlotLabel(''); setShiftRole('') }}
                   className={fieldInputCls} style={inputBase}>
                   <option value="">{t('sched_evt_pattern_free')}</option>
                   {patterns?.filter(p => p.is_active).map(p => (
                     <option key={p.id} value={String(p.id)}>{p.name}</option>
                   ))}
-                </select>
+                </Select>
               </div>
 
               {currentPattern && currentPattern.slots.length > 0 && (
@@ -264,7 +265,7 @@ export default function EventModal({
 
               <div className="grid grid-cols-[6rem_1fr] items-center gap-3">
                 <label className={fieldLabelCls} style={fieldLabelStyle}>{t('sched_evt_assignee')}</label>
-                <select value={assignedId == null ? '' : String(assignedId)}
+                <Select value={assignedId == null ? '' : String(assignedId)}
                   onChange={e => handleAssigneeChange(e.target.value)}
                   className={fieldInputCls} style={inputBase}>
                   <option value="">{t('sched_evt_assignee_none')}</option>
@@ -273,7 +274,7 @@ export default function EventModal({
                       @{u.username}{u.display_name ? ` (${u.display_name})` : ''}
                     </option>
                   ))}
-                </select>
+                </Select>
               </div>
             </>
           )}
@@ -296,14 +297,14 @@ export default function EventModal({
         </div>
 
         <div className="px-6 py-4 border-t flex justify-end gap-3"
-             style={{ borderColor: 'var(--border-subtle)', backgroundColor: 'var(--surface-2)' }}>
+             style={{ borderColor: 'var(--dock-border-subtle)', backgroundColor: 'var(--dock-surface-2)' }}>
           {!isNew && (
             <button onClick={handleDelete} disabled={saving}
               className="text-xs px-3 py-2 mr-auto hover:underline"
-              style={{ color: 'var(--danger-text)' }}>{t('sched_evt_delete')}</button>
+              style={{ color: 'var(--dock-danger-text)' }}>{t('sched_evt_delete')}</button>
           )}
           <button onClick={onClose} className="text-xs px-4 py-2 hover:underline"
-                  style={{ color: 'var(--text-secondary)' }}>{t('sched_evt_cancel')}</button>
+                  style={{ color: 'var(--dock-text-secondary)' }}>{t('sched_evt_cancel')}</button>
           <button onClick={handleSave} disabled={saving}
             className="disabled:opacity-50 px-5 py-2 rounded-lg text-xs transition-colors"
             style={btnPrimary}

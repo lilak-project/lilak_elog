@@ -184,7 +184,7 @@ python3 "$TMP" "$ELOG_LAUNCHER"`
 
 function Code({ children }) {
   return (
-    <pre style={{ margin: 0, fontSize: 'var(--fs-tiny, 11px)', lineHeight: 1.6, borderWidth: 1, borderStyle: 'solid', borderColor: 'var(--border-default)', borderRadius: 8, padding: '8px 12px', overflowX: 'auto', fontFamily: 'var(--font-mono)', backgroundColor: 'var(--surface-2)', color: 'var(--text-primary)' }}>
+    <pre style={{ margin: 0, fontSize: 'var(--fs-tiny, 11px)', lineHeight: 1.6, borderWidth: 1, borderStyle: 'solid', borderColor: 'var(--dock-border-default)', borderRadius: 8, padding: '8px 12px', overflowX: 'auto', fontFamily: 'var(--font-mono)', backgroundColor: 'var(--dock-surface-2)', color: 'var(--dock-text-primary)' }}>
       {children}
     </pre>
   )
@@ -192,7 +192,7 @@ function Code({ children }) {
 
 function Inline({ children }) {
   return (
-    <code style={{ fontSize: 'var(--fs-tiny, 11px)', padding: '2px 6px', borderRadius: 4, fontFamily: 'var(--font-mono)', backgroundColor: 'var(--surface-2)', color: 'var(--text-primary)' }}>
+    <code style={{ fontSize: 'var(--fs-tiny, 11px)', padding: '2px 6px', borderRadius: 4, fontFamily: 'var(--font-mono)', backgroundColor: 'var(--dock-surface-2)', color: 'var(--dock-text-primary)' }}>
       {children}
     </code>
   )
@@ -201,10 +201,10 @@ function Inline({ children }) {
 function Section({ title, children }) {
   return (
     <section style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <h3 style={{ margin: 0, fontSize: 'var(--fs-body, 13px)', fontWeight: 600, paddingTop: 12, borderTopWidth: 1, borderTopStyle: 'solid', borderTopColor: 'var(--border-subtle)', color: 'var(--text-primary)' }}>
+      <h3 style={{ margin: 0, fontSize: 'var(--fs-body, 13px)', fontWeight: 600, paddingTop: 12, borderTopWidth: 1, borderTopStyle: 'solid', borderTopColor: 'var(--dock-border-subtle)', color: 'var(--dock-text-primary)' }}>
         {title}
       </h3>
-      <div style={{ fontSize: 'var(--fs-small, 12px)', display: 'flex', flexDirection: 'column', gap: 8, lineHeight: 1.6, color: 'var(--text-secondary)' }}>
+      <div style={{ fontSize: 'var(--fs-small, 12px)', display: 'flex', flexDirection: 'column', gap: 8, lineHeight: 1.6, color: 'var(--dock-text-secondary)' }}>
         {children}
       </div>
     </section>
@@ -213,7 +213,7 @@ function Section({ title, children }) {
 
 function Note({ children }) {
   return (
-    <div style={{ borderRadius: 8, padding: '8px 12px', fontSize: 'var(--fs-small, 12px)', borderLeftWidth: 2, borderLeftStyle: 'solid', borderLeftColor: 'var(--warning-text)', backgroundColor: 'var(--warning-bg)', color: 'var(--warning-text)' }}>
+    <div style={{ borderRadius: 8, padding: '8px 12px', fontSize: 'var(--fs-small, 12px)', borderLeftWidth: 2, borderLeftStyle: 'solid', borderLeftColor: 'var(--dock-warning-text)', backgroundColor: 'var(--dock-warning-bg)', color: 'var(--dock-warning-text)' }}>
       {children}
     </div>
   )
@@ -231,12 +231,12 @@ function ServiceManualKo({ origin }) {
           서비스는 현재 상태(측정값 등)를 응답합니다. elog가 그 데이터로 로그를 채워 씁니다.
         </p>
         <table style={{ fontSize: 'var(--fs-tiny, 11px)', width:'100%', borderCollapse:'collapse' }}>
-          <tbody style={{ color: 'var(--text-secondary)' }}>
-            <tr style={{ borderTopWidth:1, borderTopStyle:'solid', borderColor: 'var(--border-subtle)' }}>
+          <tbody style={{ color: 'var(--dock-text-secondary)' }}>
+            <tr style={{ borderTopWidth:1, borderTopStyle:'solid', borderColor: 'var(--dock-border-subtle)' }}>
               <td style={{ paddingTop:4, paddingBottom:4, paddingRight:12, fontWeight:600 }}>예시</td>
               <td style={{ paddingTop:4, paddingBottom:4 }}>진공 게이지, HV 모듈, Actuator 위치, 온도 센서</td>
             </tr>
-            <tr style={{ borderTopWidth:1, borderTopStyle:'solid', borderColor: 'var(--border-subtle)' }}>
+            <tr style={{ borderTopWidth:1, borderTopStyle:'solid', borderColor: 'var(--dock-border-subtle)' }}>
               <td style={{ paddingTop:4, paddingBottom:4, paddingRight:12, fontWeight:600 }}>필수 항목</td>
               <td style={{ paddingTop:4, paddingBottom:4 }}>Name, Request URL (elog가 호출할 endpoint)</td>
             </tr>
@@ -259,7 +259,7 @@ function ServiceManualKo({ origin }) {
   "requested_at": "2026-05-29T13:42:11Z",
   "mode": "task" | "snapshot" | "realtime"
 }`}</Code>
-        <p style={{ fontSize: 'var(--fs-tiny, 11px)', color: 'var(--text-muted)', margin: '4px 0 0' }}>
+        <p style={{ fontSize: 'var(--fs-tiny, 11px)', color: 'var(--dock-text-muted)', margin: '4px 0 0' }}>
           <Inline>run_number</Inline> = elog가 묻는 run (task fill은 그 task의 run, 그 외엔 현재 run; run이 없으면 null).
           서비스가 이 값으로 해당 run의 데이터만 골라 응답해도 되고, 무시해도 됩니다.
         </p>
@@ -420,12 +420,12 @@ function ServiceManualEn({ origin }) {
           The service responds with current readings; elog fills the log with that data.
         </p>
         <table style={{ fontSize: 'var(--fs-tiny, 11px)', width:'100%', borderCollapse:'collapse' }}>
-          <tbody style={{ color: 'var(--text-secondary)' }}>
-            <tr style={{ borderTopWidth:1, borderTopStyle:'solid', borderColor: 'var(--border-subtle)' }}>
+          <tbody style={{ color: 'var(--dock-text-secondary)' }}>
+            <tr style={{ borderTopWidth:1, borderTopStyle:'solid', borderColor: 'var(--dock-border-subtle)' }}>
               <td style={{ paddingTop:4, paddingBottom:4, paddingRight:12, fontWeight:600 }}>Examples</td>
               <td style={{ paddingTop:4, paddingBottom:4 }}>Vacuum gauges, HV modules, actuator positions, temperature sensors</td>
             </tr>
-            <tr style={{ borderTopWidth:1, borderTopStyle:'solid', borderColor: 'var(--border-subtle)' }}>
+            <tr style={{ borderTopWidth:1, borderTopStyle:'solid', borderColor: 'var(--dock-border-subtle)' }}>
               <td style={{ paddingTop:4, paddingBottom:4, paddingRight:12, fontWeight:600 }}>Required</td>
               <td style={{ paddingTop:4, paddingBottom:4 }}>Name, Request URL (the endpoint elog will call)</td>
             </tr>
@@ -449,7 +449,7 @@ function ServiceManualEn({ origin }) {
   "requested_at": "2026-05-29T13:42:11Z",
   "mode": "task" | "snapshot" | "realtime"
 }`}</Code>
-        <p style={{ fontSize: 'var(--fs-tiny, 11px)', color: 'var(--text-muted)', margin: '4px 0 0' }}>
+        <p style={{ fontSize: 'var(--fs-tiny, 11px)', color: 'var(--dock-text-muted)', margin: '4px 0 0' }}>
           <Inline>run_number</Inline> = the run elog is asking about (the task's run for task fills,
           the current run otherwise; null if there's no run). The service may use it to scope its
           reply or ignore it.
@@ -612,16 +612,16 @@ function SystemManualKo({ origin }) {
           선택적으로 <Inline>Command URL</Inline>을 등록하면 elog가 run 명령을 이 시스템에 보낼 수 있습니다.
         </p>
         <table style={{ fontSize: 'var(--fs-tiny, 11px)', width:'100%', borderCollapse:'collapse' }}>
-          <tbody style={{ color: 'var(--text-secondary)' }}>
-            <tr style={{ borderTopWidth:1, borderTopStyle:'solid', borderColor: 'var(--border-subtle)' }}>
+          <tbody style={{ color: 'var(--dock-text-secondary)' }}>
+            <tr style={{ borderTopWidth:1, borderTopStyle:'solid', borderColor: 'var(--dock-border-subtle)' }}>
               <td style={{ paddingTop:4, paddingBottom:4, paddingRight:12, fontWeight:600 }}>예시</td>
               <td style={{ paddingTop:4, paddingBottom:4 }}>Detector DAQ, Beam Counting DAQ, Trigger System</td>
             </tr>
-            <tr style={{ borderTopWidth:1, borderTopStyle:'solid', borderColor: 'var(--border-subtle)' }}>
+            <tr style={{ borderTopWidth:1, borderTopStyle:'solid', borderColor: 'var(--dock-border-subtle)' }}>
               <td style={{ paddingTop:4, paddingBottom:4, paddingRight:12, fontWeight:600 }}>필수 항목</td>
               <td style={{ paddingTop:4, paddingBottom:4 }}>Name, API Token (폼에서 발급)</td>
             </tr>
-            <tr style={{ borderTopWidth:1, borderTopStyle:'solid', borderColor: 'var(--border-subtle)' }}>
+            <tr style={{ borderTopWidth:1, borderTopStyle:'solid', borderColor: 'var(--dock-border-subtle)' }}>
               <td style={{ paddingTop:4, paddingBottom:4, paddingRight:12, fontWeight:600 }}>선택 항목</td>
               <td style={{ paddingTop:4, paddingBottom:4 }}>Command URL (elog → 시스템 run 명령)</td>
             </tr>
@@ -633,20 +633,20 @@ function SystemManualKo({ origin }) {
         <p>시스템 등록 시 다음 4개의 포맷이 자동으로 만들어지고 연결됩니다:</p>
         <table style={{ fontSize: 'var(--fs-tiny, 11px)', width:'100%', borderCollapse:'collapse' }}>
           <thead>
-            <tr style={{ color: 'var(--text-muted)' }}>
+            <tr style={{ color: 'var(--dock-text-muted)' }}>
               <th style={{ textAlign:'left', paddingTop:4, paddingBottom:4, paddingRight:12 }}>포맷 이름</th>
               <th style={{ textAlign:'left', paddingTop:4, paddingBottom:4, paddingRight:12 }}>task_type</th>
               <th style={{ textAlign:'left', paddingTop:4, paddingBottom:4 }}>run_type</th>
             </tr>
           </thead>
-          <tbody style={{ color: 'var(--text-secondary)' }}>
+          <tbody style={{ color: 'var(--dock-text-secondary)' }}>
             {[
               ['Init of {Name} run',       'init_of_run',    'I'],
               ['Start of {Name} run',      'start_of_run',   'S'],
               ['End of {Name} run',        'end_of_run',     'E'],
               ['Monitoring {Name} run',    'monitoring_run', 'M'],
             ].map(([name, tt, rt]) => (
-              <tr key={tt} style={{ borderTopWidth:1, borderTopStyle:'solid', borderColor: 'var(--border-subtle)' }}>
+              <tr key={tt} style={{ borderTopWidth:1, borderTopStyle:'solid', borderColor: 'var(--dock-border-subtle)' }}>
                 <td style={{ paddingTop:4, paddingBottom:4, paddingRight:12, fontFamily:'var(--font-mono)' }}>{name}</td>
                 <td style={{ paddingTop:4, paddingBottom:4, paddingRight:12 }}>{tt}</td>
                 <td style={{ paddingTop:4, paddingBottom:4 }}>{rt}</td>
@@ -742,19 +742,19 @@ ELOG_TOKEN = cfg["elog_token"]`}</Code>
           <strong>format_id 불필요</strong> — token으로 서비스를 자동 인식하고 <Inline>log_type</Inline>으로 포맷을 결정합니다.
         </Note>
         <table style={{ fontSize: 'var(--fs-tiny, 11px)', width:'100%', borderCollapse:'collapse', marginBottom:8 }}>
-          <thead><tr style={{ color: 'var(--text-muted)' }}>
+          <thead><tr style={{ color: 'var(--dock-text-muted)' }}>
             <th style={{ textAlign:'left', paddingTop:4, paddingBottom:4, paddingRight:16 }}>log_type</th>
             <th style={{ textAlign:'left', paddingTop:4, paddingBottom:4, paddingRight:16 }}>포맷</th>
             <th style={{ textAlign:'left', paddingTop:4, paddingBottom:4 }}>run_type 자동 설정</th>
           </tr></thead>
-          <tbody style={{ color: 'var(--text-secondary)' }}>
+          <tbody style={{ color: 'var(--dock-text-secondary)' }}>
             {[['0','일반 서비스 로그 (handshake 포맷)','—'],
               ['11','init_of_run','I'],
               ['12','start_of_run','S'],
               ['13','end_of_run','E'],
               ['14','monitoring_run','M'],
             ].map(([t,f,r]) => (
-              <tr key={t} style={{ borderTopWidth:1, borderTopStyle:'solid', borderColor: 'var(--border-subtle)' }}>
+              <tr key={t} style={{ borderTopWidth:1, borderTopStyle:'solid', borderColor: 'var(--dock-border-subtle)' }}>
                 <td style={{ paddingTop:4, paddingBottom:4, paddingRight:16, fontFamily:'var(--font-mono)' }}>{t}</td>
                 <td style={{ paddingTop:4, paddingBottom:4, paddingRight:16 }}>{f}</td>
                 <td style={{ paddingTop:4, paddingBottom:4, fontFamily:'var(--font-mono)' }}>{r}</td>
@@ -862,16 +862,16 @@ function SystemManualEn({ origin }) {
           Optionally, register a <Inline>Command URL</Inline> so elog can send run commands to this system.
         </p>
         <table style={{ fontSize: 'var(--fs-tiny, 11px)', width:'100%', borderCollapse:'collapse' }}>
-          <tbody style={{ color: 'var(--text-secondary)' }}>
-            <tr style={{ borderTopWidth:1, borderTopStyle:'solid', borderColor: 'var(--border-subtle)' }}>
+          <tbody style={{ color: 'var(--dock-text-secondary)' }}>
+            <tr style={{ borderTopWidth:1, borderTopStyle:'solid', borderColor: 'var(--dock-border-subtle)' }}>
               <td style={{ paddingTop:4, paddingBottom:4, paddingRight:12, fontWeight:600 }}>Examples</td>
               <td style={{ paddingTop:4, paddingBottom:4 }}>Detector DAQ, Beam Counting DAQ, Trigger System</td>
             </tr>
-            <tr style={{ borderTopWidth:1, borderTopStyle:'solid', borderColor: 'var(--border-subtle)' }}>
+            <tr style={{ borderTopWidth:1, borderTopStyle:'solid', borderColor: 'var(--dock-border-subtle)' }}>
               <td style={{ paddingTop:4, paddingBottom:4, paddingRight:12, fontWeight:600 }}>Required</td>
               <td style={{ paddingTop:4, paddingBottom:4 }}>Name, API Token (issued in the form)</td>
             </tr>
-            <tr style={{ borderTopWidth:1, borderTopStyle:'solid', borderColor: 'var(--border-subtle)' }}>
+            <tr style={{ borderTopWidth:1, borderTopStyle:'solid', borderColor: 'var(--dock-border-subtle)' }}>
               <td style={{ paddingTop:4, paddingBottom:4, paddingRight:12, fontWeight:600 }}>Optional</td>
               <td style={{ paddingTop:4, paddingBottom:4 }}>Command URL (elog → system run commands)</td>
             </tr>
@@ -883,20 +883,20 @@ function SystemManualEn({ origin }) {
         <p>When you register a system, these four formats are automatically created and linked:</p>
         <table style={{ fontSize: 'var(--fs-tiny, 11px)', width:'100%', borderCollapse:'collapse' }}>
           <thead>
-            <tr style={{ color: 'var(--text-muted)' }}>
+            <tr style={{ color: 'var(--dock-text-muted)' }}>
               <th style={{ textAlign:'left', paddingTop:4, paddingBottom:4, paddingRight:12 }}>Format name</th>
               <th style={{ textAlign:'left', paddingTop:4, paddingBottom:4, paddingRight:12 }}>task_type</th>
               <th style={{ textAlign:'left', paddingTop:4, paddingBottom:4 }}>run_type</th>
             </tr>
           </thead>
-          <tbody style={{ color: 'var(--text-secondary)' }}>
+          <tbody style={{ color: 'var(--dock-text-secondary)' }}>
             {[
               ['Init of {Name} run',       'init_of_run',    'I'],
               ['Start of {Name} run',      'start_of_run',   'S'],
               ['End of {Name} run',        'end_of_run',     'E'],
               ['Monitoring {Name} run',    'monitoring_run', 'M'],
             ].map(([name, tt, rt]) => (
-              <tr key={tt} style={{ borderTopWidth:1, borderTopStyle:'solid', borderColor: 'var(--border-subtle)' }}>
+              <tr key={tt} style={{ borderTopWidth:1, borderTopStyle:'solid', borderColor: 'var(--dock-border-subtle)' }}>
                 <td style={{ paddingTop:4, paddingBottom:4, paddingRight:12, fontFamily:'var(--font-mono)' }}>{name}</td>
                 <td style={{ paddingTop:4, paddingBottom:4, paddingRight:12 }}>{tt}</td>
                 <td style={{ paddingTop:4, paddingBottom:4 }}>{rt}</td>
@@ -992,19 +992,19 @@ ELOG_TOKEN = cfg["elog_token"]`}</Code>
           <strong>No format_id needed</strong> — elog resolves the format automatically from the token + <Inline>log_type</Inline>.
         </Note>
         <table style={{ fontSize: 'var(--fs-tiny, 11px)', width:'100%', borderCollapse:'collapse', marginBottom:8 }}>
-          <thead><tr style={{ color: 'var(--text-muted)' }}>
+          <thead><tr style={{ color: 'var(--dock-text-muted)' }}>
             <th style={{ textAlign:'left', paddingTop:4, paddingBottom:4, paddingRight:16 }}>log_type</th>
             <th style={{ textAlign:'left', paddingTop:4, paddingBottom:4, paddingRight:16 }}>Format</th>
             <th style={{ textAlign:'left', paddingTop:4, paddingBottom:4 }}>run_type (auto)</th>
           </tr></thead>
-          <tbody style={{ color: 'var(--text-secondary)' }}>
+          <tbody style={{ color: 'var(--dock-text-secondary)' }}>
             {[['0','Regular service log (handshake format)','—'],
               ['11','init_of_run','I'],
               ['12','start_of_run','S'],
               ['13','end_of_run','E'],
               ['14','monitoring_run','M'],
             ].map(([t,f,r]) => (
-              <tr key={t} style={{ borderTopWidth:1, borderTopStyle:'solid', borderColor: 'var(--border-subtle)' }}>
+              <tr key={t} style={{ borderTopWidth:1, borderTopStyle:'solid', borderColor: 'var(--dock-border-subtle)' }}>
                 <td style={{ paddingTop:4, paddingBottom:4, paddingRight:16, fontFamily:'var(--font-mono)' }}>{t}</td>
                 <td style={{ paddingTop:4, paddingBottom:4, paddingRight:16 }}>{f}</td>
                 <td style={{ paddingTop:4, paddingBottom:4, fontFamily:'var(--font-mono)' }}>{r}</td>
@@ -1825,9 +1825,9 @@ function CopyButton({ label, buildMd }) {
   return (
     <button onClick={copy}
             style={{ fontSize: 'var(--fs-small, 12px)', padding: '4px 10px', borderRadius: 8, cursor: 'pointer', borderWidth: 1, borderStyle: 'solid',
-              backgroundColor: copied ? 'var(--success-bg)' : 'var(--surface-2)',
-              borderColor: copied ? 'var(--success-text)' : 'var(--border-default)',
-              color: copied ? 'var(--success-text)' : 'var(--text-secondary)' }}>
+              backgroundColor: copied ? 'var(--dock-success-bg)' : 'var(--dock-surface-2)',
+              borderColor: copied ? 'var(--dock-success-text)' : 'var(--dock-border-default)',
+              color: copied ? 'var(--dock-success-text)' : 'var(--dock-text-secondary)' }}>
       {copied ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Icon name="check" size={12} weight="bold" /> Copied</span> : label}
     </button>
   )
@@ -1838,8 +1838,8 @@ function CopyButton({ label, buildMd }) {
 function ManualChapter({ title, children }) {
   return (
     <Stack gap={4}>
-      <div style={{ paddingTop: 8, paddingBottom: 4, borderBottomWidth: 2, borderBottomStyle: 'solid', borderBottomColor: 'var(--border-default)' }}>
-        <h2 style={{ margin: 0, fontSize: 'var(--fs-body, 13px)', fontWeight: 700, color: 'var(--text-primary)' }}>{title}</h2>
+      <div style={{ paddingTop: 8, paddingBottom: 4, borderBottomWidth: 2, borderBottomStyle: 'solid', borderBottomColor: 'var(--dock-border-default)' }}>
+        <h2 style={{ margin: 0, fontSize: 'var(--fs-body, 13px)', fontWeight: 700, color: 'var(--dock-text-primary)' }}>{title}</h2>
       </div>
       <Stack gap={4}>{children}</Stack>
     </Stack>
@@ -1868,7 +1868,7 @@ export default function ServiceManualModal({ onClose }) {
           {lang === 'ko' ? <SystemManualKo origin={origin} /> : <SystemManualEn origin={origin} />}
         </ManualChapter>
 
-        <p style={{ paddingTop: 8, fontSize: 'var(--fs-micro, 10px)', textAlign: 'center', color: 'var(--text-muted)' }}>{t('exp_manual_footer')}</p>
+        <p style={{ paddingTop: 8, fontSize: 'var(--fs-micro, 10px)', textAlign: 'center', color: 'var(--dock-text-muted)' }}>{t('exp_manual_footer')}</p>
       </Stack>
     </Modal>
   )

@@ -52,7 +52,7 @@ export default function AttachmentPicker({ onPick, onClose }) {
     <Modal title="파일에서 선택" width={720} onClose={onClose}
       footer={
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%' }}>
-          <span style={{ fontSize: 'var(--fs-small, 12px)', color: 'var(--text-muted)' }}>
+          <span style={{ fontSize: 'var(--fs-small, 12px)', color: 'var(--dock-text-muted)' }}>
             {sel.size ? `${sel.size}개 선택됨` : '첨부할 파일을 고르세요'}
           </span>
           <span style={{ flex: 1 }} />
@@ -63,9 +63,9 @@ export default function AttachmentPicker({ onPick, onClose }) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         <Input size="md" value={q} onChange={e => setQ(e.target.value)} placeholder="파일 이름으로 검색…" />
         <div style={{ maxHeight: '52vh', overflowY: 'auto', display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-          {loading && <span style={{ fontSize: 'var(--fs-small, 12px)', color: 'var(--text-muted)' }}>불러오는 중…</span>}
+          {loading && <span style={{ fontSize: 'var(--fs-small, 12px)', color: 'var(--dock-text-muted)' }}>불러오는 중…</span>}
           {!loading && items.length === 0 && (
-            <span style={{ fontSize: 'var(--fs-small, 12px)', color: 'var(--text-muted)' }}>파일이 없습니다.</span>
+            <span style={{ fontSize: 'var(--fs-small, 12px)', color: 'var(--dock-text-muted)' }}>파일이 없습니다.</span>
           )}
           {items.map(a => {
             const on = sel.has(a.id)
@@ -73,8 +73,8 @@ export default function AttachmentPicker({ onPick, onClose }) {
               <button key={a.id} type="button" onClick={() => toggle(a.id)} title={a.original_filename}
                 style={{
                   position: 'relative', padding: 0, borderRadius: 8, overflow: 'hidden', cursor: 'pointer',
-                  border: `2px solid ${on ? 'var(--border-focus)' : 'var(--border-default)'}`,
-                  backgroundColor: on ? 'var(--info-bg)' : 'var(--surface-2)',
+                  border: `2px solid ${on ? 'var(--dock-border-focus)' : 'var(--dock-border-default)'}`,
+                  backgroundColor: on ? 'var(--dock-info-bg)' : 'var(--dock-surface-2)',
                   width: 116, height: 116, display: 'flex', flexDirection: 'column',
                   alignItems: 'center', justifyContent: 'center', gap: 4,
                 }}>
@@ -83,14 +83,14 @@ export default function AttachmentPicker({ onPick, onClose }) {
                          style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   : <>
                       <Icon name="file" size={22} />
-                      <span style={{ fontSize: 'var(--fs-tiny, 11px)', color: 'var(--text-secondary)',
+                      <span style={{ fontSize: 'var(--fs-tiny, 11px)', color: 'var(--dock-text-secondary)',
                                      maxWidth: '96%', overflow: 'hidden', textOverflow: 'ellipsis',
                                      whiteSpace: 'nowrap', padding: '0 4px' }}>{a.original_filename}</span>
-                      <span style={{ fontSize: 'var(--fs-micro, 10px)', color: 'var(--text-muted)' }}>{fmtSize(a.size)}</span>
+                      <span style={{ fontSize: 'var(--fs-micro, 10px)', color: 'var(--dock-text-muted)' }}>{fmtSize(a.size)}</span>
                     </>}
                 {on && (
                   <span style={{ position: 'absolute', top: 4, right: 4, borderRadius: 999, lineHeight: 0,
-                                 padding: 3, backgroundColor: 'var(--border-focus)', color: '#fff' }}>
+                                 padding: 3, backgroundColor: 'var(--dock-border-focus)', color: '#fff' }}>
                     <Icon name="check" size={11} weight="bold" />
                   </span>
                 )}

@@ -35,15 +35,15 @@ export default function PortalLinkGate() {
   }
 
   const overlay = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }
-  const box = { width: 'min(420px, 92vw)', background: 'var(--surface, #fff)', color: 'var(--text-primary, #111)', borderRadius: 12, padding: 22, boxShadow: '0 16px 48px rgba(0,0,0,0.3)', fontFamily: 'var(--font-sans, system-ui)' }
-  const input = { width: '100%', height: 38, borderRadius: 8, padding: '0 12px', marginTop: 8, boxSizing: 'border-box', border: '1px solid var(--border-default, #ccc)', background: 'var(--input-bg, #fff)', color: 'var(--text-primary, #111)' }
-  const btn = (primary) => ({ height: 36, padding: '0 16px', borderRadius: 8, cursor: 'pointer', border: primary ? 'none' : '1px solid var(--border-default, #ccc)', background: primary ? 'var(--btn-primary-bg, #4c6ef5)' : 'transparent', color: primary ? '#fff' : 'var(--text-primary, #111)', fontWeight: 600 })
+  const box = { width: 'min(420px, 92vw)', background: 'var(--dock-surface, #fff)', color: 'var(--dock-text-primary, #111)', borderRadius: 12, padding: 22, boxShadow: '0 16px 48px rgba(0,0,0,0.3)', fontFamily: 'var(--font-sans, system-ui)' }
+  const input = { width: '100%', height: 38, borderRadius: 8, padding: '0 12px', marginTop: 8, boxSizing: 'border-box', border: '1px solid var(--dock-border-default, #ccc)', background: 'var(--dock-input-bg, #fff)', color: 'var(--dock-text-primary, #111)' }
+  const btn = (primary) => ({ height: 36, padding: '0 16px', borderRadius: 8, cursor: 'pointer', border: primary ? 'none' : '1px solid var(--dock-border-default, #ccc)', background: primary ? 'var(--dock-btn-primary-bg, #4c6ef5)' : 'transparent', color: primary ? '#fff' : 'var(--dock-text-primary, #111)', fontWeight: 600 })
 
   return (
     <div style={overlay}>
       <div style={box}>
         <h3 style={{ margin: '0 0 6px' }}>기존 계정 연동</h3>
-        <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6, color: 'var(--text-secondary, #555)' }}>
+        <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6, color: 'var(--dock-text-secondary, #555)' }}>
           이 실험에 같은 이메일(<b>{info.email}</b>)의 기존 계정
           {info.username ? <> <b>{info.username}</b></> : null}이 있습니다.
           본인 계정이 맞다면 그 계정의 <b>비밀번호</b>로 한 번만 연동하세요.
@@ -51,7 +51,7 @@ export default function PortalLinkGate() {
         </p>
         <input type="password" value={pw} autoFocus placeholder="기존 elog 계정 비밀번호" style={input}
           onChange={(e) => setPw(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && pw && link()} />
-        {err && <div style={{ color: 'var(--danger-text, #e03131)', fontSize: 12, marginTop: 8 }}>{String(err)}</div>}
+        {err && <div style={{ color: 'var(--dock-danger-text, #e03131)', fontSize: 12, marginTop: 8 }}>{String(err)}</div>}
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
           <button style={btn(false)} onClick={() => (window.location.href = '/projects')}>취소</button>
           <button style={btn(true)} disabled={busy || !pw} onClick={link}>{busy ? '연동 중…' : '연동하기'}</button>

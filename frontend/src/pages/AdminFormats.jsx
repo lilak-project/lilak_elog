@@ -1,3 +1,4 @@
+import Select from 'lilak-ui/components/Select.jsx'
 import { useState, useEffect } from 'react'
 import { confirm } from '../components/dialog'
 import { Icon, Button } from 'lilak-ui'
@@ -11,8 +12,8 @@ import {
   inputBase, hoverify,
 } from '../theme/uiStyles'
 
-const fieldInputCls = 'border rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-[var(--input-focus-border)]'
-const formInputCls  = 'flex-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--input-focus-border)]'
+const fieldInputCls = 'border rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-[var(--dock-input-focus-border)]'
+const formInputCls  = 'flex-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--dock-input-focus-border)]'
 
 // Mandatory builtins that are not "required" toggles: log# auto-increments,
 // run follows the previous run number, title is the format name (auto title).
@@ -92,54 +93,54 @@ function FieldEditor({ fields, onChange, t, lang }) {
       {fields.map((field, idx) => (
         <div key={field.key}
           className="border rounded-lg px-3 py-2"
-          style={{ backgroundColor: 'var(--surface-2)', borderColor: 'var(--border-default)' }}>
+          style={{ backgroundColor: 'var(--dock-surface-2)', borderColor: 'var(--dock-border-default)' }}>
          <div className="flex items-center gap-2">
           {/* Order controls */}
           <div className="flex flex-col gap-0.5 shrink-0">
             <button type="button" onClick={() => moveUp(idx)}
               disabled={idx === 0}
               className="disabled:opacity-30 text-xs leading-none transition-colors"
-              style={{ color: 'var(--text-muted)' }}
-              onMouseEnter={e => { if (!e.currentTarget.disabled) e.currentTarget.style.color = 'var(--text-primary)' }}
-              onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}>▲</button>
+              style={{ color: 'var(--dock-text-muted)' }}
+              onMouseEnter={e => { if (!e.currentTarget.disabled) e.currentTarget.style.color = 'var(--dock-text-primary)' }}
+              onMouseLeave={e => e.currentTarget.style.color = 'var(--dock-text-muted)'}>▲</button>
             <button type="button" onClick={() => moveDown(idx)}
               disabled={idx === fields.length - 1}
               className="disabled:opacity-30 text-xs leading-none transition-colors"
-              style={{ color: 'var(--text-muted)' }}
-              onMouseEnter={e => { if (!e.currentTarget.disabled) e.currentTarget.style.color = 'var(--text-primary)' }}
-              onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}>▼</button>
+              style={{ color: 'var(--dock-text-muted)' }}
+              onMouseEnter={e => { if (!e.currentTarget.disabled) e.currentTarget.style.color = 'var(--dock-text-primary)' }}
+              onMouseLeave={e => e.currentTarget.style.color = 'var(--dock-text-muted)'}>▼</button>
           </div>
 
           {field.field_type === 'builtin' ? (
             <div className="flex-1 flex items-center gap-3 min-w-0">
               <span className="text-xs font-mono px-1.5 py-0.5 rounded shrink-0"
-                    style={{ backgroundColor: 'var(--info-bg)', color: 'var(--info-text)' }}>
+                    style={{ backgroundColor: 'var(--dock-info-bg)', color: 'var(--dock-info-text)' }}>
                 {field.builtin_id}
               </span>
-              <span className="text-sm truncate" style={{ color: 'var(--text-primary)' }}>{field.label}</span>
+              <span className="text-sm truncate" style={{ color: 'var(--dock-text-primary)' }}>{field.label}</span>
               {/* log#/run/title auto-update or follow context — no "required" toggle */}
               {AUTO_BUILTINS.has(normBuiltin(field.builtin_id)) ? (
                 normBuiltin(field.builtin_id) === 'title' ? (
                   <label className="ml-auto flex items-center gap-1 text-xs shrink-0 cursor-pointer"
-                         style={{ color: field.auto_title ? 'var(--text-link)' : 'var(--text-secondary)' }}
+                         style={{ color: field.auto_title ? 'var(--dock-text-link)' : 'var(--dock-text-secondary)' }}
                          title="제목을 직접 입력하지 않고 포맷 이름으로 자동 설정">
                     <input type="checkbox" checked={!!field.auto_title}
                       onChange={e => setField(idx, { auto_title: e.target.checked })} className="rounded" />
                     auto title
                   </label>
                 ) : (
-                  <span className="ml-auto text-xs shrink-0" style={{ color: 'var(--text-muted)' }}>auto</span>
+                  <span className="ml-auto text-xs shrink-0" style={{ color: 'var(--dock-text-muted)' }}>auto</span>
                 )
               ) : normBuiltin(field.builtin_id) === 'tags' ? (
-                <span className="ml-auto text-xs shrink-0" style={{ color: 'var(--text-muted)' }}>
+                <span className="ml-auto text-xs shrink-0" style={{ color: 'var(--dock-text-muted)' }}>
                   {t('admin_fmt_field_required')}
                 </span>
               ) : normBuiltin(field.builtin_id) === 'time' ? (
                 <span className="ml-auto text-xs shrink-0" title="Infography 그래프 변수 (입력 필드 아님)"
-                      style={{ color: 'var(--text-link)' }}>metric</span>
+                      style={{ color: 'var(--dock-text-link)' }}>metric</span>
               ) : (
                 <label className="ml-auto flex items-center gap-1 text-xs shrink-0 cursor-pointer"
-                       style={{ color: 'var(--text-secondary)' }}>
+                       style={{ color: 'var(--dock-text-secondary)' }}>
                   <input type="checkbox"
                     checked={field.required}
                     onChange={e => setField(idx, { required: e.target.checked })}
@@ -159,7 +160,7 @@ function FieldEditor({ fields, onChange, t, lang }) {
                 className={fieldInputCls}
                 style={inputBase}
               />
-              <select
+              <Select
                 value={field.field_type}
                 onChange={e => {
                   const next = { field_type: e.target.value }
@@ -179,7 +180,7 @@ function FieldEditor({ fields, onChange, t, lang }) {
                     {lang === 'ko' ? ct.labelKo : ct.labelEn}
                   </option>
                 ))}
-              </select>
+              </Select>
               {field.field_type === 'select' ? (
                 <AddOptionInput
                   key={field.key}
@@ -209,14 +210,14 @@ function FieldEditor({ fields, onChange, t, lang }) {
                   "channels total" averaged over a run says nothing. */}
               <label className="flex items-center gap-1 text-xs shrink-0"
                      title="서비스가 값을 보낼 때마다 이 필드에 쌓습니다 (평균 ± 표준편차). 끄면 최신값만 남습니다."
-                     style={{ color: field.accumulate !== false ? 'var(--text-link)' : 'var(--text-muted)' }}>
+                     style={{ color: field.accumulate !== false ? 'var(--dock-text-link)' : 'var(--dock-text-muted)' }}>
                 <input type="checkbox" checked={field.accumulate !== false}
                        onChange={e => setField(idx, { accumulate: e.target.checked })} />
                 누적
               </label>
               <label className="flex items-center gap-1 text-xs shrink-0"
                      title="Infography 그래프 변수로 사용"
-                     style={{ color: field.metric ? 'var(--text-link)' : 'var(--text-muted)' }}>
+                     style={{ color: field.metric ? 'var(--dock-text-link)' : 'var(--dock-text-muted)' }}>
                 <input type="checkbox" checked={!!field.metric}
                        onChange={e => setField(idx, { metric: e.target.checked })} />
                 metric
@@ -226,7 +227,7 @@ function FieldEditor({ fields, onChange, t, lang }) {
 
           {!(field.field_type === 'builtin' && MANDATORY_BUILTINS.has(normBuiltin(field.builtin_id))) && (
             <button type="button" onClick={() => removeField(idx)}
-              className="text-sm shrink-0 ml-1" style={{ color: 'var(--danger-text)' }}><Icon name="close" size={13} /></button>
+              className="text-sm shrink-0 ml-1" style={{ color: 'var(--dock-danger-text)' }}><Icon name="close" size={13} /></button>
           )}
          </div>
          {/* The committed options, in the order the dropdown will offer them.
@@ -235,13 +236,13 @@ function FieldEditor({ fields, onChange, t, lang }) {
          {field.field_type === 'select' && (
            <div className="flex flex-wrap items-center gap-1 mt-1.5 pl-7">
              {fieldOptions(field).length === 0 ? (
-               <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+               <span className="text-[11px]" style={{ color: 'var(--dock-text-muted)' }}>
                  {t('admin_fmt_field_options_hint')}
                </span>
              ) : fieldOptions(field).map((opt, i) => (
                <span key={`${opt}-${i}`}
                      className="inline-flex items-center gap-1 text-[11px] pl-2 pr-1 py-0.5 rounded-full"
-                     style={{ backgroundColor: 'var(--info-bg)', color: 'var(--info-text)' }}>
+                     style={{ backgroundColor: 'var(--dock-info-bg)', color: 'var(--dock-info-text)' }}>
                  {opt}
                  <button type="button"
                    title={t('admin_fmt_field_option_remove')}
@@ -373,26 +374,26 @@ function FormatModal({ initial, onSave, onClose, t, lang }) {
         style={modalFrame}
         onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between px-6 py-4 border-b"
-             style={{ borderColor: 'var(--border-subtle)' }}>
-          <h2 className="font-semibold" style={{ color: 'var(--text-primary)' }}>
+             style={{ borderColor: 'var(--dock-border-subtle)' }}>
+          <h2 className="font-semibold" style={{ color: 'var(--dock-text-primary)' }}>
             {isNew ? t('admin_fmt_create') : t('admin_fmt_edit', initial.name)}
           </h2>
           <button onClick={onClose} className="text-xl transition-colors"
-                  style={{ color: 'var(--text-muted)' }}
-                  onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
-                  onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}>×</button>
+                  style={{ color: 'var(--dock-text-muted)' }}
+                  onMouseEnter={e => e.currentTarget.style.color = 'var(--dock-text-primary)'}
+                  onMouseLeave={e => e.currentTarget.style.color = 'var(--dock-text-muted)'}>×</button>
         </div>
 
         <div className="p-6 space-y-5">
           {err && (
             <div className="border text-sm px-3 py-2 rounded-lg"
-                 style={{ backgroundColor: 'var(--danger-bg)', borderColor: 'var(--danger-text)', color: 'var(--danger-text)' }}>{err}</div>
+                 style={{ backgroundColor: 'var(--dock-danger-bg)', borderColor: 'var(--dock-danger-text)', color: 'var(--dock-danger-text)' }}>{err}</div>
           )}
 
           {/* Name */}
           <div className="flex items-center gap-3">
             <label className="shrink-0 w-24 text-right text-sm font-medium"
-                   style={{ color: 'var(--text-secondary)' }}>
+                   style={{ color: 'var(--dock-text-secondary)' }}>
               {t('admin_fmt_name_label')}
             </label>
             <input
@@ -406,14 +407,14 @@ function FormatModal({ initial, onSave, onClose, t, lang }) {
 
           <div className="flex items-center gap-5">
             <label className="flex items-center gap-2 text-sm cursor-pointer"
-                   style={{ color: 'var(--text-primary)' }}>
+                   style={{ color: 'var(--dock-text-primary)' }}>
               <input type="checkbox" checked={isDefault}
                 onChange={e => setIsDefault(e.target.checked)}
                 className="rounded" />
               {t('admin_fmt_is_default')}
             </label>
             <label className="flex items-center gap-2 text-sm cursor-pointer"
-                   style={{ color: 'var(--text-primary)' }}>
+                   style={{ color: 'var(--dock-text-primary)' }}>
               <input type="checkbox" checked={notifyCommunity}
                 onChange={e => setNotifyCommunity(e.target.checked)}
                 className="rounded" />
@@ -429,7 +430,7 @@ function FormatModal({ initial, onSave, onClose, t, lang }) {
           {/* Built-in field toggles + Add custom field below */}
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide mb-2"
-               style={{ color: 'var(--text-secondary)' }}>
+               style={{ color: 'var(--dock-text-secondary)' }}>
               {t('admin_fmt_builtin_fields')}
             </p>
             <div className="flex flex-wrap gap-2">
@@ -444,8 +445,8 @@ function FormatModal({ initial, onSave, onClose, t, lang }) {
                       always ? 'opacity-70 cursor-not-allowed' : ''
                     }`}
                     style={active
-                      ? { backgroundColor: 'var(--btn-primary-bg)', borderColor: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)' }
-                      : { backgroundColor: 'var(--surface)', borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }
+                      ? { backgroundColor: 'var(--dock-btn-primary-bg)', borderColor: 'var(--dock-btn-primary-bg)', color: 'var(--dock-btn-primary-text)' }
+                      : { backgroundColor: 'var(--dock-surface)', borderColor: 'var(--dock-border-default)', color: 'var(--dock-text-secondary)' }
                     }
                   >
                     {lang === 'ko' ? bf.labelKo : bf.labelEn}
@@ -464,9 +465,9 @@ function FormatModal({ initial, onSave, onClose, t, lang }) {
           {/* Current field order */}
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide mb-2"
-               style={{ color: 'var(--text-secondary)' }}>
+               style={{ color: 'var(--dock-text-secondary)' }}>
               {t('admin_fmt_fields')}{' '}
-              <span className="font-normal normal-case" style={{ color: 'var(--text-muted)' }}>(drag order with ▲▼)</span>
+              <span className="font-normal normal-case" style={{ color: 'var(--dock-text-muted)' }}>(drag order with ▲▼)</span>
             </p>
             <FieldEditor fields={fields} onChange={setFields} t={t} lang={lang} />
           </div>
@@ -474,9 +475,9 @@ function FormatModal({ initial, onSave, onClose, t, lang }) {
 
         {/* Footer */}
         <div className="px-6 py-4 border-t flex justify-end gap-3"
-             style={{ borderColor: 'var(--border-subtle)', backgroundColor: 'var(--surface-2)' }}>
+             style={{ borderColor: 'var(--dock-border-subtle)', backgroundColor: 'var(--dock-surface-2)' }}>
           <button onClick={onClose}
-            className="text-xs px-3 py-1.5 hover:underline" style={{ color: 'var(--text-secondary)' }}>{t('admin_cancel')}</button>
+            className="text-xs px-3 py-1.5 hover:underline" style={{ color: 'var(--dock-text-secondary)' }}>{t('admin_cancel')}</button>
           <button onClick={handleSave} disabled={saving}
             className="disabled:opacity-50 px-4 py-1.5 rounded-lg text-xs font-medium transition-colors"
             style={btnPrimary}
@@ -495,14 +496,14 @@ function FormatRow({ fmt, onEdit, onCopy, onDelete, t }) {
   return (
     <div
       className="border rounded-lg px-4 py-2.5 flex items-center gap-3"
-      style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border-default)' }}
+      style={{ backgroundColor: 'var(--dock-surface)', borderColor: 'var(--dock-border-default)' }}
     >
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{fmt.name}</span>
+          <span className="text-sm font-medium" style={{ color: 'var(--dock-text-primary)' }}>{fmt.name}</span>
           {fmt.is_default && (
             <span className="text-xs px-1.5 py-0.5 rounded"
-                  style={{ backgroundColor: 'var(--warning-bg)', color: 'var(--warning-text)' }}>
+                  style={{ backgroundColor: 'var(--dock-warning-bg)', color: 'var(--dock-warning-text)' }}>
               {t('admin_fmt_default_badge')}
             </span>
           )}
@@ -513,8 +514,8 @@ function FormatRow({ fmt, onEdit, onCopy, onDelete, t }) {
             <span key={f.key}
               className="text-xs px-1.5 py-0.5 rounded-full"
               style={f.field_type === 'builtin'
-                ? { backgroundColor: 'var(--info-bg)', color: 'var(--info-text)' }
-                : { backgroundColor: 'var(--surface-2)', color: 'var(--text-secondary)' }
+                ? { backgroundColor: 'var(--dock-info-bg)', color: 'var(--dock-info-text)' }
+                : { backgroundColor: 'var(--dock-surface-2)', color: 'var(--dock-text-secondary)' }
               }>
               {f.label}
             </span>
@@ -530,14 +531,14 @@ function FormatRow({ fmt, onEdit, onCopy, onDelete, t }) {
             keep pushing into a format that no longer exists. */}
         {['system', 'service', 'module'].includes(fmt.owner_kind) && (
           <span className="text-xs px-2.5 py-1 rounded border"
-                style={{ color: 'var(--text-muted)', borderColor: 'var(--border-subtle)' }}
+                style={{ color: 'var(--dock-text-muted)', borderColor: 'var(--dock-border-subtle)' }}
                 title={`${fmt.owner_kind}이(가) 관리하는 포맷입니다. 필드를 추가해도 유지되지만, 이름은 서비스 이름을 따라 다시 바뀔 수 있습니다.`}>
             {fmt.owner_kind}
           </span>
         )}
         <button onClick={() => onEdit(fmt)}
           className="text-xs border px-2.5 py-1 rounded transition-colors"
-          style={{ color: 'var(--text-secondary)', borderColor: 'var(--border-default)' }}>
+          style={{ color: 'var(--dock-text-secondary)', borderColor: 'var(--dock-border-default)' }}>
           {t('admin_edit')}
         </button>
         {/* Start a new format from this one. The usual way a format is born is
@@ -546,13 +547,13 @@ function FormatRow({ fmt, onEdit, onCopy, onDelete, t }) {
         <button onClick={() => onCopy(fmt)}
           title={t('admin_fmt_copy_hint')}
           className="text-xs border px-2.5 py-1 rounded transition-colors"
-          style={{ color: 'var(--text-secondary)', borderColor: 'var(--border-default)' }}>
+          style={{ color: 'var(--dock-text-secondary)', borderColor: 'var(--dock-border-default)' }}>
           {t('admin_fmt_copy')}
         </button>
         {!fmt.is_default && !['system', 'service', 'module'].includes(fmt.owner_kind) && (
           <button onClick={() => onDelete(fmt)}
             className="text-xs border px-2.5 py-1 rounded transition-colors"
-            style={{ color: 'var(--danger-text)', borderColor: 'var(--border-default)' }}>
+            style={{ color: 'var(--dock-danger-text)', borderColor: 'var(--dock-border-default)' }}>
             {t('admin_fmt_delete')}
           </button>
         )}
@@ -580,28 +581,28 @@ function FormatGroup({ label, sublabel, formats, defaultOpen = true, onEdit, onC
   const [open, setOpen] = useState(defaultOpen)
   return (
     <div className="rounded-xl border overflow-hidden"
-         style={{ borderColor: 'var(--border-default)' }}>
+         style={{ borderColor: 'var(--dock-border-default)' }}>
       {/* Group header */}
       <button
         type="button"
         onClick={() => setOpen(o => !o)}
         className="w-full flex items-center gap-2 px-4 py-2 text-left transition-colors"
-        style={{ backgroundColor: 'var(--surface-2)' }}
-        onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--surface-3)'}
-        onMouseLeave={e => e.currentTarget.style.backgroundColor = 'var(--surface-2)'}
+        style={{ backgroundColor: 'var(--dock-surface-2)' }}
+        onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--dock-surface-3)'}
+        onMouseLeave={e => e.currentTarget.style.backgroundColor = 'var(--dock-surface-2)'}
       >
-        <span className="text-xs inline-flex" style={{ color: 'var(--text-muted)' }}><Icon name={open ? 'caret-down' : 'caret-right'} size={12} /></span>
-        <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{label}</span>
+        <span className="text-xs inline-flex" style={{ color: 'var(--dock-text-muted)' }}><Icon name={open ? 'caret-down' : 'caret-right'} size={12} /></span>
+        <span className="text-sm font-semibold" style={{ color: 'var(--dock-text-primary)' }}>{label}</span>
         {sublabel && (
-          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{sublabel}</span>
+          <span className="text-xs" style={{ color: 'var(--dock-text-muted)' }}>{sublabel}</span>
         )}
-        <span className="ml-auto text-xs" style={{ color: 'var(--text-muted)' }}>{formats.length}</span>
+        <span className="ml-auto text-xs" style={{ color: 'var(--dock-text-muted)' }}>{formats.length}</span>
       </button>
 
       {/* Group rows */}
       {open && (
         <div className="p-2 space-y-1.5"
-             style={{ backgroundColor: 'var(--surface)' }}>
+             style={{ backgroundColor: 'var(--dock-surface)' }}>
           {formats.map(fmt => (
             <FormatRow key={fmt.id} fmt={fmt} onEdit={onEdit} onCopy={onCopy} onDelete={onDelete} t={t} />
           ))}
@@ -636,7 +637,7 @@ export default function AdminFormats() {
   function closeModal() { setModal(null); load() }
 
   if (!user || user.role !== 'manager') {
-    return <div className="text-center py-16" style={{ color: 'var(--text-muted)' }}>Access denied.</div>
+    return <div className="text-center py-16" style={{ color: 'var(--dock-text-muted)' }}>Access denied.</div>
   }
 
   // ── Group formats ──────────────────────────────────────────────────────────
@@ -683,10 +684,10 @@ export default function AdminFormats() {
       </div>
 
       {loading ? (
-        <div className="text-center py-12" style={{ color: 'var(--text-muted)' }}>{t('admin_fmt_loading')}</div>
+        <div className="text-center py-12" style={{ color: 'var(--dock-text-muted)' }}>{t('admin_fmt_loading')}</div>
       ) : formats.length === 0 ? (
         <div className="text-center py-12 rounded-xl border"
-             style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border-default)', color: 'var(--text-muted)' }}>
+             style={{ backgroundColor: 'var(--dock-surface)', borderColor: 'var(--dock-border-default)', color: 'var(--dock-text-muted)' }}>
           <p className="text-xs">{t('admin_fmt_empty')}</p>
         </div>
       ) : (

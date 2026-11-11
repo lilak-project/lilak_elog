@@ -13,7 +13,7 @@
 import { computeNumberEntry } from '../../utils/formatUtils'
 import { Icon } from 'lilak-ui'
 
-const inputCls = 'w-full border rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--input-focus-border)]'
+const inputCls = 'w-full border rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--dock-input-focus-border)]'
 
 function NumInput({ value, onChange, placeholder }) {
   return (
@@ -22,9 +22,9 @@ function NumInput({ value, onChange, placeholder }) {
       step="any"
       className={inputCls}
       style={{
-        backgroundColor: 'var(--input-bg)',
-        borderColor:     'var(--input-border)',
-        color:           'var(--text-primary)',
+        backgroundColor: 'var(--dock-input-bg)',
+        borderColor:     'var(--dock-input-border)',
+        color:           'var(--dock-text-primary)',
       }}
       value={value ?? ''}
       onChange={e => onChange(e.target.value)}
@@ -43,10 +43,10 @@ function ResultPreview({ canonical }) {
   }
   return (
     <div className="text-xs whitespace-nowrap font-mono"
-         style={{ color: 'var(--text-secondary)' }}>
+         style={{ color: 'var(--dock-text-secondary)' }}>
       {error
-        ? <>= <strong style={{ color: 'var(--text-primary)' }}>{fmt(value)}</strong> ± {fmt(error)}</>
-        : <>= <strong style={{ color: 'var(--text-primary)' }}>{fmt(value)}</strong></>}
+        ? <>= <strong style={{ color: 'var(--dock-text-primary)' }}>{fmt(value)}</strong> ± {fmt(error)}</>
+        : <>= <strong style={{ color: 'var(--dock-text-primary)' }}>{fmt(value)}</strong></>}
     </div>
   )
 }
@@ -72,7 +72,7 @@ export default function NumberEntryField({
           onChange={x => onChange({ ...v, min: x })}
           placeholder="min"
         />
-        <span style={{ color: 'var(--text-muted)' }}>~</span>
+        <span style={{ color: 'var(--dock-text-muted)' }}>~</span>
         <NumInput
           value={v.max}
           onChange={x => onChange({ ...v, max: x })}
@@ -99,7 +99,7 @@ export default function NumberEntryField({
     const addBtn = !disabled && (
       <button type="button" onClick={addSlot}
               className="border rounded-lg text-sm font-medium px-2 shrink-0"
-              style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)', backgroundColor: 'var(--surface-2)' }}
+              style={{ borderColor: 'var(--dock-border-default)', color: 'var(--dock-text-secondary)', backgroundColor: 'var(--dock-surface-2)' }}
               title="add value">+</button>
     )
     if (inline) {
@@ -112,7 +112,7 @@ export default function NumberEntryField({
               <NumInput value={s} onChange={x => setSlot(i, x)} placeholder={`#${i + 1}`} />
               {slots.length > 1 && !disabled && (
                 <button type="button" onClick={() => removeSlot(i)}
-                        className="text-xs shrink-0 px-0.5" style={{ color: 'var(--danger-text)' }}
+                        className="text-xs shrink-0 px-0.5" style={{ color: 'var(--dock-danger-text)' }}
                         title="remove"><Icon name="close" size={12} /></button>
               )}
             </div>
@@ -129,7 +129,7 @@ export default function NumberEntryField({
               <NumInput value={s} onChange={x => setSlot(i, x)} placeholder={`#${i + 1}`} />
               {slots.length > 1 && !disabled && (
                 <button type="button" onClick={() => removeSlot(i)}
-                        className="text-xs shrink-0 px-0.5" style={{ color: 'var(--danger-text)' }}
+                        className="text-xs shrink-0 px-0.5" style={{ color: 'var(--dock-danger-text)' }}
                         title="remove"><Icon name="close" size={12} /></button>
               )}
             </div>
@@ -137,7 +137,7 @@ export default function NumberEntryField({
           {!disabled && (
             <button type="button" onClick={addSlot}
                     className="border rounded-lg text-sm font-medium"
-                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)', backgroundColor: 'var(--surface-2)' }}
+                    style={{ borderColor: 'var(--dock-border-default)', color: 'var(--dock-text-secondary)', backgroundColor: 'var(--dock-surface-2)' }}
                     title="add value">+</button>
           )}
         </div>

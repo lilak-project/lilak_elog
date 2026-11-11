@@ -42,11 +42,11 @@ export default function AdminAudit() {
 
   const actionLabel = (a) => (ACTION_LABELS[lang] || ACTION_LABELS.en)[a] || a
   const entityLabel = (e) => (ENTITY_LABELS[lang] || ENTITY_LABELS.en)[e] || e
-  const tone = (a) => DANGER.has(a) ? 'var(--danger-text)' : GOOD.has(a) ? 'var(--success-text)' : 'var(--text-secondary)'
+  const tone = (a) => DANGER.has(a) ? 'var(--dock-danger-text)' : GOOD.has(a) ? 'var(--dock-success-text)' : 'var(--dock-text-secondary)'
   const fmtTime = (iso) => { try { return formatLogStamp(iso) } catch { return iso || '' } }
 
-  const th = { textAlign: 'left', padding: '6px 10px', fontSize: 'var(--fs-tiny, 11px)', textTransform: 'uppercase', letterSpacing: '.04em', color: 'var(--text-muted)', borderBottom: '1px solid var(--border-default)', whiteSpace: 'nowrap' }
-  const td = { padding: '6px 10px', fontSize: 'var(--fs-small, 12px)', borderBottom: '1px solid var(--border-subtle)', whiteSpace: 'nowrap' }
+  const th = { textAlign: 'left', padding: '6px 10px', fontSize: 'var(--fs-tiny, 11px)', textTransform: 'uppercase', letterSpacing: '.04em', color: 'var(--dock-text-muted)', borderBottom: '1px solid var(--dock-border-default)', whiteSpace: 'nowrap' }
+  const td = { padding: '6px 10px', fontSize: 'var(--fs-small, 12px)', borderBottom: '1px solid var(--dock-border-subtle)', whiteSpace: 'nowrap' }
 
   return (
     <div style={{ maxWidth: 1024, margin: '0 auto' }}>
@@ -55,20 +55,20 @@ export default function AdminAudit() {
         {FILTERS.map((f) => (
           <button key={f || 'all'} onClick={() => { setOffset(0); setFilter(f) }}
             style={{ fontSize: 'var(--fs-small, 12px)', padding: '3px 10px', borderRadius: 999, cursor: 'pointer',
-              border: '1px solid var(--border-default)',
-              backgroundColor: filter === f ? 'var(--btn-primary-bg)' : 'var(--surface)',
-              color: filter === f ? '#fff' : 'var(--text-secondary)' }}>
+              border: '1px solid var(--dock-border-default)',
+              backgroundColor: filter === f ? 'var(--dock-btn-primary-bg)' : 'var(--dock-surface)',
+              color: filter === f ? '#fff' : 'var(--dock-text-secondary)' }}>
             {f ? actionLabel(f) : t('audit_all')}
           </button>
         ))}
       </div>
 
       {loading ? (
-        <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>{t('admin_loading')}</div>
+        <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--dock-text-muted)' }}>{t('admin_loading')}</div>
       ) : events.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)', fontSize: 'var(--fs-small, 12px)' }}>{t('audit_empty')}</div>
+        <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--dock-text-muted)', fontSize: 'var(--fs-small, 12px)' }}>{t('audit_empty')}</div>
       ) : (
-        <div style={{ border: '1px solid var(--border-default)', borderRadius: 10, overflow: 'hidden', backgroundColor: 'var(--surface)' }}>
+        <div style={{ border: '1px solid var(--dock-border-default)', borderRadius: 10, overflow: 'hidden', backgroundColor: 'var(--dock-surface)' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr>
@@ -82,11 +82,11 @@ export default function AdminAudit() {
             <tbody>
               {events.map((e) => (
                 <tr key={e.id}>
-                  <td style={{ ...td, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>{fmtTime(e.created_at)}</td>
+                  <td style={{ ...td, color: 'var(--dock-text-muted)', fontFamily: 'var(--font-mono)' }}>{fmtTime(e.created_at)}</td>
                   <td style={{ ...td, fontWeight: 600, color: tone(e.action) }}>{actionLabel(e.action)}</td>
                   <td style={td}>{entityLabel(e.entity_type)}{e.entity_id != null ? ` #${e.entity_id}` : ''}</td>
                   <td style={{ ...td, fontFamily: 'var(--font-mono)' }}>{e.actor || '—'}</td>
-                  <td style={{ ...td, color: 'var(--text-muted)', whiteSpace: 'normal' }}>{e.details || ''}</td>
+                  <td style={{ ...td, color: 'var(--dock-text-muted)', whiteSpace: 'normal' }}>{e.details || ''}</td>
                 </tr>
               ))}
             </tbody>
@@ -96,12 +96,12 @@ export default function AdminAudit() {
 
       {/* Pagination */}
       {total > LIMIT && (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, marginTop: 12, fontSize: 'var(--fs-small, 12px)', color: 'var(--text-secondary)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, marginTop: 12, fontSize: 'var(--fs-small, 12px)', color: 'var(--dock-text-secondary)' }}>
           <button disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - LIMIT))}
-            style={{ background: 'none', border: 'none', cursor: offset === 0 ? 'default' : 'pointer', color: offset === 0 ? 'var(--text-muted)' : 'var(--text-link)' }}>← {t('admin_prev') || 'Prev'}</button>
+            style={{ background: 'none', border: 'none', cursor: offset === 0 ? 'default' : 'pointer', color: offset === 0 ? 'var(--dock-text-muted)' : 'var(--dock-text-link)' }}>← {t('admin_prev') || 'Prev'}</button>
           <span>{offset + 1}–{Math.min(offset + LIMIT, total)} / {total}</span>
           <button disabled={offset + LIMIT >= total} onClick={() => setOffset(offset + LIMIT)}
-            style={{ background: 'none', border: 'none', cursor: offset + LIMIT >= total ? 'default' : 'pointer', color: offset + LIMIT >= total ? 'var(--text-muted)' : 'var(--text-link)' }}>{t('admin_next') || 'Next'} →</button>
+            style={{ background: 'none', border: 'none', cursor: offset + LIMIT >= total ? 'default' : 'pointer', color: offset + LIMIT >= total ? 'var(--dock-text-muted)' : 'var(--dock-text-link)' }}>{t('admin_next') || 'Next'} →</button>
         </div>
       )}
     </div>

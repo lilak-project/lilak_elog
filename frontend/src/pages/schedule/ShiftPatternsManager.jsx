@@ -10,7 +10,7 @@ import {
 } from '../../theme/uiStyles'
 
 // Shared field className used inside PatternEditor.
-const editorInputCls = 'border rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-[var(--input-focus-border)]'
+const editorInputCls = 'border rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-[var(--dock-input-focus-border)]'
 
 // ROLE_COLORS / COLOR_KEYS / roleColorClasses are kept as named exports
 // for back-compat; they all source from the canonical palette now.
@@ -65,16 +65,16 @@ function RoleEditor({ roles, onChange, t }) {
             value={r.name}
             onChange={e => update(i, { name: e.target.value })}
             placeholder={t('sched_pat_role_name_ph')}
-            className="border rounded px-2 py-0.5 text-xs flex-1 focus:outline-none focus:ring-2 focus:ring-[var(--input-focus-border)]"
+            className="border rounded px-2 py-0.5 text-xs flex-1 focus:outline-none focus:ring-2 focus:ring-[var(--dock-input-focus-border)]"
             style={inputBase}
           />
           <ColorSwatchPicker value={r.color} onChange={c => update(i, { color: c })} />
           <button onClick={() => remove(i)} className="text-xs"
-                  style={{ color: 'var(--danger-text)' }}>✕</button>
+                  style={{ color: 'var(--dock-danger-text)' }}>✕</button>
         </div>
       ))}
       <button onClick={add} className="text-[11px] hover:underline"
-              style={{ color: 'var(--text-link)' }}>{t('sched_pat_add_role')}</button>
+              style={{ color: 'var(--dock-text-link)' }}>{t('sched_pat_add_role')}</button>
     </div>
   )
 }
@@ -176,43 +176,43 @@ function PatternEditor({ initial, onSave, onCancel }) {
 
   return (
     <div className="border rounded-lg p-4 space-y-3"
-         style={{ borderColor: 'var(--border-default)', backgroundColor: 'var(--surface-2)' }}>
+         style={{ borderColor: 'var(--dock-border-default)', backgroundColor: 'var(--dock-surface-2)' }}>
       {err && (
         <div className="border text-xs px-3 py-2 rounded"
-             style={{ backgroundColor: 'var(--danger-bg)', borderColor: 'var(--danger-text)', color: 'var(--danger-text)' }}>{err}</div>
+             style={{ backgroundColor: 'var(--dock-danger-bg)', borderColor: 'var(--dock-danger-text)', color: 'var(--dock-danger-text)' }}>{err}</div>
       )}
 
       <div className="flex items-center gap-2">
-        <label className="text-xs w-16" style={{ color: 'var(--text-secondary)' }}>{t('sched_pat_name')}</label>
+        <label className="text-xs w-16" style={{ color: 'var(--dock-text-secondary)' }}>{t('sched_pat_name')}</label>
         <input value={name} onChange={e => setName(e.target.value)}
           placeholder={t('sched_pat_name_ph')}
           className={`flex-1 ${editorInputCls}`} style={inputBase} />
-        <label className="flex items-center gap-1 text-xs" style={{ color: 'var(--text-secondary)' }}>
+        <label className="flex items-center gap-1 text-xs" style={{ color: 'var(--dock-text-secondary)' }}>
           <input type="checkbox" checked={isActive} onChange={e => setActive(e.target.checked)} />
           {t('sched_pat_active')}
         </label>
       </div>
 
       <div className="flex items-center gap-2">
-        <label className="text-xs w-16" style={{ color: 'var(--text-secondary)' }}>적용 기간</label>
+        <label className="text-xs w-16" style={{ color: 'var(--dock-text-secondary)' }}>적용 기간</label>
         <input type="date" value={effectiveFrom}
           onChange={e => setEffectiveFrom(e.target.value)}
           className={editorInputCls} style={inputBase} />
-        <span className="text-xs" style={{ color: 'var(--text-muted)' }}>~</span>
+        <span className="text-xs" style={{ color: 'var(--dock-text-muted)' }}>~</span>
         <input type="date" value={effectiveTo}
           onChange={e => setEffectiveTo(e.target.value)}
           className={editorInputCls} style={inputBase} />
-        <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>비우면 무제한</span>
+        <span className="text-[10px]" style={{ color: 'var(--dock-text-muted)' }}>비우면 무제한</span>
       </div>
 
       {/* Slots (label + hours only) */}
       <div>
         <div className="flex items-center justify-between mb-1.5">
-          <span className="text-[11px] uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>시간 슬롯</span>
+          <span className="text-[11px] uppercase tracking-wider" style={{ color: 'var(--dock-text-secondary)' }}>시간 슬롯</span>
           <button onClick={addSlot} className="text-[11px] hover:underline"
-                  style={{ color: 'var(--text-link)' }}>{t('sched_pat_add_slot')}</button>
+                  style={{ color: 'var(--dock-text-link)' }}>{t('sched_pat_add_slot')}</button>
         </div>
-        <p className="text-[10px] mb-1" style={{ color: 'var(--text-muted)' }}>
+        <p className="text-[10px] mb-1" style={{ color: 'var(--dock-text-muted)' }}>
           종료 시각이 시작 시각보다 작거나, 24 이상의 값을 입력하면 다음날로 이어집니다.
           예) 22 ~ 6 또는 22 ~ 30 = 밤 10시부터 다음날 6시.
         </p>
@@ -230,19 +230,19 @@ function PatternEditor({ initial, onSave, onCancel }) {
                 <input type="number" min={0} max={23} value={s.start_hour}
                   onChange={e => updateSlot(i, { start_hour: e.target.value })}
                   className={`${editorInputCls} w-14 no-spin`} style={inputBase} />
-                <span className="text-xs" style={{ color: 'var(--text-muted)' }}>~</span>
+                <span className="text-xs" style={{ color: 'var(--dock-text-muted)' }}>~</span>
                 <input type="number" min={0} max={47} value={s.end_hour}
                   onChange={e => updateSlot(i, { end_hour: e.target.value })}
                   className={`${editorInputCls} w-14 no-spin`} style={inputBase} />
                 {wraps && (
                   <span className="text-[10px] whitespace-nowrap"
-                        style={{ color: 'var(--warning-text)' }}
+                        style={{ color: 'var(--dock-warning-text)' }}
                         title="다음날로 이어집니다">
                     +1d ({String(endDisplay).padStart(2, '0')}:00)
                   </span>
                 )}
                 <button onClick={() => removeSlot(i)} className="text-xs ml-1"
-                        style={{ color: 'var(--danger-text)' }}>✕</button>
+                        style={{ color: 'var(--dock-danger-text)' }}>✕</button>
               </div>
             )
           })}
@@ -250,17 +250,17 @@ function PatternEditor({ initial, onSave, onCancel }) {
       </div>
 
       {/* Pattern-level roles (apply to every slot) */}
-      <div className="border-t pt-3" style={{ borderColor: 'var(--border-default)' }}>
+      <div className="border-t pt-3" style={{ borderColor: 'var(--dock-border-default)' }}>
         <div className="mb-1.5">
-          <span className="text-[11px] uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>역할 (모든 슬롯 공통)</span>
-          <p className="text-[10px] mt-0.5" style={{ color: 'var(--text-muted)' }}>한 번 정한 역할이 모든 시간 슬롯에 자동 적용됩니다. 예: daq, shift, beam</p>
+          <span className="text-[11px] uppercase tracking-wider" style={{ color: 'var(--dock-text-secondary)' }}>역할 (모든 슬롯 공통)</span>
+          <p className="text-[10px] mt-0.5" style={{ color: 'var(--dock-text-muted)' }}>한 번 정한 역할이 모든 시간 슬롯에 자동 적용됩니다. 예: daq, shift, beam</p>
         </div>
         <RoleEditor t={t} roles={roles} onChange={setRoles} />
       </div>
 
       <div className="flex justify-end gap-2 pt-2">
         <button onClick={onCancel} className="text-xs px-3 py-1.5 hover:underline"
-                style={{ color: 'var(--text-secondary)' }}>{t('sched_pat_cancel')}</button>
+                style={{ color: 'var(--dock-text-secondary)' }}>{t('sched_pat_cancel')}</button>
         <button onClick={save} className="px-4 py-1.5 rounded text-xs transition-colors"
                 style={btnPrimary}
                 {...hoverify(btnPrimary, btnPrimaryHover)}>{t('sched_pat_save')}</button>
@@ -347,17 +347,17 @@ export default function ShiftPatternsManager({ patterns: initial, activePattern,
         style={modalFrame}
         onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between px-6 py-4 border-b"
-             style={{ borderColor: 'var(--border-subtle)' }}>
-          <h2 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{t('sched_pat_title')}</h2>
+             style={{ borderColor: 'var(--dock-border-subtle)' }}>
+          <h2 className="text-sm font-semibold" style={{ color: 'var(--dock-text-primary)' }}>{t('sched_pat_title')}</h2>
           <button onClick={onClose} className="text-xl transition-colors"
-                  style={{ color: 'var(--text-muted)' }}
-                  onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
-                  onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}>×</button>
+                  style={{ color: 'var(--dock-text-muted)' }}
+                  onMouseEnter={e => e.currentTarget.style.color = 'var(--dock-text-primary)'}
+                  onMouseLeave={e => e.currentTarget.style.color = 'var(--dock-text-muted)'}>×</button>
         </div>
 
         <div className="p-6 space-y-4">
           {patterns.length === 0 && !editing && (
-            <div className="text-center text-xs py-6" style={{ color: 'var(--text-muted)' }}>
+            <div className="text-center text-xs py-6" style={{ color: 'var(--dock-text-muted)' }}>
               {t('sched_pat_empty')}
             </div>
           )}
@@ -370,27 +370,27 @@ export default function ShiftPatternsManager({ patterns: initial, activePattern,
             ) : (
               <div key={p.id} className="border rounded-lg px-4 py-3 flex items-center gap-2"
                    style={activeId === p.id
-                     ? { borderColor: 'var(--success-text)', backgroundColor: 'var(--success-bg)' }
-                     : { borderColor: 'var(--border-default)', backgroundColor: 'var(--surface)' }}>
+                     ? { borderColor: 'var(--dock-success-text)', backgroundColor: 'var(--dock-success-bg)' }
+                     : { borderColor: 'var(--dock-border-default)', backgroundColor: 'var(--dock-surface)' }}>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="text-sm" style={{ color: 'var(--text-primary)' }}>{p.name}</span>
+                    <span className="text-sm" style={{ color: 'var(--dock-text-primary)' }}>{p.name}</span>
                     {activeId === p.id && (
                       <span className="text-[10px] px-1.5 py-0.5 rounded"
-                            style={{ backgroundColor: 'var(--success-text)', color: 'var(--btn-primary-text)' }}>{t('sched_pat_active')}</span>
+                            style={{ backgroundColor: 'var(--dock-success-text)', color: 'var(--dock-btn-primary-text)' }}>{t('sched_pat_active')}</span>
                     )}
                   </div>
                   <div className="space-y-1">
                     <div className="flex items-center gap-2 text-[11px]">
                       {p.slots.map(s => (
                         <span key={s.label} className="px-2 py-0.5 rounded"
-                              style={{ backgroundColor: 'var(--surface-2)', color: 'var(--text-secondary)' }}>
+                              style={{ backgroundColor: 'var(--dock-surface-2)', color: 'var(--dock-text-secondary)' }}>
                           {s.label} {s.start_hour}-{s.end_hour}
                         </span>
                       ))}
                     </div>
                     <div className="flex items-center gap-2 text-[11px] flex-wrap">
-                      <span style={{ color: 'var(--text-muted)' }}>역할:</span>
+                      <span style={{ color: 'var(--dock-text-muted)' }}>역할:</span>
                       {parseRoles(p).map(r => {
                         const c = roleColorClasses(r.color)
                         return (
@@ -406,14 +406,14 @@ export default function ShiftPatternsManager({ patterns: initial, activePattern,
                 {activeId !== p.id && (
                   <button onClick={() => makeActive(p)}
                     className="text-xs border px-3 py-1.5 rounded transition-colors"
-                    style={{ color: 'var(--success-text)', borderColor: 'var(--success-text)' }}>{t('sched_pat_activate')}</button>
+                    style={{ color: 'var(--dock-success-text)', borderColor: 'var(--dock-success-text)' }}>{t('sched_pat_activate')}</button>
                 )}
                 <button onClick={() => setEditing({ pattern: p })}
                   className="text-xs border px-3 py-1.5 rounded transition-colors"
-                  style={{ color: 'var(--text-secondary)', borderColor: 'var(--border-default)' }}>{t('sched_pat_edit')}</button>
+                  style={{ color: 'var(--dock-text-secondary)', borderColor: 'var(--dock-border-default)' }}>{t('sched_pat_edit')}</button>
                 <button onClick={() => handleDelete(p)}
                   className="text-xs border px-3 py-1.5 rounded transition-colors"
-                  style={{ color: 'var(--danger-text)', borderColor: 'var(--border-default)' }}>{t('sched_pat_delete')}</button>
+                  style={{ color: 'var(--dock-danger-text)', borderColor: 'var(--dock-border-default)' }}>{t('sched_pat_delete')}</button>
               </div>
             )
           ))}
@@ -423,7 +423,7 @@ export default function ShiftPatternsManager({ patterns: initial, activePattern,
           ) : (
             <button onClick={() => setEditing('new')}
               className="w-full border border-dashed rounded-lg py-2 text-xs transition-colors"
-              style={{ color: 'var(--text-secondary)', borderColor: 'var(--border-strong)' }}>
+              style={{ color: 'var(--dock-text-secondary)', borderColor: 'var(--dock-border-strong)' }}>
               {t('sched_pat_new')}
             </button>
           )}

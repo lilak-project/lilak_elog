@@ -18,7 +18,7 @@ export default function TabBar() {
   const { t } = useLang()
 
   return (
-    <div data-tab-bar className="flex items-center h-10 border-b" style={{ borderColor: 'var(--border-default)' }}>
+    <div data-tab-bar className="flex items-center h-10 border-b" style={{ borderColor: 'var(--dock-border-default)' }}>
       {tabs.map(tab => {
         const isActive = tab.id === activeTab.id
         const label = TAB_LABEL_KEYS[tab.type] ? t(TAB_LABEL_KEYS[tab.type]) : tab.label
@@ -28,10 +28,10 @@ export default function TabBar() {
               onClick={() => activateTab(tab.id)}
               className="h-full px-3 text-sm border-b-2 -mb-px transition-colors whitespace-nowrap"
               style={isActive
-                ? { borderColor: 'var(--btn-primary-bg)', color: 'var(--text-link)' }
-                : { borderColor: 'transparent', color: 'var(--text-secondary)' }}
-              onMouseEnter={e => { if (!isActive) e.currentTarget.style.color = 'var(--text-primary)' }}
-              onMouseLeave={e => { if (!isActive) e.currentTarget.style.color = 'var(--text-secondary)' }}
+                ? { borderColor: 'var(--dock-btn-primary-bg)', color: 'var(--dock-text-link)' }
+                : { borderColor: 'transparent', color: 'var(--dock-text-secondary)' }}
+              onMouseEnter={e => { if (!isActive) e.currentTarget.style.color = 'var(--dock-text-primary)' }}
+              onMouseLeave={e => { if (!isActive) e.currentTarget.style.color = 'var(--dock-text-secondary)' }}
             >
               {label}
             </button>
@@ -39,9 +39,9 @@ export default function TabBar() {
               <button
                 onClick={e => { e.stopPropagation(); closeTab(tab.id) }}
                 className="w-4 h-4 mr-1 flex items-center justify-center text-xs leading-none transition-colors"
-                style={{ color: 'var(--text-muted)' }}
-                onMouseEnter={e => e.currentTarget.style.color = 'var(--danger-text)'}
-                onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
+                style={{ color: 'var(--dock-text-muted)' }}
+                onMouseEnter={e => e.currentTarget.style.color = 'var(--dock-danger-text)'}
+                onMouseLeave={e => e.currentTarget.style.color = 'var(--dock-text-muted)'}
                 title="탭 닫기"
               >
                 ×

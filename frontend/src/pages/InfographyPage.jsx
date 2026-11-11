@@ -30,7 +30,7 @@ function fmtTime(epoch) {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`
 }
 
-const fieldStyle = { background: 'var(--input-bg)', border: '1px solid var(--input-border)', borderRadius: 7, padding: '6px 9px', fontSize: 'var(--fs-body, 13px)', color: 'var(--text-primary)', outline: 'none' }
+const fieldStyle = { background: 'var(--dock-input-bg)', border: '1px solid var(--dock-input-border)', borderRadius: 7, padding: '6px 9px', fontSize: 'var(--fs-body, 13px)', color: 'var(--dock-text-primary)', outline: 'none' }
 
 // ── Panel editor (Grafana "edit panel") — kit Modal ───────────────────────────
 function PanelEditor({ initial, vars, onClose, onSaved }) {
@@ -86,9 +86,9 @@ function PanelEditor({ initial, vars, onClose, onSaved }) {
   function AxisList({ titleLabel, items, onRemove, color, dim }) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, opacity: dim ? 0.4 : 1 }}>
-        <p style={{ fontSize: 'var(--fs-tiny, 11px)', fontWeight: 600, margin: '0 0 4px', color: 'var(--text-muted)' }}>{titleLabel}</p>
-        <div style={{ border: '1px solid var(--border-default)', borderRadius: 8, flex: 1, overflowY: 'auto', padding: 4, minHeight: 150, display: 'flex', flexDirection: 'column', gap: 4 }}>
-          {items.length === 0 && <div style={{ fontSize: 'var(--fs-small, 12px)', padding: '4px 6px', color: 'var(--text-muted)' }}>없음</div>}
+        <p style={{ fontSize: 'var(--fs-tiny, 11px)', fontWeight: 600, margin: '0 0 4px', color: 'var(--dock-text-muted)' }}>{titleLabel}</p>
+        <div style={{ border: '1px solid var(--dock-border-default)', borderRadius: 8, flex: 1, overflowY: 'auto', padding: 4, minHeight: 150, display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {items.length === 0 && <div style={{ fontSize: 'var(--fs-small, 12px)', padding: '4px 6px', color: 'var(--dock-text-muted)' }}>없음</div>}
           {items.map(k => (
             <div key={k} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4, padding: '4px 8px', borderRadius: 6, fontSize: 'var(--fs-small, 12px)', backgroundColor: color, color: '#fff' }}>
               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{lbl(k)}</span>
@@ -125,9 +125,9 @@ function PanelEditor({ initial, vars, onClose, onSaved }) {
         </Row>
 
         <Input size="md" value={runSpec} onChange={e => setRunSpec(e.target.value)} placeholder="run 선택 (예: 1:80, 94:105, !77)" />
-        <p style={{ fontSize: 'var(--fs-tiny, 11px)', margin: 0, lineHeight: 1.5, color: 'var(--text-muted)' }}>
+        <p style={{ fontSize: 'var(--fs-tiny, 11px)', margin: 0, lineHeight: 1.5, color: 'var(--dock-text-muted)' }}>
           쉼표 <b>,</b> 로 여러 런, 콜론 <b>:</b> 으로 범위, 느낌표 <b>!</b> 로 제외.
-          <span style={{ color: 'var(--text-secondary)' }}> x1·x2·y1·y2는 그래프 축 범위도 강제합니다.</span>
+          <span style={{ color: 'var(--dock-text-secondary)' }}> x1·x2·y1·y2는 그래프 축 범위도 강제합니다.</span>
         </p>
 
         {/* Assign axis from selection */}
@@ -148,16 +148,16 @@ function PanelEditor({ initial, vars, onClose, onSaved }) {
         {/* Variable / x / y columns */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0,1fr))', gap: 12 }}>
           <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-            <p style={{ fontSize: 'var(--fs-tiny, 11px)', fontWeight: 600, margin: '0 0 4px', color: 'var(--text-muted)' }}>변수 리스트</p>
-            <div style={{ border: '1px solid var(--border-default)', borderRadius: 8, overflowY: 'auto', minHeight: 150, maxHeight: 220 }}>
+            <p style={{ fontSize: 'var(--fs-tiny, 11px)', fontWeight: 600, margin: '0 0 4px', color: 'var(--dock-text-muted)' }}>변수 리스트</p>
+            <div style={{ border: '1px solid var(--dock-border-default)', borderRadius: 8, overflowY: 'auto', minHeight: 150, maxHeight: 220 }}>
               {vars.map(v => (
-                <label key={v.key} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', fontSize: 'var(--fs-small, 12px)', cursor: 'pointer', borderBottom: '1px solid var(--border-subtle)', backgroundColor: sel.has(v.key) ? 'var(--info-bg)' : 'transparent' }}>
+                <label key={v.key} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', fontSize: 'var(--fs-small, 12px)', cursor: 'pointer', borderBottom: '1px solid var(--dock-border-subtle)', backgroundColor: sel.has(v.key) ? 'var(--dock-info-bg)' : 'transparent' }}>
                   <input type="checkbox" checked={sel.has(v.key)} onChange={() => toggleSel(v.key)} />
                   {v.ref && (
                     <button type="button" title="식에 삽입" onClick={e => { e.preventDefault(); setExpr(s => (s ? s + ' ' : '') + `{${v.ref}}`) }}
-                      style={{ fontSize: 'var(--fs-micro, 10px)', fontFamily: 'var(--font-mono)', padding: '1px 4px', borderRadius: 4, flexShrink: 0, border: 'none', cursor: 'pointer', backgroundColor: 'var(--surface-2)', color: 'var(--text-link)' }}>{`{${v.ref}}`}</button>
+                      style={{ fontSize: 'var(--fs-micro, 10px)', fontFamily: 'var(--font-mono)', padding: '1px 4px', borderRadius: 4, flexShrink: 0, border: 'none', cursor: 'pointer', backgroundColor: 'var(--dock-surface-2)', color: 'var(--dock-text-link)' }}>{`{${v.ref}}`}</button>
                   )}
-                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-primary)' }}>{v.label}</span>
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--dock-text-primary)' }}>{v.label}</span>
                 </label>
               ))}
             </div>
@@ -171,7 +171,7 @@ function PanelEditor({ initial, vars, onClose, onSaved }) {
           <Input size="md" value={source} onChange={e => setSource(e.target.value)} placeholder="source (출처 라벨)" title="이 그래프 데이터의 출처/서비스 라벨 — 엔트리에 링크색 칩으로 표시됩니다 (선택)" style={{ width: 180 }} />
         </Row>
 
-        {err && <div style={{ fontSize: 'var(--fs-small, 12px)', padding: '6px 10px', borderRadius: 8, backgroundColor: 'var(--danger-bg)', color: 'var(--danger-text)' }}>{err}</div>}
+        {err && <div style={{ fontSize: 'var(--fs-small, 12px)', padding: '6px 10px', borderRadius: 8, backgroundColor: 'var(--dock-danger-bg)', color: 'var(--dock-danger-text)' }}>{err}</div>}
       </Stack>
     </Modal>
   )
@@ -206,7 +206,7 @@ function InfographChart({ ig, vars, refreshKey, timeRange, runOverride }) {
     return (
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data.bins}>
-          <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" />
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--dock-border-subtle)" />
           <XAxis dataKey="label" tick={{ fontSize: 'var(--fs-tiny, 11px)' }} /><YAxis tick={{ fontSize: 'var(--fs-tiny, 11px)' }} /><Tooltip />
           <Bar dataKey="value" fill="#6366f1" />
         </BarChart>
@@ -230,7 +230,7 @@ function InfographChart({ ig, vars, refreshKey, timeRange, runOverride }) {
     return (
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={hist}>
-          <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" />
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--dock-border-subtle)" />
           <XAxis dataKey="bin" tick={{ fontSize: 'var(--fs-tiny, 11px)' }} label={{ value: varLabel(vars, xVars[0]), position: 'insideBottom', offset: -2, fontSize: 'var(--fs-tiny, 11px)' }} />
           <YAxis tick={{ fontSize: 'var(--fs-tiny, 11px)' }} allowDecimals={false}
             scale={ig.log_y ? 'log' : 'auto'} domain={ig.log_y ? [1, 'auto'] : undefined} allowDataOverflow={ig.log_y} /><Tooltip />
@@ -258,7 +258,7 @@ function InfographChart({ ig, vars, refreshKey, timeRange, runOverride }) {
   return (
     <ResponsiveContainer width="100%" height="100%">
       <LineChart data={sorted} margin={{ top: x2key ? 22 : 5, right: 10, bottom: 5, left: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" />
+        <CartesianGrid strokeDasharray="3 3" stroke="var(--dock-border-subtle)" />
         <XAxis type="number" dataKey="x" xAxisId={0} tick={{ fontSize: 'var(--fs-tiny, 11px)' }}
           domain={[xLo, xHi]}
           allowDataOverflow={xForced}
@@ -286,7 +286,7 @@ function InfographChart({ ig, vars, refreshKey, timeRange, runOverride }) {
   )
 }
 function Empty() {
-  return <div style={{ height: '100%', minHeight: 80, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'var(--fs-small, 12px)', color: 'var(--text-muted)' }}>데이터 없음</div>
+  return <div style={{ height: '100%', minHeight: 80, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'var(--fs-small, 12px)', color: 'var(--dock-text-muted)' }}>데이터 없음</div>
 }
 
 // Big-number "stat" panel (Grafana stat): latest value + mean/min/max/n.
@@ -299,9 +299,9 @@ function StatView({ values = [], label }) {
   const fmt = (v) => Number.isFinite(v) ? Number(v.toFixed(3)).toString() : '—'
   return (
     <div style={{ height: '100%', minHeight: 80, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-      <span style={{ fontSize: 'var(--fs-small, 12px)', color: 'var(--text-muted)' }}>{label}</span>
-      <span style={{ fontSize: 'clamp(28px, 6vw, 52px)', fontWeight: 700, lineHeight: 1, color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>{fmt(last)}</span>
-      <span style={{ fontSize: 'var(--fs-tiny, 11px)', color: 'var(--text-secondary)' }}>μ {fmt(mean)} · min {fmt(min)} · max {fmt(max)} · n {n}</span>
+      <span style={{ fontSize: 'var(--fs-small, 12px)', color: 'var(--dock-text-muted)' }}>{label}</span>
+      <span style={{ fontSize: 'clamp(28px, 6vw, 52px)', fontWeight: 700, lineHeight: 1, color: 'var(--dock-text-primary)', fontFamily: 'var(--font-mono)' }}>{fmt(last)}</span>
+      <span style={{ fontSize: 'var(--fs-tiny, 11px)', color: 'var(--dock-text-secondary)' }}>μ {fmt(mean)} · min {fmt(min)} · max {fmt(max)} · n {n}</span>
     </div>
   )
 }
@@ -461,15 +461,15 @@ function InfographExpanded({ ig, vars, tagColors, refreshKey, timeRange, runOver
     { id: 'csv', label: '데이터 (CSV)', onSelect: () => exportData(ig, vars, runOverride, `${stem}.csv`) },
   ]
   const actions = user && (
-    <div className="border-t pt-3 mt-1 flex items-center gap-1.5 flex-wrap" style={{ borderColor: 'var(--border-subtle)' }}>
-      <ActionBtn onClick={() => onComment(ig.id)} hoverFg="var(--text-link)">댓글</ActionBtn>
-      {canManage && <ActionBtn onClick={() => onEdit(ig)} hoverFg="var(--warning-text)">변수 편집</ActionBtn>}
+    <div className="border-t pt-3 mt-1 flex items-center gap-1.5 flex-wrap" style={{ borderColor: 'var(--dock-border-subtle)' }}>
+      <ActionBtn onClick={() => onComment(ig.id)} hoverFg="var(--dock-text-link)">댓글</ActionBtn>
+      {canManage && <ActionBtn onClick={() => onEdit(ig)} hoverFg="var(--dock-warning-text)">변수 편집</ActionBtn>}
       {canManage && <Button variant={ig.log_y ? 'info' : 'secondary'} size="sm" disabled={logYBusy} onClick={toggleLogY} title="y 축 로그 스케일 토글">log y</Button>}
       <Menu align="left" width={160}
-        trigger={<ActionBtn hoverFg="var(--text-link)"><span className="inline-flex items-center gap-1">내보내기 <Icon name="caret-down" size={11} /></span></ActionBtn>}
+        trigger={<ActionBtn hoverFg="var(--dock-text-link)"><span className="inline-flex items-center gap-1">내보내기 <Icon name="caret-down" size={11} /></span></ActionBtn>}
         sections={[{ items: exportItems }]} />
-      {canManage && <ActionBtn onClick={() => onDuplicate(ig)} hoverFg="var(--success-text)">복제</ActionBtn>}
-      {canManage && <ActionBtn onClick={del} hoverFg="var(--danger-text)" extraClass="ml-auto"><span className="inline-flex items-center gap-1"><Icon name="trash" size={13} /> 삭제</span></ActionBtn>}
+      {canManage && <ActionBtn onClick={() => onDuplicate(ig)} hoverFg="var(--dock-success-text)">복제</ActionBtn>}
+      {canManage && <ActionBtn onClick={del} hoverFg="var(--dock-danger-text)" extraClass="ml-auto"><span className="inline-flex items-center gap-1"><Icon name="trash" size={13} /> 삭제</span></ActionBtn>}
     </div>
   )
   const footer = comments.length > 0 && <CommentsSection comments={comments} user={user} onDelete={deleteComment} />
@@ -517,9 +517,9 @@ function GSheetPanel() {
   const isManager = user?.role === 'manager'
 
   return (
-    <div style={{ border: '1px solid var(--border-default)', borderRadius: 12, padding: 12, backgroundColor: 'var(--surface-2)', display: 'flex', flexDirection: 'column', gap: 8 }}>
+    <div style={{ border: '1px solid var(--dock-border-default)', borderRadius: 12, padding: 12, backgroundColor: 'var(--dock-surface-2)', display: 'flex', flexDirection: 'column', gap: 8 }}>
       <Row gap={8} wrap>
-        <span style={{ fontSize: 'var(--fs-body, 13px)', fontWeight: 600, color: 'var(--text-primary)' }}>Google Sheets</span>
+        <span style={{ fontSize: 'var(--fs-body, 13px)', fontWeight: 600, color: 'var(--dock-text-primary)' }}>Google Sheets</span>
         {status?.connected ? <Badge tone="success">연결됨</Badge> : <Badge tone="neutral">미연결</Badge>}
         <span style={{ flex: 1 }} />
         {status?.connected && <>
@@ -531,22 +531,22 @@ function GSheetPanel() {
       </Row>
 
       {status?.connected && (
-        <div style={{ fontSize: 'var(--fs-tiny, 11px)', color: 'var(--text-muted)' }}>
+        <div style={{ fontSize: 'var(--fs-tiny, 11px)', color: 'var(--dock-text-muted)' }}>
           {status.connected_email} · 시트 {status.spreadsheet_id?.slice(0, 10)}… / {status.worksheet}
           {status.last_synced_at && ` · 최근 동기화 ${formatLogStamp(status.last_synced_at)}`}
         </div>
       )}
-      {msg && <div style={{ fontSize: 'var(--fs-small, 12px)', padding: '4px 8px', borderRadius: 6, backgroundColor: 'var(--success-bg)', color: 'var(--success-text)' }}>{msg}</div>}
-      {err && <div style={{ fontSize: 'var(--fs-small, 12px)', padding: '4px 8px', borderRadius: 6, backgroundColor: 'var(--danger-bg)', color: 'var(--danger-text)' }}>{err}</div>}
+      {msg && <div style={{ fontSize: 'var(--fs-small, 12px)', padding: '4px 8px', borderRadius: 6, backgroundColor: 'var(--dock-success-bg)', color: 'var(--dock-success-text)' }}>{msg}</div>}
+      {err && <div style={{ fontSize: 'var(--fs-small, 12px)', padding: '4px 8px', borderRadius: 6, backgroundColor: 'var(--dock-danger-bg)', color: 'var(--dock-danger-text)' }}>{err}</div>}
 
       {open && !status?.connected && (
         <Stack gap={8} style={{ paddingTop: 4 }}>
-          <p style={{ fontSize: 'var(--fs-tiny, 11px)', margin: 0, color: 'var(--text-muted)' }}>① 서비스 계정 + Sheets API → ② JSON 키 → ③ 스프레드시트를 서비스 계정 이메일에 <b>편집자</b> 공유 → ④ 아래 입력</p>
+          <p style={{ fontSize: 'var(--fs-tiny, 11px)', margin: 0, color: 'var(--dock-text-muted)' }}>① 서비스 계정 + Sheets API → ② JSON 키 → ③ 스프레드시트를 서비스 계정 이메일에 <b>편집자</b> 공유 → ④ 아래 입력</p>
           <textarea value={creds} onChange={e => setCreds(e.target.value)} rows={4} placeholder='서비스 계정 키 JSON 붙여넣기' style={{ ...fieldStyle, width: '100%', fontFamily: 'monospace', fontSize: 'var(--fs-tiny, 11px)', resize: 'vertical' }} />
           <Input size="md" value={sheet} onChange={e => setSheet(e.target.value)} placeholder="스프레드시트 URL 또는 ID" />
           <Row gap={8}>
             <Input size="md" value={worksheet} onChange={e => setWorksheet(e.target.value)} placeholder="워크시트 이름" style={{ width: 160 }} />
-            <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 'var(--fs-small, 12px)', color: 'var(--text-secondary)' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 'var(--fs-small, 12px)', color: 'var(--dock-text-secondary)' }}>
               <input type="checkbox" checked={autoSync} onChange={e => setAutoSync(e.target.checked)} /> 새 로그마다 자동동기화
             </label>
           </Row>
@@ -632,7 +632,7 @@ function SheetTab() {
       <GSheetPanel />
       <Row gap={8} style={{ alignItems: 'center', flexWrap: 'wrap' }}>
         <Input size="md" value={q} onChange={e => setQ(e.target.value)} placeholder="표 안에서 검색…" style={{ width: 200 }} />
-        <span style={{ fontSize: 'var(--fs-tiny, 11px)', color: 'var(--text-muted)' }}>
+        <span style={{ fontSize: 'var(--fs-tiny, 11px)', color: 'var(--dock-text-muted)' }}>
           {rows.length}행 · {columns.length}열{q.trim() ? ` (전체 ${(data.rows || []).length}행 중)` : ''}
         </span>
         <span style={{ flex: 1 }} />
@@ -643,18 +643,18 @@ function SheetTab() {
           {colsOpen && (
             <div style={{ position: 'absolute', right: 0, top: '100%', marginTop: 4, zIndex: 20,
                           minWidth: 190, maxHeight: 300, overflowY: 'auto', padding: 6,
-                          border: '1px solid var(--border-default)', borderRadius: 8,
-                          backgroundColor: 'var(--surface)', boxShadow: '0 6px 20px rgba(0,0,0,.18)' }}>
+                          border: '1px solid var(--dock-border-default)', borderRadius: 8,
+                          backgroundColor: 'var(--dock-surface)', boxShadow: '0 6px 20px rgba(0,0,0,.18)' }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 6px', marginBottom: 4,
-                              borderBottom: '1px solid var(--border-subtle)', cursor: 'pointer',
-                              fontSize: 'var(--fs-small, 12px)', color: 'var(--text-primary)' }}>
+                              borderBottom: '1px solid var(--dock-border-subtle)', cursor: 'pointer',
+                              fontSize: 'var(--fs-small, 12px)', color: 'var(--dock-text-primary)' }}>
                 <input type="checkbox" checked={hideEmpty} onChange={e => setHideEmpty(e.target.checked)} />
-                값 없는 열 숨기기 <span style={{ color: 'var(--text-muted)' }}>({emptyKeys.size})</span>
+                값 없는 열 숨기기 <span style={{ color: 'var(--dock-text-muted)' }}>({emptyKeys.size})</span>
               </label>
               {allColumns.map(c => (
                 <label key={c.key} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 6px',
                                             fontSize: 'var(--fs-small, 12px)',
-                                            color: emptyKeys.has(c.key) ? 'var(--text-muted)' : 'var(--text-primary)',
+                                            color: emptyKeys.has(c.key) ? 'var(--dock-text-muted)' : 'var(--dock-text-primary)',
                                             cursor: c.key === 'run_number' ? 'not-allowed' : 'pointer',
                                             opacity: c.key === 'run_number' ? 0.5 : 1 }}>
                   <input type="checkbox"
@@ -825,13 +825,13 @@ export default function InfographyPage() {
             </>}
 
             <Menu align="left" width={180}
-              trigger={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 28, padding: '0 10px', border: '1px solid var(--border-default)', borderRadius: 8, cursor: 'pointer', background: 'var(--surface)', fontSize: 'var(--fs-small, 12px)', color: 'var(--text-primary)' }}>
-                <span style={{ color: 'var(--text-muted)' }}>$tag</span> {filterTag || 'All'} <Icon name="caret-down" size={12} /></span>}
+              trigger={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 28, padding: '0 10px', border: '1px solid var(--dock-border-default)', borderRadius: 8, cursor: 'pointer', background: 'var(--dock-surface)', fontSize: 'var(--fs-small, 12px)', color: 'var(--dock-text-primary)' }}>
+                <span style={{ color: 'var(--dock-text-muted)' }}>$tag</span> {filterTag || 'All'} <Icon name="caret-down" size={12} /></span>}
               sections={[{ items: [{ id: '', label: 'All', active: !filterTag, onSelect: () => setFilterTag('') }, ...availableTags.map(t => ({ id: t, label: `#${t}`, active: filterTag === t, onSelect: () => setFilterTag(t) }))] }]} />
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, height: 28, padding: '0 4px 0 10px', border: '1px solid var(--border-default)', borderRadius: 8, background: 'var(--surface)' }}>
-              <span style={{ fontSize: 'var(--fs-small, 12px)', color: 'var(--text-muted)' }}>$run</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, height: 28, padding: '0 4px 0 10px', border: '1px solid var(--dock-border-default)', borderRadius: 8, background: 'var(--dock-surface)' }}>
+              <span style={{ fontSize: 'var(--fs-small, 12px)', color: 'var(--dock-text-muted)' }}>$run</span>
               <input value={runOverride} onChange={e => setRunOverride(e.target.value)} placeholder="all"
-                style={{ width: 90, border: 'none', background: 'transparent', outline: 'none', fontSize: 'var(--fs-small, 12px)', color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }} title="모든 패널에 적용할 run 범위 (예: 1:80)" />
+                style={{ width: 90, border: 'none', background: 'transparent', outline: 'none', fontSize: 'var(--fs-small, 12px)', color: 'var(--dock-text-primary)', fontFamily: 'var(--font-mono)' }} title="모든 패널에 적용할 run 범위 (예: 1:80)" />
             </span>
 
             <span style={{ flex: 1 }} />
@@ -840,7 +840,7 @@ export default function InfographyPage() {
           </Row>
 
           {shown.length === 0
-            ? <p style={{ textAlign: 'center', padding: '40px 0', fontSize: 'var(--fs-body, 13px)', color: 'var(--text-muted)' }}>{filterTag ? '해당 태그의 패널이 없습니다.' : '아직 infograph가 없습니다.'}</p>
+            ? <p style={{ textAlign: 'center', padding: '40px 0', fontSize: 'var(--fs-body, 13px)', color: 'var(--dock-text-muted)' }}>{filterTag ? '해당 태그의 패널이 없습니다.' : '아직 infograph가 없습니다.'}</p>
             : (
               <LogList entries={shown} reverse={false} gap={12} groupBy={(ig) => ig.run_spec || ''}
                 renderItem={(ig, idx) => {

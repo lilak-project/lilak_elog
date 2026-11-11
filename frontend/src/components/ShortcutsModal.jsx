@@ -58,7 +58,7 @@ const SHORTCUT_GROUPS = (t) => [
 function Key({ children }) {
   return (
     <kbd className="inline-flex items-center justify-center min-w-[1.75rem] h-7 px-1.5 border rounded text-xs font-mono shadow-sm"
-         style={{ backgroundColor: 'var(--surface-2)', borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
+         style={{ backgroundColor: 'var(--dock-surface-2)', borderColor: 'var(--dock-border-default)', color: 'var(--dock-text-secondary)' }}>
       {children}
     </kbd>
   )
@@ -87,28 +87,28 @@ export default function ShortcutsModal({ onClose }) {
         onClick={e => e.stopPropagation()}
       >
         <div className="sticky top-0 flex items-center justify-between px-5 py-3 border-b"
-             style={{ ...combo('body'), borderColor: 'var(--border-subtle)' }}>
-          <h2 className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>{t('shortcuts_title')}</h2>
+             style={{ ...combo('body'), borderColor: 'var(--dock-border-subtle)' }}>
+          <h2 className="font-semibold text-sm" style={{ color: 'var(--dock-text-primary)' }}>{t('shortcuts_title')}</h2>
           <button onClick={onClose} className="text-xl leading-none transition-colors"
-                  style={{ color: 'var(--text-muted)' }}
-                  onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
-                  onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}>×</button>
+                  style={{ color: 'var(--dock-text-muted)' }}
+                  onMouseEnter={e => e.currentTarget.style.color = 'var(--dock-text-primary)'}
+                  onMouseLeave={e => e.currentTarget.style.color = 'var(--dock-text-muted)'}>×</button>
         </div>
         <div className="p-4 space-y-4">
           {SHORTCUT_GROUPS(t).map(group => (
             <div key={group.title}>
               <p className="text-[10px] font-semibold uppercase tracking-wider mb-2"
-                 style={{ color: 'var(--text-muted)' }}>
+                 style={{ color: 'var(--dock-text-muted)' }}>
                 {group.title}
               </p>
               <ul className="space-y-1.5">
                 {group.items.map(({ keys, desc }) => (
                   <li key={desc} className="flex items-center justify-between gap-4">
-                    <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{desc}</span>
+                    <span className="text-xs" style={{ color: 'var(--dock-text-secondary)' }}>{desc}</span>
                     <span className="flex items-center gap-1 shrink-0">
                       {keys.map((k, i) => (
                         <span key={i} className="flex items-center gap-1">
-                          {i > 0 && <span className="text-xs" style={{ color: 'var(--text-muted)' }}>/</span>}
+                          {i > 0 && <span className="text-xs" style={{ color: 'var(--dock-text-muted)' }}>/</span>}
                           <Key>{k}</Key>
                         </span>
                       ))}
